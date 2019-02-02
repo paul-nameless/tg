@@ -388,7 +388,7 @@ class Controller:
 
 
 def main(stdscr):
-    logger.info('#' * 64)
+    logger.debug('#' * 64)
     tg = Telegram(
         api_id=API_ID,
         api_hash=API_HASH,
@@ -402,6 +402,7 @@ def main(stdscr):
     controller = Controller(model, view)
     controller.tg = tg
     controller.init()
+    tg.add_message_handler(controller.update_handler)
 
     t = threading.Thread(
         target=controller.run,
