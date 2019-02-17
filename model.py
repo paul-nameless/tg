@@ -15,6 +15,9 @@ class Model:
     def get_current_chat_id(self):
         return self.chats.chat_ids[self.current_chat]
 
+    def get_current_msg(self):
+        return self.msgs.current_msgs[self.get_current_chat_id()]
+
     def next_chat(self):
         if self.current_chat < len(self.chats.chats):
             self.current_chat += 1
@@ -26,6 +29,14 @@ class Model:
             self.current_chat -= 1
             return True
         return False
+
+    def next_msg(self):
+        chat_id = self.chats.chat_ids[self.current_chat]
+        return self.msgs.next_msg(chat_id)
+
+    def prev_msg(self):
+        chat_id = self.chats.chat_ids[self.current_chat]
+        return self.msgs.prev_msg(chat_id)
 
     def get_chats(self, offset=0, limit=10):
         return self.chats.get_chats(offset=offset, limit=limit)
@@ -118,6 +129,19 @@ class MsgModel:
     def __init__(self, tg):
         self.tg = tg
         self.msgs = defaultdict(list)  # Dict[int, list]
+        self.current_msgs = defaultdict(int)
+
+    def next_msg(self, chat_id):
+        if self.current_msgs[chat_id] > 0:
+            self.current_msgs[chat_id] -= 1
+            return True
+        return False
+
+    def prev_msg(self, chat_id):
+        if self.current_msgs[chat_id] < len(self.msgs[chat_id]):
+            self.current_msgs[chat_id] += 1
+            return True
+        return False
 
     def get_msgs(self, chat_id, offset=0, limit=10):
         if offset + limit < len(self.msgs[chat_id]):

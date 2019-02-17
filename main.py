@@ -3,6 +3,7 @@ import logging.handlers
 import os
 import threading
 from curses import wrapper
+from functools import partial
 
 from telegram.client import Telegram
 
@@ -15,7 +16,7 @@ logging.basicConfig(
     format='%(asctime)s %(message)s',
     handlers=[
         logging.handlers.RotatingFileHandler(
-            './debug.log',
+            './tg.log',
             backupCount=1,
             maxBytes=1024*256
         ),
@@ -30,16 +31,7 @@ if PHONE is None:
     raise Exception('Environment variables did not provided')
 
 
-def main(stdscr):
-    logger.debug('#' * 64)
-    tg = Telegram(
-        api_id=API_ID,
-        api_hash=API_HASH,
-        phone=PHONE,
-        database_encryption_key='changeme1234',
-    )
-    tg.login()
-
+def run(tg, stdscr):
     view = View(stdscr)
     model = Model(tg)
     controller = Controller(model, view)
@@ -54,5 +46,18 @@ def main(stdscr):
     t.join()
 
 
+def main():
+    logger.debug('#' * 64)
+    tg = Telegram(
+        api_id=API_ID,
+        api_hash=API_HASH,
+        phone=PHONE,
+        database_encryption_key='changeme1234',
+    )
+    tg.login()
+
+    wrapper(partial(run, tg))
+
+
 if __name__ == '__main__':
-    wrapper(main)
+    main()

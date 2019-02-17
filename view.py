@@ -11,7 +11,13 @@ class View:
 
     def __init__(self, stdscr):
         curses.start_color()
-        curses.echo()
+        curses.noecho()
+        curses.cbreak()
+        stdscr.keypad(True)
+        curses.curs_set(0)
+
+        curses.start_color()
+        curses.use_default_colors()
 
         self.stdscr = stdscr
         self.chats = ChatView(stdscr)
@@ -21,17 +27,23 @@ class View:
     def draw_chats(self, current, chats):
         self.chats.draw(current, chats)
 
-    def draw_msgs(self, msgs):
-        self.msgs.draw(msgs)
+    def draw_msgs(self, current, msgs):
+        self.msgs.draw(current, msgs)
 
-    def get_key(self):
+    def get_key(self, y, x):
         # return self.stdscr.getkey()
-        _input = self.stdscr.getstr(
-            self.msgs.h, self.chats.w, self.max_read).decode()
+
+        ch = self.stdscr.getch(y, x)
+        logger.info('raw ch without unctrl: %s', ch)
+        return curses.unctrl(ch).decode()
+
         # self.stdscr.addstr(self.msgs.h, self.chats.w, ' ' * self.msgs.w-10)
         # self.chats.win.addstr(self.msgs.h, self.chats.w +
         #                       5, ' ' * self.msgs.w-10)
-        return _input
+
+        # _input = self.stdscr.getstr(
+        #     self.msgs.h, self.chats.w, self.max_read).decode()
+        # return _input
 
 
 emoji_pattern = re.compile(
@@ -53,12 +65,14 @@ class ChatView:
 
     def draw(self, current, chats):
         self.win.clear()
-        self.win.vline(0, self.w-1, curses.ACS_VLINE, self.h)
+        # self.win.vline(0, self.w-1, curses.ACS_VLINE, self.h)
         for i, chat in enumerate(chats):
-            msg = f'{i:>2} {get_date(chat)} {chat["title"]} {chat["unread_count"]}: {get_last_msg(chat)}'
+            msg = f'{get_date(chat)} {chat["title"]} {chat["unread_count"]}: {get_last_msg(chat)}'
             msg = emoji_pattern.sub(r'', msg)[:self.w-1]
+            if len(msg) < self.w:
+                msg += ' ' * (self.w - len(msg) - 1)
             if i == current:
-                self.win.addstr(i, 0, msg, curses.color_pair(1))
+                self.win.addstr(i, 0, msg, curses.A_REVERSE)
                 continue
             self.win.addstr(i, 0, msg)
 
@@ -73,18 +87,25 @@ class MsgView:
         self.win = stdscr.subwin(self.h, self.w, 0, self.s)
         self.lines = 0
 
-    def draw(self, msgs):
+    def draw(self, current, msgs):
+        logger.info('Dwaring msgs')
         self.win.clear()
         count = 0
+        current = len(msgs) - current - 1
 
-        for msg in msgs:
+        for i, msg in enumerate(msgs):
             s = self._parse_msg(msg)
             s = s.replace('\n', ' ')
+            if len(s) < self.w:
+                s += ' ' * (self.w - len(s) - 1)
             offset = math.ceil(len(s) / self.w)
             if count + offset > self.h-1:
                 logger.warning('Reched end of lines')
                 break
-            self.win.addstr(count, 0, s)
+            if i == current:
+                self.win.addstr(count, 0, s, curses.A_REVERSE)
+            else:
+                self.win.addstr(count, 0, s)
             count += offset
 
         self.lines = count
