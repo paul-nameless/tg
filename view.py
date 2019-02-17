@@ -46,6 +46,20 @@ class View:
         # return _input
 
 
+class StatusView:
+
+    def __init__(self, stdscr):
+        # self.stdscr = stdscr
+        pass
+
+    def resize(self):
+        pass
+
+    def draw(self, msg):
+        # draw msg on the last line
+        pass
+
+
 emoji_pattern = re.compile(
     "["
     "\U0001F600-\U0001F64F"  # emoticons
@@ -58,10 +72,15 @@ emoji_pattern = re.compile(
 
 
 class ChatView:
-    def __init__(self, stdscr):
+    def __init__(self, stdscr, p=0.5):
         self.h = curses.LINES - 1
-        self.w = int((curses.COLS - 1) * 0.25)
+        self.w = int((curses.COLS - 1) * p)
         self.win = stdscr.subwin(self.h, self.w, 0, 0)
+
+    def resize(self, p=0.25):
+        self.h = curses.LINES - 1
+        self.w = int((curses.COLS - 1) * p)
+        self.win.resize(self.h, self.w)
 
     def draw(self, current, chats):
         self.win.clear()
@@ -80,12 +99,23 @@ class ChatView:
 
 
 class MsgView:
-    def __init__(self, stdscr):
+    def __init__(self, stdscr, p=0.5):
+        self.stdscr = stdscr
         self.h = curses.LINES - 1
-        self.w = curses.COLS - int((curses.COLS - 1) * 0.25)
+        self.w = curses.COLS - int((curses.COLS - 1) * p)
         self.s = curses.COLS - self.w
         self.win = stdscr.subwin(self.h, self.w, 0, self.s)
         self.lines = 0
+
+    def resize(self, p=0.25):
+        self.h = curses.LINES - 1
+        self.w = curses.COLS - int((curses.COLS - 1) * p)
+        logger.info('msgs view width: %s', self.w)
+        self.s = curses.COLS - self.w
+
+        self.win = self.stdscr.subwin(self.h, self.w, 0, self.s)
+        self.win.mvwin(0, self.s)
+        self.win.resize(self.h, self.w)
 
     def draw(self, current, msgs):
         logger.info('Dwaring msgs')

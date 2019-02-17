@@ -19,18 +19,15 @@ class Controller:
         self.lock = threading.Lock()
 
     def init(self):
-        self.view.draw_chats(
-            self.model.current_chat,
-            self.model.get_chats()
-        )
-        msgs = self.model.get_current_msgs()
-        self.view.draw_msgs(self.model.get_current_msg(), msgs)
+        pass
+    #     self.refresh_chats()
+    #     self.refresh_msgs()
 
     def run(self):
         try:
             self.handle()
         except Exception as e:
-            logger.exception('Error happened on run')
+            logger.exception('Error happened in main loop')
 
     # def send_msg(self):
     #     import curses
@@ -68,6 +65,12 @@ class Controller:
     #     self.view.draw_msgs(msgs)
 
     def handle_msgs(self):
+        # set width to 0.25, move window to left
+        # refresh everything
+        self.view.chats.resize(0.25)
+        self.view.msgs.resize(0.25)
+        self.refresh_chats()
+
         while True:
 
             key = self.view.get_key(self.view.chats.h, self.view.chats.w)
@@ -86,6 +89,12 @@ class Controller:
             elif key == 'k':
                 if self.model.prev_msg():
                     self.refresh_msgs()
+            elif key == 'G':
+                # move to the bottom
+                pass
+            elif key == 'gg':
+                # move to the top
+                pass
             elif key == 'e':
                 # edit msg
                 pass
@@ -107,14 +116,18 @@ class Controller:
             self.model.current_chat,
             self.model.get_chats()
         )
-        msgs = self.model.get_current_msgs()
-        self.view.draw_msgs(self.model.get_current_msg(), msgs)
+        self.refresh_msgs()
 
     def refresh_msgs(self):
         msgs = self.model.get_current_msgs()
         self.view.draw_msgs(self.model.get_current_msg(), msgs)
 
     def handle_chats(self):
+        # set width to 0.5, move window to center?
+        # refresh everything
+        self.view.chats.resize(0.5)
+        self.view.msgs.resize(0.5)
+        self.refresh_chats()
         while True:
 
             key = self.view.get_key(self.view.chats.h, self.view.chats.w)
@@ -125,6 +138,9 @@ class Controller:
                 rc = self.handle_msgs()
                 if rc == 'QUIT':
                     return
+                self.view.chats.resize(0.5)
+                self.view.msgs.resize(0.5)
+                self.refresh_chats()
 
             elif key == 'j':
                 is_changed = self.model.next_chat()
@@ -145,7 +161,7 @@ class Controller:
             chat_id = update['message']['chat_id']
             self.model.msgs.msgs[chat_id].append(update['message'])
             msgs = self.model.get_current_msgs()
-            self.view.draw_msgs(msgs)
+            self.refresh_msgs()
             try:
                 notify(update['message']['content']['text']['text'])
             except Exception:
