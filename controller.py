@@ -116,6 +116,7 @@ class Controller:
             self.model.get_chats()
         )
         self.refresh_msgs()
+        self.view.draw_status()
 
     def refresh_msgs(self):
         msgs = self.model.get_current_msgs()

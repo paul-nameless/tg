@@ -22,10 +22,14 @@ class View:
         self.stdscr = stdscr
         self.chats = ChatView(stdscr)
         self.msgs = MsgView(stdscr)
+        self.status = StatusView(stdscr)
         self.max_read = 2048
 
     def draw_chats(self, current, chats):
         self.chats.draw(current, chats)
+
+    def draw_status(self, msg=None):
+        self.status.draw(msg)
 
     def draw_msgs(self, current, msgs):
         self.msgs.draw(current, msgs)
@@ -60,13 +64,13 @@ class View:
             logger.info('Trying to chr: %s', chr(key))
             # except ValueError:
             # logger.exception()
-            if key == 10:
+            if key == 10:  # return
                 logger.info('Sending msg: %s', buff)
                 break
-            elif key == 127:
+            elif key == 127:  # del
                 if buff:
                     buff = buff[:-1]
-            elif key == 7:
+            elif key == 7:  # ^G cancel
                 logger.info('Not Sending msg: %s', buff)
                 buff = None
                 break
@@ -88,28 +92,21 @@ class View:
 class StatusView:
 
     def __init__(self, stdscr):
-        # self.stdscr = stdscr
-        pass
+        self.h = 1
+        self.w = curses.COLS
+        self.y = curses.LINES - 1
+        self.x = 0
+        self.win = stdscr.subwin(self.h, self.w, self.y, self.x)
 
     def resize(self):
-        pass
+        self.w = curses.COLS
+        self.y = curses.LINES - 1
+        self.win.resize(self.h, self.w)
+        self.win.wmove(self.y, self.x)
 
     def draw(self, msg):
-        # draw msg on the last line
-        pass
-
-
-emoji_pattern = re.compile(
-    "["
-    "\U0001F600-\U0001F64F"  # emoticons
-    "\U0001F300-\U0001F5FF"  # symbols & pictographs
-    "\U0001F680-\U0001F6FF"  # transport & map symbols
-    "\U0001F1E0-\U0001F1FF"  # flags (iOS)
-    "\U00002702-\U000027B0"
-    "\U000024C2-\U0001F251"
-    "]+",
-    flags=re.UNICODE
-)
+        msg = ' ' * (self.w - 1)
+        self.win.addstr(0, 0, msg, curses.A_REVERSE)
 
 
 class ChatView:
@@ -235,3 +232,16 @@ def parse_content(content):
     else:
         logger.debug('Unknown content: %s', content)
         return f'[unknown type {_type}]'
+
+
+emoji_pattern = re.compile(
+    "["
+    "\U0001F600-\U0001F64F"  # emoticons
+    "\U0001F300-\U0001F5FF"  # symbols & pictographs
+    "\U0001F680-\U0001F6FF"  # transport & map symbols
+    "\U0001F1E0-\U0001F1FF"  # flags (iOS)
+    "\U00002702-\U000027B0"
+    "\U000024C2-\U0001F251"
+    "]+",
+    flags=re.UNICODE
+)
