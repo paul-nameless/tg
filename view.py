@@ -31,6 +31,7 @@ class View:
         curses.init_pair(7, -1, curses.COLOR_BLACK)
         curses.init_pair(8, curses.COLOR_CYAN, curses.COLOR_BLACK)
         curses.init_pair(9, curses.COLOR_BLUE, curses.COLOR_BLACK)
+        curses.init_pair(10, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
 
         self.stdscr = stdscr
         self.chats = ChatView(stdscr)
@@ -146,27 +147,50 @@ class ChatView:
         self.win.clear()
         # self.win.vline(0, self.w-1, curses.ACS_VLINE, self.h)
         for i, chat in enumerate(chats):
-            msg = f' {get_date(chat)} {chat["title"]} [{chat["unread_count"]}]: {get_last_msg(chat)}'
+            # msg = f' {get_date(chat)} {chat["title"]} [{chat["unread_count"]}]: {get_last_msg(chat)}'
+            date, title, unread, last_msg = get_date(
+                chat), chat["title"], chat["unread_count"], get_last_msg(chat)
             # msg = emoji_pattern.sub(r'', msg)[:self.w-1]
-            msg = emoji_pattern.sub(r'', msg)[:self.w-2] + ' '
+            # last_msg = emoji_pattern.sub(r'', msg)[:self.w-2] + ' '
+            last_msg = emoji_pattern.sub(r'', last_msg)
             # msg = msg[:self.w-1]
-            if len(msg) < self.w:
-                msg += ' ' * (self.w - len(msg) - 1)
+            # if len(msg) < self.w:
+            #     msg += ' ' * (self.w - len(msg) - 1)
 
             if i == current:
-                colors = [7, 8, 9, 7]
+                colors = [7, 8, 9, 10]
             else:
-                colors = [1, 2, 3, 1]
+                colors = [1, 2, 3, 4]
 
             offset = 0
             j = 0
-            for color, e in zip(colors, msg.split(' ', maxsplit=3)):
+            # for color, e in zip(colors, msg.split(' ', maxsplit=3)):
+            for color, e in zip(colors, ['', date, title]):
                 attr = curses.color_pair(color)
+                if offset > self.w:
+                    break
                 j += 1
                 if j < 4:
                     e = e + ' '
-                self.win.addstr(i, offset, e, attr)
+                self.win.addstr(i, offset, e[:self.w-offset-1], attr)
                 offset += len(e)
+
+            if offset >= self.w:
+                continue
+
+            attr = curses.color_pair(colors[0])
+            msg = last_msg[:self.w-offset-1]
+
+            # msg = msg[:self.w-1]
+            if len(msg) < self.w:
+                msg += ' ' * (self.w - offset - len(msg) - 1)
+
+            self.win.addstr(i, offset, msg, attr)
+
+            if unread:
+                attr = curses.color_pair(colors[-1])
+                unread = ' ' + str(unread) + ' '
+                self.win.addstr(i, self.w - len(unread) - 1, unread, attr)
 
             # if i == current:
             #     # attr = curses.A_REVERSE | curses.color_pair(1)
@@ -265,14 +289,25 @@ class MsgView:
 
         self.win.refresh()
 
+    def _get_user_by_id(self, user_id):
+        if user_id == 0:
+            return ''
+        user = self.users.get_user(user_id)
+        if user.get('username'):
+            return '@' + user['username']
+        if user["first_name"] and user["last_name"]:
+            return f'{user["first_name"]} {user["last_name"]}'
+        return f'{user["first_name"]}'
+
     def _parse_msg(self, msg):
         dt = datetime.fromtimestamp(
             msg['date']).strftime("%H:%M:%S")
         _type = msg['@type']
         if _type == 'message':
+            user = self._get_user_by_id(msg['sender_user_id'])
             return " {} {}: {}".format(
                 dt,
-                msg['sender_user_id'],
+                user,
                 parse_content(msg['content'])
             )
         logger.debug('Unknown message type: %s', msg)

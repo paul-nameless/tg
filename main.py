@@ -13,7 +13,7 @@ from view import View
 
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(asctime)s %(message)s',
+    format='%(asctime)s %(levelname)s %(message)s',
     handlers=[
         logging.handlers.RotatingFileHandler(
             './tg.log',
@@ -55,6 +55,12 @@ def main():
         database_encryption_key='changeme1234',
     )
     tg.login()
+
+    # model = Model(tg)
+    # print(model.get_me())
+    # print(model.get_user(246785877))
+    # print(model.chats.get_chat(77769955))
+    # return
 
     wrapper(partial(run, tg))
 

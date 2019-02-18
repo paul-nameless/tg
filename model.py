@@ -12,6 +12,12 @@ class Model:
         self.users = UserModel(tg)
         self.current_chat = 0
 
+    def get_me(self):
+        return self.users.get_me()
+
+    def get_user(self, user_id):
+        return self.users.get_user(user_id)
+
     def get_current_chat_id(self):
         return self.chats.chat_ids[self.current_chat]
 
@@ -205,3 +211,27 @@ class UserModel:
 
     def __init__(self, tg):
         self.tg = tg
+        self.me = None
+        self.users = {}
+
+    def get_me(self):
+        if self.me:
+            return self.me
+        result = self.tg.get_me()
+        result.wait()
+        if result.error:
+            logger.error(f'get chat ids error: {result.error_info}')
+            return {}
+        self.me = result.update
+        return self.me
+
+    def get_user(self, user_id):
+        if user_id in self.users:
+            return self.users[user_id]
+        result = self.tg.call_method('getUser', {'user_id': user_id})
+        result.wait()
+        if result.error:
+            logger.error(f'get chat ids error: {result.error_info}')
+            return {}
+        self.users[user_id] = result.update
+        return result.update

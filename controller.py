@@ -130,6 +130,7 @@ class Controller:
         self.view.draw_status()
 
     def refresh_msgs(self):
+        self.view.msgs.users = self.model.users
         msgs = self.model.get_current_msgs(limit=self.view.msgs.h)
         self.view.draw_msgs(self.model.get_current_msg(), msgs)
 
