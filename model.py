@@ -18,6 +18,10 @@ class Model:
     def get_current_msg(self):
         return self.msgs.current_msgs[self.get_current_chat_id()]
 
+    def jump_bottom(self):
+        chat_id = self.chats.chat_ids[self.current_chat]
+        return self.msgs.jump_bottom(chat_id)
+
     def next_chat(self):
         if self.current_chat < len(self.chats.chats):
             self.current_chat += 1
@@ -144,6 +148,12 @@ class MsgModel:
             self.current_msgs[chat_id] -= 1
             return True
         return False
+
+    def jump_bottom(self, chat_id):
+        if self.current_msgs[chat_id] == 0:
+            return False
+        self.current_msgs[chat_id] = 0
+        return True
 
     def jump_next_msg(self, chat_id):
         if self.current_msgs[chat_id] - 10 > 0:

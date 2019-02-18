@@ -51,14 +51,18 @@ class Controller:
             elif key == 'K':
                 if self.model.jump_prev_msg():
                     self.refresh_msgs()
-            elif key == 'j':
+            elif key in ('j', '^B'):
                 if self.model.next_msg():
                     self.refresh_msgs()
-            elif key == 'k':
+            elif key in ('k', '^C'):
                 if self.model.prev_msg():
                     self.refresh_msgs()
             elif key == 'G':
-                # move to the bottom
+                if self.model.jump_bottom():
+                    self.refresh_msgs()
+
+            elif key == '/':
+                # search
                 pass
             elif key == 'gg':
                 # move to the top
@@ -82,8 +86,9 @@ class Controller:
                         chat_id=chat_id,
                         text=msg,
                     )
+                    self.view.draw_status(f'Sent: {msg}')
 
-            elif key == 'h':
+            elif key in ('h', '^D'):
                 return 'BACK'
 
     def handle_chats(self):
@@ -98,7 +103,7 @@ class Controller:
             logger.info('Pressed key: %s', key)
             if key == 'q':
                 return
-            elif key == 'l':
+            elif key in ('l', '^E'):
                 rc = self.handle_msgs()
                 if rc == 'QUIT':
                     return
@@ -106,12 +111,12 @@ class Controller:
                 self.view.msgs.resize(0.5)
                 self.refresh_chats()
 
-            elif key == 'j':
+            elif key in ('j', '^B'):
                 is_changed = self.model.next_chat()
                 if is_changed:
                     self.refresh_chats()
 
-            elif key == 'k':
+            elif key in ('k', '^C'):
                 is_changed = self.model.prev_chat()
                 if is_changed:
                     self.refresh_chats()
@@ -136,13 +141,13 @@ class Controller:
             # with self.lock:
             chat_id = update['message']['chat_id']
             self.model.msgs.msgs[chat_id].append(update['message'])
-            msgs = self.model.get_current_msgs()
+            # msgs = self.model.get_current_msgs()
             self.refresh_msgs()
-            try:
-                notify(update['message']['content']['text']['text'])
-            except Exception:
-                logger.exception(
-                    'Error happened on notify: %s', update['message'])
+            if not update['disable_notification']:
+                try:
+                    notify(update['message']['content']['text']['text'])
+                except Exception:
+                    logger.exception('Error happened on notify: %s', update)
             # message_content = update['message']['content'].get('text', {})
         # we need this because of different message types: photos, files, etc.
         # message_text = message_content.get('text', '').lower()

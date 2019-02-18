@@ -52,41 +52,7 @@ class View:
         # return curses.unctrl(ch).decode()
 
     def get_input(self):
-        curses.curs_set(1)
-
-        buff = ''
-        while True:
-            key = self.msgs.win.get_wch(
-                self.msgs.h-1, min(len(buff), self.msgs.w-1))
-            key = ord(key)
-            logger.info('Pressed in send msg: "%s"', key)
-            # try:
-            logger.info('Trying to chr: %s', chr(key))
-            # except ValueError:
-            # logger.exception()
-            if key == 10:  # return
-                logger.info('Sending msg: %s', buff)
-                break
-            elif key == 127:  # del
-                if buff:
-                    buff = buff[:-1]
-            elif key == 7:  # ^G cancel
-                logger.info('Not Sending msg: %s', buff)
-                buff = None
-                break
-            elif chr(key).isprintable():
-                buff += chr(key)
-            if len(buff) >= self.msgs.w:
-                start = len(buff) - self.msgs.w
-                buff_wrapped = buff[start+1:]
-            else:
-                buff_wrapped = (buff + ' ' * (self.msgs.w -
-                                              len(buff) - 1))
-            self.msgs.win.addstr(self.msgs.h-1, 0, buff_wrapped)
-            self.msgs.win.move(self.msgs.h-1, min(len(buff), self.msgs.w-1))
-
-        curses.curs_set(0)
-        return buff
+        return self.status.get_input()
 
 
 class StatusView:
@@ -105,8 +71,49 @@ class StatusView:
         self.win.wmove(self.y, self.x)
 
     def draw(self, msg):
-        msg = '-' * (self.w - 1)
-        self.win.addstr(0, 0, msg)
+        # msg = '-' * (self.w - 1)
+        # msg = '>'
+        if not msg:
+            msg = 'Status'
+        self.win.addstr(0, 0, msg[:self.w])
+        self.win.refresh()
+
+    def get_input(self):
+        curses.curs_set(1)
+        self.win.clear()
+
+        buff = ''
+        while True:
+            key = self.win.get_wch(0, min(len(buff), self.w-1))
+            key = ord(key)
+            logger.info('Pressed in send msg: "%s"', key)
+            # try:
+            logger.info('Trying to chr: %s', chr(key))
+            # except ValueError:
+            # logger.exception()
+            if key == 10:  # return
+                logger.info('Sending msg: %s', buff)
+                break
+            elif key == 127:  # del
+                if buff:
+                    buff = buff[:-1]
+            elif key == 7:  # ^G cancel
+                logger.info('Not Sending msg: %s', buff)
+                buff = None
+                break
+            elif chr(key).isprintable():
+                buff += chr(key)
+            if len(buff) >= self.w:
+                start = len(buff) - self.w
+                buff_wrapped = buff[start+1:]
+            else:
+                buff_wrapped = (buff + ' ' * (self.w -
+                                              len(buff) - 1))
+            self.win.addstr(0, 0, buff_wrapped)
+            self.win.move(0, min(len(buff), self.w-1))
+
+        curses.curs_set(0)
+        return buff
 
 
 class ChatView:
@@ -126,8 +133,9 @@ class ChatView:
         self.win.clear()
         # self.win.vline(0, self.w-1, curses.ACS_VLINE, self.h)
         for i, chat in enumerate(chats):
-            msg = f'{get_date(chat)} {chat["title"]} [{chat["unread_count"]}]: {get_last_msg(chat)}'
-            msg = emoji_pattern.sub(r'', msg)[:self.w-1]
+            msg = f' {get_date(chat)} {chat["title"]} [{chat["unread_count"]}]: {get_last_msg(chat)}'
+            # msg = emoji_pattern.sub(r'', msg)[:self.w-1]
+            msg = emoji_pattern.sub(r'', msg)[:self.w-2] + ' '
             # msg = msg[:self.w-1]
             if len(msg) < self.w:
                 msg += ' ' * (self.w - len(msg) - 1)
@@ -194,13 +202,13 @@ class MsgView:
             msg['date']).strftime("%H:%M:%S")
         _type = msg['@type']
         if _type == 'message':
-            return "{} {}: {}".format(
+            return " {} {}: {}".format(
                 dt,
                 msg['sender_user_id'],
                 parse_content(msg['content'])
             )
         logger.debug('Unknown message type: %s', msg)
-        return 'unknown msg type: ' + str(msg['content'])
+        return ' unknown msg type: ' + str(msg['content'])
 
 
 def get_last_msg(chat):
