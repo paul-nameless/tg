@@ -111,6 +111,8 @@ class ChatView:
         self.h = 0
         self.w = 0
         self.win = stdscr.subwin(self.h, self.w, 0, 0)
+        # self.win.scrollok(True)
+        # self.win.idlok(True)
 
     def resize(self, p=0.25):
         self.h = curses.LINES - 1
@@ -122,8 +124,8 @@ class ChatView:
         # self.win.vline(0, self.w-1, curses.ACS_VLINE, self.h)
         for i, chat in enumerate(chats):
             msg = f'{get_date(chat)} {chat["title"]} [{chat["unread_count"]}]: {get_last_msg(chat)}'
-            # msg = emoji_pattern.sub(r'', msg)[:self.w-1]
-            msg = msg[:self.w-1]
+            msg = emoji_pattern.sub(r'', msg)[:self.w-1]
+            # msg = msg[:self.w-1]
             if len(msg) < self.w:
                 msg += ' ' * (self.w - len(msg) - 1)
             if i == current:
