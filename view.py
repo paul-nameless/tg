@@ -48,13 +48,12 @@ class View:
         # return curses.unctrl(ch).decode()
 
     def get_input(self):
-        curses.echo()
         curses.curs_set(1)
 
         buff = ''
-        pos = 0
         while True:
-            key = self.msgs.win.get_wch(self.msgs.h-1, pos)
+            key = self.msgs.win.get_wch(
+                self.msgs.h-1, min(len(buff), self.msgs.w-1))
             key = ord(key)
             logger.info('Pressed in send msg: "%s"', key)
             # try:
@@ -64,17 +63,24 @@ class View:
             if key == 10:
                 logger.info('Sending msg: %s', buff)
                 break
+            elif key == 127:
+                if buff:
+                    buff = buff[:-1]
             elif key == 7:
                 logger.info('Not Sending msg: %s', buff)
                 buff = None
                 break
-            # elif (key >= 32 and key < 256):
             elif chr(key).isprintable():
                 buff += chr(key)
-                pos += 1
+            if len(buff) >= self.msgs.w:
+                start = len(buff) - self.msgs.w
+                buff_wrapped = buff[start+1:]
+            else:
+                buff_wrapped = (buff + ' ' * (self.msgs.w -
+                                              len(buff) - 1))
+            self.msgs.win.addstr(self.msgs.h-1, 0, buff_wrapped)
+            self.msgs.win.move(self.msgs.h-1, min(len(buff), self.msgs.w-1))
 
-        # curses.cbreak()
-        curses.noecho()
         curses.curs_set(0)
         return buff
 
