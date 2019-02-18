@@ -2,6 +2,8 @@ import logging
 import os
 import threading
 
+from utils import notify
+
 logger = logging.getLogger(__name__)
 
 
@@ -18,51 +20,11 @@ class Controller:
         self.view = view
         self.lock = threading.Lock()
 
-    def init(self):
-        pass
-    #     self.refresh_chats()
-    #     self.refresh_msgs()
-
     def run(self):
         try:
-            self.handle()
+            self.handle_chats()
         except Exception as e:
             logger.exception('Error happened in main loop')
-
-    # def send_msg(self):
-    #     import curses
-    #     # curses.nocbreak()
-    #     curses.echo()
-    #     curses.curs_set(1)
-
-    #     buff = ''
-    #     while True:
-    #         key = self.view.get_key(
-    #             self.view.chats.h, self.view.chats.w)
-    #         logger.info('Pressed in send msg: %s', key)
-    #         if key == '^J':
-    #             break
-    #         elif key == '^G':
-    #             # curses.cbreak()
-    #             # curses.noecho()
-    #             # self.view.chats.win.refresh()
-    #             buff = ''
-    #             break
-    #         buff += key
-
-    #     logger.info('Sending msg: %s', buff)
-    #     curses.cbreak()
-    #     curses.noecho()
-    #     curses.curs_set(0)
-
-    #     chat_id = self.model.get_current_chat_id()
-    #     self.model.send_msg(chat_id, buff)
-    #     self.view.draw_chats(
-    #         self.model.current_chat,
-    #         self.model.get_chats()
-    #     )
-    #     msgs = self.model.get_current_msgs()
-    #     self.view.draw_msgs(msgs)
 
     def handle_msgs(self):
         # set width to 0.25, move window to left
@@ -102,25 +64,21 @@ class Controller:
                 # reply to this msg
                 # print to status line
                 pass
+            elif key == 'I':
+                # open vim or emacs to write long messages
+                pass
             elif key == 'i':
                 # write new message
-                pass
+                msg = self.view.get_input()
+                if msg:
+                    chat_id = self.model.get_current_chat_id()
+                    self.model.msgs.tg.send_message(
+                        chat_id=chat_id,
+                        text=msg,
+                    )
+
             elif key == 'h':
                 return 'BACK'
-
-    def handle(self):
-        self.handle_chats()
-
-    def refresh_chats(self):
-        self.view.draw_chats(
-            self.model.current_chat,
-            self.model.get_chats()
-        )
-        self.refresh_msgs()
-
-    def refresh_msgs(self):
-        msgs = self.model.get_current_msgs()
-        self.view.draw_msgs(self.model.get_current_msg(), msgs)
 
     def handle_chats(self):
         # set width to 0.5, move window to center?
@@ -152,6 +110,17 @@ class Controller:
                 if is_changed:
                     self.refresh_chats()
 
+    def refresh_chats(self):
+        self.view.draw_chats(
+            self.model.current_chat,
+            self.model.get_chats()
+        )
+        self.refresh_msgs()
+
+    def refresh_msgs(self):
+        msgs = self.model.get_current_msgs()
+        self.view.draw_msgs(self.model.get_current_msg(), msgs)
+
     def update_handler(self, update):
         logger.debug('===============Received: %s', update)
         _type = update['@type']
@@ -178,18 +147,3 @@ class Controller:
         #         chat_id=chat_id,
         #         text='pong',
         #     )
-
-
-def notify(msg, subtitle='New message', title='Telegram'):
-    msg = '-message {!r}'.format(msg)
-    subtitle = '-subtitle {!r}'.format(subtitle)
-    title = '-title {!r}'.format(title)
-    sound = '-sound default'
-    icon_path = os.path.join(os.path.dirname(__file__), 'tg.png')
-    icon = f'-appIcon {icon_path}'
-    cmd = '/usr/local/bin/terminal-notifier'
-
-    logger.debug('####: %s', f'{cmd} {icon} {sound} {title} {subtitle} {msg}')
-    os.system(
-        f'{cmd} {icon} {sound} {title} {subtitle} {msg}'
-    )

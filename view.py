@@ -35,15 +35,48 @@ class View:
 
         ch = self.stdscr.getch(y, x)
         logger.info('raw ch without unctrl: %s', ch)
-        return curses.unctrl(ch).decode()
+        try:
+            return curses.unctrl(ch).decode()
+        except UnicodeDecodeError:
+            logger.warning('cant uncrtl: %s', ch)
+            return 'UNKNOWN'
 
-        # self.stdscr.addstr(self.msgs.h, self.chats.w, ' ' * self.msgs.w-10)
-        # self.chats.win.addstr(self.msgs.h, self.chats.w +
-        #                       5, ' ' * self.msgs.w-10)
+    def get_key_input(self, y, x):
+        ch = self.msgs.win.getch(y, x)
+        logger.info('raw ch without unctrl in msgs: %s', ch)
+        return ch
+        # return curses.unctrl(ch).decode()
 
-        # _input = self.stdscr.getstr(
-        #     self.msgs.h, self.chats.w, self.max_read).decode()
-        # return _input
+    def get_input(self):
+        curses.echo()
+        curses.curs_set(1)
+
+        buff = ''
+        pos = 0
+        while True:
+            key = self.msgs.win.get_wch(self.msgs.h-1, pos)
+            key = ord(key)
+            logger.info('Pressed in send msg: "%s"', key)
+            # try:
+            logger.info('Trying to chr: %s', chr(key))
+            # except ValueError:
+            # logger.exception()
+            if key == 10:
+                logger.info('Sending msg: %s', buff)
+                break
+            elif key == 7:
+                logger.info('Not Sending msg: %s', buff)
+                buff = None
+                break
+            # elif (key >= 32 and key < 256):
+            elif chr(key).isprintable():
+                buff += chr(key)
+                pos += 1
+
+        # curses.cbreak()
+        curses.noecho()
+        curses.curs_set(0)
+        return buff
 
 
 class StatusView:
@@ -66,6 +99,8 @@ emoji_pattern = re.compile(
     "\U0001F300-\U0001F5FF"  # symbols & pictographs
     "\U0001F680-\U0001F6FF"  # transport & map symbols
     "\U0001F1E0-\U0001F1FF"  # flags (iOS)
+    "\U00002702-\U000027B0"
+    "\U000024C2-\U0001F251"
     "]+",
     flags=re.UNICODE
 )
@@ -73,8 +108,8 @@ emoji_pattern = re.compile(
 
 class ChatView:
     def __init__(self, stdscr, p=0.5):
-        self.h = curses.LINES - 1
-        self.w = int((curses.COLS - 1) * p)
+        self.h = 0
+        self.w = 0
         self.win = stdscr.subwin(self.h, self.w, 0, 0)
 
     def resize(self, p=0.25):
@@ -86,8 +121,9 @@ class ChatView:
         self.win.clear()
         # self.win.vline(0, self.w-1, curses.ACS_VLINE, self.h)
         for i, chat in enumerate(chats):
-            msg = f'{get_date(chat)} {chat["title"]} {chat["unread_count"]}: {get_last_msg(chat)}'
-            msg = emoji_pattern.sub(r'', msg)[:self.w-1]
+            msg = f'{get_date(chat)} {chat["title"]} [{chat["unread_count"]}]: {get_last_msg(chat)}'
+            # msg = emoji_pattern.sub(r'', msg)[:self.w-1]
+            msg = msg[:self.w]
             if len(msg) < self.w:
                 msg += ' ' * (self.w - len(msg) - 1)
             if i == current:
@@ -101,21 +137,29 @@ class ChatView:
 class MsgView:
     def __init__(self, stdscr, p=0.5):
         self.stdscr = stdscr
-        self.h = curses.LINES - 1
-        self.w = curses.COLS - int((curses.COLS - 1) * p)
-        self.s = curses.COLS - self.w
-        self.win = stdscr.subwin(self.h, self.w, 0, self.s)
+        # self.h = curses.LINES - 1
+        # self.w = curses.COLS - int((curses.COLS - 1) * p)
+        # self.x = curses.COLS - self.w
+        self.h = 0
+        self.w = 0
+        # self.x = curses.COLS - (curses.COLS - int((curses.COLS - 1) * p))
+        self.x = 0
+        # self.win = stdscr.subwin(self.h, self.w, 0, self.x)
+        self.win = None
+        # self.win.scrollok(True)
+        # self.win.idlok(True)
         self.lines = 0
 
-    def resize(self, p=0.25):
+    def resize(self, p=0.5):
         self.h = curses.LINES - 1
         self.w = curses.COLS - int((curses.COLS - 1) * p)
-        logger.info('msgs view width: %s', self.w)
-        self.s = curses.COLS - self.w
+        self.x = curses.COLS - self.w
 
-        self.win = self.stdscr.subwin(self.h, self.w, 0, self.s)
-        self.win.mvwin(0, self.s)
-        self.win.resize(self.h, self.w)
+        # if self.win is None:
+        self.win = self.stdscr.subwin(self.h, self.w, 0, self.x)
+        # else:
+        # self.win.resize(self.h, self.w)
+        # self.win.mvwin(0, self.x)
 
     def draw(self, current, msgs):
         logger.info('Dwaring msgs')
@@ -183,14 +227,3 @@ def parse_content(content):
     else:
         logger.debug('Unknown content: %s', content)
         return f'[unknown type {_type}]'
-
-
-emoji_pattern = re.compile(
-    "["
-    "\U0001F600-\U0001F64F"  # emoticons
-    "\U0001F300-\U0001F5FF"  # symbols & pictographs
-    "\U0001F680-\U0001F6FF"  # transport & map symbols
-    "\U0001F1E0-\U0001F1FF"  # flags (iOS)
-    "]+",
-    flags=re.UNICODE
-)

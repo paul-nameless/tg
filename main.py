@@ -32,11 +32,11 @@ if PHONE is None:
 
 
 def run(tg, stdscr):
+    # run this function in thread?
     view = View(stdscr)
     model = Model(tg)
     controller = Controller(model, view)
     controller.tg = tg
-    controller.init()
     tg.add_message_handler(controller.update_handler)
 
     t = threading.Thread(
