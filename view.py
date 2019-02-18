@@ -19,6 +19,19 @@ class View:
         curses.start_color()
         curses.use_default_colors()
 
+        # default
+        curses.init_pair(1, -1, -1)
+        curses.init_pair(2, curses.COLOR_CYAN, -1)
+        curses.init_pair(3, curses.COLOR_BLUE, -1)
+        curses.init_pair(4, curses.COLOR_MAGENTA, -1)
+        curses.init_pair(5, curses.COLOR_YELLOW, -1)
+        curses.init_pair(6, curses.COLOR_BLACK, -1)
+
+        # selection
+        curses.init_pair(7, -1, curses.COLOR_BLACK)
+        curses.init_pair(8, curses.COLOR_CYAN, curses.COLOR_BLACK)
+        curses.init_pair(9, curses.COLOR_BLUE, curses.COLOR_BLACK)
+
         self.stdscr = stdscr
         self.chats = ChatView(stdscr)
         self.msgs = MsgView(stdscr)
@@ -139,10 +152,28 @@ class ChatView:
             # msg = msg[:self.w-1]
             if len(msg) < self.w:
                 msg += ' ' * (self.w - len(msg) - 1)
+
             if i == current:
-                self.win.addstr(i, 0, msg, curses.A_REVERSE)
-                continue
-            self.win.addstr(i, 0, msg)
+                colors = [7, 8, 9, 7]
+            else:
+                colors = [1, 2, 3, 1]
+
+            offset = 0
+            j = 0
+            for color, e in zip(colors, msg.split(' ', maxsplit=3)):
+                attr = curses.color_pair(color)
+                j += 1
+                if j < 4:
+                    e = e + ' '
+                self.win.addstr(i, offset, e, attr)
+                offset += len(e)
+
+            # if i == current:
+            #     # attr = curses.A_REVERSE | curses.color_pair(1)
+            #     attr = curses.A_REVERSE
+            #     self.win.addstr(i, 0, msg, attr)
+            #     continue
+            # self.win.addstr(i, 0, msg)
 
         self.win.refresh()
 
@@ -189,12 +220,49 @@ class MsgView:
             if count <= 0:
                 logger.warning('Reched end of lines')
                 break
-            if i == current:
-                self.win.addstr(count, 0, s, curses.A_REVERSE)
-            else:
-                self.win.addstr(count, 0, s)
 
-        self.lines = count
+            if i == current:
+                colors = [7, 8, 9, 7]
+            else:
+                colors = [1, 2, 3, 1]
+
+            offset = 0
+            j = 0
+            for color, e in zip(colors, s.split(' ', maxsplit=3)):
+                attr = curses.color_pair(color)
+                j += 1
+                if j < 4:
+                    e = e + ' '
+                self.win.addstr(count, offset, e, attr)
+                offset += len(e)
+
+            # if i == current:
+            #     offset = 0
+            #     j = 0
+            #     for i, e in zip([7, 8, 9, 7], s.split(' ', maxsplit=3)):
+            #         logger.debug('####: %s | %s', i, e)
+            #         attr = curses.color_pair(i)
+            #         j += 1
+            #         if j < 4:
+            #             e = e + ' '
+            #         self.win.addstr(count, offset, e, attr)
+            #         offset += len(e)
+            #     # attr = curses.A_REVERSE | curses.color_pair(6)
+            #     # self.win.addstr(count, 0, s, attr)
+            # else:
+            #     offset = 0
+            #     j = 0
+            #     for i, e in zip([1, 2, 4, 1], s.split(' ', maxsplit=3)):
+            #         logger.debug('####: %s | %s', i, e)
+            #         attr = curses.color_pair(i)
+            #         j += 1
+            #         if j < 4:
+            #             e = e + ' '
+            #         self.win.addstr(count, offset, e, attr)
+            #         offset += len(e)
+            #     # attr = curses.color_pair(0)
+            #     # self.win.addstr(count, 0, s, attr)
+
         self.win.refresh()
 
     def _parse_msg(self, msg):

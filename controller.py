@@ -124,7 +124,7 @@ class Controller:
     def refresh_chats(self):
         self.view.draw_chats(
             self.model.current_chat,
-            self.model.get_chats()
+            self.model.get_chats(limit=self.view.chats.h)
         )
         self.refresh_msgs()
         self.view.draw_status()
