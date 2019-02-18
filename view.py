@@ -123,7 +123,7 @@ class ChatView:
         for i, chat in enumerate(chats):
             msg = f'{get_date(chat)} {chat["title"]} [{chat["unread_count"]}]: {get_last_msg(chat)}'
             # msg = emoji_pattern.sub(r'', msg)[:self.w-1]
-            msg = msg[:self.w]
+            msg = msg[:self.w-1]
             if len(msg) < self.w:
                 msg += ' ' * (self.w - len(msg) - 1)
             if i == current:
