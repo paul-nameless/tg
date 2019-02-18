@@ -38,6 +38,14 @@ class Model:
         chat_id = self.chats.chat_ids[self.current_chat]
         return self.msgs.prev_msg(chat_id)
 
+    def jump_next_msg(self):
+        chat_id = self.chats.chat_ids[self.current_chat]
+        return self.msgs.jump_next_msg(chat_id)
+
+    def jump_prev_msg(self):
+        chat_id = self.chats.chat_ids[self.current_chat]
+        return self.msgs.jump_prev_msg(chat_id)
+
     def get_chats(self, offset=0, limit=10):
         return self.chats.get_chats(offset=offset, limit=limit)
 
@@ -137,6 +145,19 @@ class MsgModel:
             return True
         return False
 
+    def jump_next_msg(self, chat_id):
+        if self.current_msgs[chat_id] - 10 > 0:
+            self.current_msgs[chat_id] -= 10
+        else:
+            self.current_msgs[chat_id] = 0
+        return True
+
+    def jump_prev_msg(self, chat_id):
+        if self.current_msgs[chat_id] + 10 < len(self.msgs[chat_id]):
+            self.current_msgs[chat_id] += 10
+            return True
+        return False
+
     def prev_msg(self, chat_id):
         if self.current_msgs[chat_id] < len(self.msgs[chat_id]):
             self.current_msgs[chat_id] += 1
@@ -145,7 +166,7 @@ class MsgModel:
 
     def get_msgs(self, chat_id, offset=0, limit=10):
         if offset + limit < len(self.msgs[chat_id]):
-            return sorted(self.msgs[chat_id], key=lambda d: d['id'])[::-1][offset:limit][::-1]
+            return sorted(self.msgs[chat_id], key=lambda d: d['id'])[::-1][offset:limit]
 
         for i in range(3):
             if len(self.msgs[chat_id]):
@@ -167,7 +188,7 @@ class MsgModel:
             if len(self.msgs[chat_id]) >= offset + limit:
                 break
 
-        return sorted(self.msgs[chat_id], key=lambda d: d['id'])[::-1][offset:limit][::-1]
+        return sorted(self.msgs[chat_id], key=lambda d: d['id'])[::-1][offset:limit]
 
 
 class UserModel:

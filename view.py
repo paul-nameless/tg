@@ -105,8 +105,8 @@ class StatusView:
         self.win.wmove(self.y, self.x)
 
     def draw(self, msg):
-        msg = ' ' * (self.w - 1)
-        self.win.addstr(0, 0, msg, curses.A_REVERSE)
+        msg = '-' * (self.w - 1)
+        self.win.addstr(0, 0, msg)
 
 
 class ChatView:
@@ -151,8 +151,6 @@ class MsgView:
         self.x = 0
         # self.win = stdscr.subwin(self.h, self.w, 0, self.x)
         self.win = None
-        # self.win.scrollok(True)
-        # self.win.idlok(True)
         self.lines = 0
 
     def resize(self, p=0.5):
@@ -162,6 +160,8 @@ class MsgView:
 
         # if self.win is None:
         self.win = self.stdscr.subwin(self.h, self.w, 0, self.x)
+        # self.win.scrollok(True)
+        # self.win.idlok(True)
         # else:
         # self.win.resize(self.h, self.w)
         # self.win.mvwin(0, self.x)
@@ -169,8 +169,7 @@ class MsgView:
     def draw(self, current, msgs):
         logger.info('Dwaring msgs')
         self.win.clear()
-        count = 0
-        current = len(msgs) - current - 1
+        count = self.h
 
         for i, msg in enumerate(msgs):
             s = self._parse_msg(msg)
@@ -178,14 +177,14 @@ class MsgView:
             if len(s) < self.w:
                 s += ' ' * (self.w - len(s) - 1)
             offset = math.ceil(len(s) / self.w)
-            if count + offset > self.h-1:
+            count -= offset
+            if count <= 0:
                 logger.warning('Reched end of lines')
                 break
             if i == current:
                 self.win.addstr(count, 0, s, curses.A_REVERSE)
             else:
                 self.win.addstr(count, 0, s)
-            count += offset
 
         self.lines = count
         self.win.refresh()

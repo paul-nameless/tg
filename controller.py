@@ -29,8 +29,8 @@ class Controller:
     def handle_msgs(self):
         # set width to 0.25, move window to left
         # refresh everything
-        self.view.chats.resize(0.25)
-        self.view.msgs.resize(0.25)
+        self.view.chats.resize(0.2)
+        self.view.msgs.resize(0.2)
         self.refresh_chats()
 
         while True:
@@ -45,6 +45,12 @@ class Controller:
             elif key == '[':
                 if self.model.prev_chat():
                     self.refresh_chats()
+            elif key == 'J':
+                if self.model.jump_next_msg():
+                    self.refresh_msgs()
+            elif key == 'K':
+                if self.model.jump_prev_msg():
+                    self.refresh_msgs()
             elif key == 'j':
                 if self.model.next_msg():
                     self.refresh_msgs()
@@ -119,7 +125,7 @@ class Controller:
         self.view.draw_status()
 
     def refresh_msgs(self):
-        msgs = self.model.get_current_msgs()
+        msgs = self.model.get_current_msgs(limit=self.view.msgs.h)
         self.view.draw_msgs(self.model.get_current_msg(), msgs)
 
     def update_handler(self, update):
