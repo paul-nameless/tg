@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 class Model:
@@ -73,9 +73,9 @@ class Model:
 
         result.wait()
         if result.error:
-            logger.info(f'send message error: {result.error_info}')
+            log.info(f'send message error: {result.error_info}')
         else:
-            logger.info(f'message has been sent: {result.update}')
+            log.info(f'message has been sent: {result.update}')
 
 
 class ChatModel:
@@ -98,7 +98,7 @@ class ChatModel:
             for chat_id in self.chat_ids:
                 chat = self.get_chat(chat_id)
                 self.chats.append(chat)
-                logger.debug(
+                log.debug(
                     '#### %s: %s, %s', chat_id, chat, i)
             if len(self.chats) >= offset + limit:
                 break
@@ -121,7 +121,7 @@ class ChatModel:
 
             result.wait()
             if result.error:
-                logger.error(f'get chat ids error: {result.error_info}')
+                log.error(f'get chat ids error: {result.error_info}')
                 return {}
 
             for chat_id in result.update['chat_ids']:
@@ -137,7 +137,7 @@ class ChatModel:
         result.wait()
 
         if result.error:
-            logger.error(f'get chat error: {result.error_info}')
+            log.error(f'get chat error: {result.error_info}')
             return {}
         return result.update
 
@@ -220,7 +220,7 @@ class UserModel:
         result = self.tg.get_me()
         result.wait()
         if result.error:
-            logger.error(f'get chat ids error: {result.error_info}')
+            log.error(f'get chat ids error: {result.error_info}')
             return {}
         self.me = result.update
         return self.me
@@ -231,7 +231,7 @@ class UserModel:
         result = self.tg.call_method('getUser', {'user_id': user_id})
         result.wait()
         if result.error:
-            logger.error(f'get chat ids error: {result.error_info}')
+            log.error(f'get chat ids error: {result.error_info}')
             return {}
         self.users[user_id] = result.update
         return result.update

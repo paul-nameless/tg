@@ -4,7 +4,7 @@ import math
 import re
 from datetime import datetime
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 class View:
@@ -52,16 +52,16 @@ class View:
         # return self.stdscr.getkey()
 
         ch = self.stdscr.getch(y, x)
-        logger.info('raw ch without unctrl: %s', ch)
+        log.info('raw ch without unctrl: %s', ch)
         try:
             return curses.unctrl(ch).decode()
         except UnicodeDecodeError:
-            logger.warning('cant uncrtl: %s', ch)
+            log.warning('cant uncrtl: %s', ch)
             return 'UNKNOWN'
 
     def get_key_input(self, y, x):
         ch = self.msgs.win.getch(y, x)
-        logger.info('raw ch without unctrl in msgs: %s', ch)
+        log.info('raw ch without unctrl in msgs: %s', ch)
         return ch
         # return curses.unctrl(ch).decode()
 
@@ -100,19 +100,19 @@ class StatusView:
         while True:
             key = self.win.get_wch(0, min(len(buff), self.w-1))
             key = ord(key)
-            logger.info('Pressed in send msg: "%s"', key)
+            log.info('Pressed in send msg: "%s"', key)
             # try:
-            logger.info('Trying to chr: %s', chr(key))
+            log.info('Trying to chr: %s', chr(key))
             # except ValueError:
-            # logger.exception()
+            # log.exception()
             if key == 10:  # return
-                logger.info('Sending msg: %s', buff)
+                log.info('Sending msg: %s', buff)
                 break
             elif key == 127:  # del
                 if buff:
                     buff = buff[:-1]
             elif key == 7:  # ^G cancel
-                logger.info('Not Sending msg: %s', buff)
+                log.info('Not Sending msg: %s', buff)
                 buff = None
                 break
             elif chr(key).isprintable():
@@ -230,7 +230,7 @@ class MsgView:
         # self.win.mvwin(0, self.x)
 
     def draw(self, current, msgs):
-        # logger.info('Dwaring msgs')
+        # log.info('Dwaring msgs')
         self.win.clear()
         count = self.h
 
@@ -246,7 +246,7 @@ class MsgView:
             offset = math.ceil((len(s) - 1) / self.w)
             count -= offset
             if count <= 0:
-                # logger.warning('Reched end of lines')
+                # log.warning('Reched end of lines')
                 break
 
             if i == current:
@@ -261,7 +261,7 @@ class MsgView:
                 j += 1
                 if j < 4:
                     e = e + ' '
-                # logger.info('####: %s', (e, offset, count))
+                # log.info('####: %s', (e, offset, count))
                 self.win.addstr(count, offset, e, attr)
                 offset += len(e)
 
@@ -287,7 +287,7 @@ class MsgView:
         _type = msg['@type']
         if _type == 'message':
             return dt, msg['sender_user_id'], parse_content(msg['content'])
-        logger.debug('Unknown message type: %s', msg)
+        log.debug('Unknown message type: %s', msg)
         return dt, msg['sender_user_id'], 'unknown msg type: ' + str(msg['content'])
 
 
@@ -299,7 +299,7 @@ def get_last_msg(chat):
     elif _type == 'messageVoiceNote':
         return '[voice msg]'
     else:
-        logger.error(chat)
+        log.error(chat)
         return f'[unknown type {_type}]'
 
 
@@ -317,7 +317,7 @@ def parse_content(content):
     elif _type == 'messageVoiceNote':
         return '[voice msg]'
     else:
-        logger.debug('Unknown content: %s', content)
+        log.debug('Unknown content: %s', content)
         return f'[unknown content type {_type}]'
 
 

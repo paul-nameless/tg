@@ -1,7 +1,7 @@
 import logging
 import os
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 def notify(msg, subtitle='New message', title='Telegram'):
@@ -13,7 +13,7 @@ def notify(msg, subtitle='New message', title='Telegram'):
     icon = f'-appIcon {icon_path}'
     cmd = '/usr/local/bin/terminal-notifier'
 
-    logger.debug('####: %s', f'{cmd} {icon} {sound} {title} {subtitle} {msg}')
+    log.debug('####: %s', f'{cmd} {icon} {sound} {title} {subtitle} {msg}')
     os.system(
         f'{cmd} {icon} {sound} {title} {subtitle} {msg}'
     )

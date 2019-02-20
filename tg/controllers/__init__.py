@@ -4,7 +4,7 @@ import threading
 
 from utils import notify
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 class Controller:
@@ -24,7 +24,7 @@ class Controller:
         try:
             self.handle_chats()
         except Exception as e:
-            logger.exception('Error happened in main loop')
+            log.exception('Error happened in main loop')
 
     def handle_msgs(self):
         # set width to 0.25, move window to left
@@ -36,7 +36,7 @@ class Controller:
         while True:
 
             key = self.view.get_key(self.view.chats.h, self.view.chats.w)
-            logger.info('Pressed key: %s', key)
+            log.info('Pressed key: %s', key)
             if key == 'q':
                 return 'QUIT'
             elif key == ']':
@@ -100,7 +100,7 @@ class Controller:
         while True:
 
             key = self.view.get_key(self.view.chats.h, self.view.chats.w)
-            logger.info('Pressed key: %s', key)
+            log.info('Pressed key: %s', key)
             if key == 'q':
                 return
             elif key in ('l', '^E'):
@@ -135,10 +135,10 @@ class Controller:
         self.view.draw_msgs(self.model.get_current_msg(), msgs)
 
     def update_handler(self, update):
-        logger.debug('===============Received: %s', update)
+        log.debug('===============Received: %s', update)
         _type = update['@type']
         if _type == 'updateNewMessage':
-            logger.debug('Updating... new message')
+            log.debug('Updating... new message')
             # with self.lock:
             chat_id = update['message']['chat_id']
             self.model.msgs.msgs[chat_id].append(update['message'])
@@ -148,7 +148,7 @@ class Controller:
                 try:
                     notify(update['message']['content']['text']['text'])
                 except Exception:
-                    logger.exception('Error happened on notify: %s', update)
+                    log.exception('Error happened on notify: %s', update)
             # message_content = update['message']['content'].get('text', {})
         # we need this because of different message types: photos, files, etc.
         # message_text = message_content.get('text', '').lower()

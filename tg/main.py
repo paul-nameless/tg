@@ -23,7 +23,7 @@ logging.basicConfig(
     ]
 )
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 API_ID = os.getenv('API_ID')
 API_HASH = os.getenv('API_HASH')
 PHONE = os.getenv('PHONE')
@@ -47,7 +47,7 @@ def run(tg, stdscr):
 
 
 def main():
-    logger.debug('#' * 64)
+    log.debug('#' * 64)
     tg = Telegram(
         api_id=API_ID,
         api_hash=API_HASH,
