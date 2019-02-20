@@ -1,0 +1,16 @@
+[tool.flit.metadata]
+module = "tg"
+dist-name = "tg"
+description-file = "README.md"
+author = "Paul Nameless"
+author-email = "paul.nameless@icloud.com"
+home-page = 'https://github.com/paul-nameless/tg'
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+]
+requires-python = ">=3.7"
+requires = ['python-telegram']
+
+[tool.flit.scripts]
+j = "j.main:main"

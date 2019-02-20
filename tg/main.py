@@ -7,9 +7,9 @@ from functools import partial
 
 from telegram.client import Telegram
 
-from controller import Controller
-from model import Model
-from view import View
+from tg.controllers import Controller
+from tg.models import Model
+from tg.views import View
 
 logging.basicConfig(
     level=logging.DEBUG,

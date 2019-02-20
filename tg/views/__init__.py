@@ -158,14 +158,14 @@ class ChatView:
             #     msg += ' ' * (self.w - len(msg) - 1)
 
             if i == current:
-                colors = [7, 8, 9, 10]
+                colors = [8, 9, 7, 10]
             else:
-                colors = [1, 2, 3, 4]
+                colors = [2, 3, 1, 4]
 
             offset = 0
             j = 0
             # for color, e in zip(colors, msg.split(' ', maxsplit=3)):
-            for color, e in zip(colors, ['', date, title]):
+            for color, e in zip(colors, [' ' + date, title]):
                 attr = curses.color_pair(color)
                 if offset > self.w:
                     break
@@ -178,7 +178,7 @@ class ChatView:
             if offset >= self.w:
                 continue
 
-            attr = curses.color_pair(colors[0])
+            attr = curses.color_pair(colors[-2])
             msg = last_msg[:self.w-offset-1]
 
             # msg = msg[:self.w-1]
@@ -230,19 +230,23 @@ class MsgView:
         # self.win.mvwin(0, self.x)
 
     def draw(self, current, msgs):
-        logger.info('Dwaring msgs')
+        # logger.info('Dwaring msgs')
         self.win.clear()
         count = self.h
 
         for i, msg in enumerate(msgs):
-            s = self._parse_msg(msg)
-            s = s.replace('\n', ' ')
-            if len(s) < self.w:
-                s += ' ' * (self.w - len(s) - 1)
-            offset = math.ceil(len(s) / self.w)
+            # s = self._parse_msg(msg)
+            dt, user_id, msg = self._parse_msg(msg)
+            user_id = self._get_user_by_id(user_id)
+            msg = msg.replace('\n', ' ')
+            s = ' '.join([' ' + dt, user_id, msg])
+            # s = s.replace('\n', ' ')
+            # if len(s) < self.w:
+            #     s += ' ' * (self.w - len(s) - 1)
+            offset = math.ceil((len(s) - 1) / self.w)
             count -= offset
             if count <= 0:
-                logger.warning('Reched end of lines')
+                # logger.warning('Reched end of lines')
                 break
 
             if i == current:
@@ -257,35 +261,9 @@ class MsgView:
                 j += 1
                 if j < 4:
                     e = e + ' '
+                # logger.info('####: %s', (e, offset, count))
                 self.win.addstr(count, offset, e, attr)
                 offset += len(e)
-
-            # if i == current:
-            #     offset = 0
-            #     j = 0
-            #     for i, e in zip([7, 8, 9, 7], s.split(' ', maxsplit=3)):
-            #         logger.debug('####: %s | %s', i, e)
-            #         attr = curses.color_pair(i)
-            #         j += 1
-            #         if j < 4:
-            #             e = e + ' '
-            #         self.win.addstr(count, offset, e, attr)
-            #         offset += len(e)
-            #     # attr = curses.A_REVERSE | curses.color_pair(6)
-            #     # self.win.addstr(count, 0, s, attr)
-            # else:
-            #     offset = 0
-            #     j = 0
-            #     for i, e in zip([1, 2, 4, 1], s.split(' ', maxsplit=3)):
-            #         logger.debug('####: %s | %s', i, e)
-            #         attr = curses.color_pair(i)
-            #         j += 1
-            #         if j < 4:
-            #             e = e + ' '
-            #         self.win.addstr(count, offset, e, attr)
-            #         offset += len(e)
-            #     # attr = curses.color_pair(0)
-            #     # self.win.addstr(count, 0, s, attr)
 
         self.win.refresh()
 
@@ -293,25 +271,24 @@ class MsgView:
         if user_id == 0:
             return ''
         user = self.users.get_user(user_id)
+        if user["first_name"] and user["last_name"]:
+            return f'{user["first_name"]} {user["last_name"]}'[:20]
+
+        if user["first_name"]:
+            return f'{user["first_name"]}'[:20]
+
         if user.get('username'):
             return '@' + user['username']
-        if user["first_name"] and user["last_name"]:
-            return f'{user["first_name"]} {user["last_name"]}'
-        return f'{user["first_name"]}'
+        return 'Unknown?'
 
     def _parse_msg(self, msg):
         dt = datetime.fromtimestamp(
             msg['date']).strftime("%H:%M:%S")
         _type = msg['@type']
         if _type == 'message':
-            user = self._get_user_by_id(msg['sender_user_id'])
-            return " {} {}: {}".format(
-                dt,
-                user,
-                parse_content(msg['content'])
-            )
+            return dt, msg['sender_user_id'], parse_content(msg['content'])
         logger.debug('Unknown message type: %s', msg)
-        return ' unknown msg type: ' + str(msg['content'])
+        return dt, msg['sender_user_id'], 'unknown msg type: ' + str(msg['content'])
 
 
 def get_last_msg(chat):
@@ -341,7 +318,7 @@ def parse_content(content):
         return '[voice msg]'
     else:
         logger.debug('Unknown content: %s', content)
-        return f'[unknown type {_type}]'
+        return f'[unknown content type {_type}]'
 
 
 emoji_pattern = re.compile(
