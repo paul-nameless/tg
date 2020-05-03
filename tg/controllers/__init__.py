@@ -135,21 +135,21 @@ class Controller:
         self.view.draw_msgs(self.model.get_current_msg(), msgs)
 
     def update_handler(self, update):
-        log.debug('===============Received: %s', update)
-        _type = update['@type']
-        if _type == 'updateNewMessage':
-            log.debug('Updating... new message')
-            # with self.lock:
-            chat_id = update['message']['chat_id']
-            self.model.msgs.msgs[chat_id].append(update['message'])
-            # msgs = self.model.get_current_msgs()
-            self.refresh_msgs()
-            if not update['disable_notification']:
-                try:
-                    notify(update['message']['content']['text']['text'])
-                except Exception:
-                    log.exception('Error happened on notify: %s', update)
-            # message_content = update['message']['content'].get('text', {})
+        try:
+            log.info('===Received: %s', update)
+            _type = update['@type']
+            if _type == 'updateNewMessage':
+                # with self.lock:
+                chat_id = update['message']['chat_id']
+                self.model.msgs.msgs[chat_id].append(update['message'])
+                # msgs = self.model.get_current_msgs()
+                self.refresh_msgs()
+                if not update.get('disable_notification'):
+                    if update['message']['content'] == 'text':
+                        notify(update['message']['content']['text']['text'])
+        except Exception:
+            log.exception("Error happened in update_handler")
+        # message_content = update['message']['content'].get('text', {})
         # we need this because of different message types: photos, files, etc.
         # message_text = message_content.get('text', '').lower()
 
