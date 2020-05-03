@@ -221,14 +221,17 @@ class MsgModel:
             log.info(f'message has been sent: {result.update}')
 
     def delete_msg(self, chat_id):
-        current_msg = self.current_msgs[chat_id]
-        msg = self.msgs[chat_id].pop(current_msg)
-        log.info(f"Deleting msg {msg}")
-
-        message_ids = [msg["id"]]
+        if chat_id is None:
+            return False
+        selected_msg = self.current_msgs[chat_id]
+        msg_item = self.msgs[chat_id].pop(selected_msg)
+        self.current_msgs[chat_id] = min(
+            selected_msg, len(self.msgs[chat_id]) - 1
+        )
+        log.info(f"Deleting msg from the chat {chat_id}: {msg_item}")
+        message_ids = [msg_item["id"]]
         r = self.tg.delete_messages(chat_id, message_ids, revoke=True)
-        r.wait(raise_exc=True)
-        self.current_msgs[chat_id] -= 1
+        r.wait()
         return True
 
 

@@ -304,7 +304,10 @@ class MsgView:
 
 
 def get_last_msg(chat):
-    content = chat['last_message']['content']
+    last_msg = chat.get('last_message')
+    if not last_msg:
+        return "<No messages yet>"
+    content = last_msg['content']
     _type = content['@type']
     if _type == 'messageText':
         return content['text']['text']
@@ -312,7 +315,10 @@ def get_last_msg(chat):
 
 
 def get_date(chat):
-    dt = datetime.fromtimestamp(chat['last_message']['date'])
+    last_msg = chat.get('last_message')
+    if not last_msg:
+        return "<NA>"
+    dt = datetime.fromtimestamp(last_msg['date'])
     if datetime.today().date() == dt.date():
         return dt.strftime("%H:%M")
     return dt.strftime("%d/%b/%y")
