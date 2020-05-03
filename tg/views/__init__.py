@@ -94,7 +94,7 @@ class StatusView:
 
     def get_input(self):
         curses.curs_set(1)
-        self.win.clear()
+        self.win.erase()
 
         buff = ''
         while True:
@@ -144,7 +144,7 @@ class ChatView:
         self.win.resize(self.h, self.w)
 
     def draw(self, current, chats):
-        self.win.clear()
+        self.win.erase()
         # self.win.vline(0, self.w-1, curses.ACS_VLINE, self.h)
         for i, chat in enumerate(chats):
             # msg = f' {get_date(chat)} {chat["title"]} [{chat["unread_count"]}]: {get_last_msg(chat)}'
@@ -231,7 +231,7 @@ class MsgView:
 
     def draw(self, current, msgs):
         # log.info('Dwaring msgs')
-        self.win.clear()
+        self.win.erase()
         count = self.h
 
         for i, msg in enumerate(msgs):
