@@ -97,10 +97,15 @@ class ChatModel:
             # return data from cache
             return self.chats[offset:limit]
 
+        previous_chats_num = len(self.chat_ids)
+
         self.get_chat_ids(
             offset=len(self.chats),
             limit=len(self.chats) + limit
         )
+        if len(self.chat_ids) == previous_chats_num:
+            return self.chats[offset:limit]
+
         for chat_id in self.chat_ids:
             chat = self.get_chat(chat_id)
             self.chats.append(chat)
