@@ -296,11 +296,11 @@ def get_last_msg(chat):
     _type = content['@type']
     if _type == 'messageText':
         return content['text']['text']
-    elif _type == 'messageVoiceNote':
-        return '[voice msg]'
-    else:
-        log.error(chat)
-        return f'[unknown type {_type}]'
+    # elif _type == 'messageVoiceNote':
+    #     return '[voice msg]'
+    # else:
+        # log.warning('error in get last msg: %s', chat)
+    return f'[{_type}]'
 
 
 def get_date(chat):
@@ -314,11 +314,7 @@ def parse_content(content):
     _type = content['@type']
     if _type == 'messageText':
         return content['text']['text']
-    elif _type == 'messageVoiceNote':
-        return '[voice msg]'
-    else:
-        log.debug('Unknown content: %s', content)
-        return f'[unknown content type {_type}]'
+    return f'[{_type}]'
 
 
 emoji_pattern = re.compile(
