@@ -19,9 +19,14 @@ class Model:
         return self.users.get_user(user_id)
 
     def get_current_chat_id(self):
+        if self.current_chat >= len(self.chats.chat_ids):
+            return None
         return self.chats.chat_ids[self.current_chat]
 
     def get_current_msg(self):
+        chat_id = self.get_current_chat_id()
+        if chat_id is None:
+            return []
         return self.msgs.current_msgs[self.get_current_chat_id()]
 
     def jump_bottom(self):
@@ -60,6 +65,8 @@ class Model:
         return self.chats.get_chats(offset=offset, limit=limit)
 
     def get_current_msgs(self, offset=0, limit=10):
+        if self.current_chat >= len(self.chats.chat_ids):
+            return []
         chat_id = self.chats.chat_ids[self.current_chat]
         return self.msgs.get_msgs(
             chat_id, offset=offset, limit=limit
@@ -94,41 +101,36 @@ class ChatModel:
             offset=len(self.chats),
             limit=len(self.chats) + limit
         )
-        for i in range(3):
-            for chat_id in self.chat_ids:
-                chat = self.get_chat(chat_id)
-                self.chats.append(chat)
-                log.debug(
-                    '#### %s: %s, %s', chat_id, chat, i)
-            if len(self.chats) >= offset + limit:
-                break
+        for chat_id in self.chat_ids:
+            chat = self.get_chat(chat_id)
+            self.chats.append(chat)
 
         return self.chats[offset:limit]
 
     def get_chat_ids(self, offset=0, limit=10):
-        for i in range(3):
-            if len(self.chats):
-                result = self.tg.get_chats(
-                    offset_chat_id=self.chats[-1]['id'],
-                    limit=limit
-                )
-            else:
-                result = self.tg.get_chats(
-                    offset_order=2 ** 63 - 1,
-                    offset_chat_id=offset,
-                    limit=limit
-                )
+        if len(self.chats):
+            result = self.tg.get_chats(
+                offset_chat_id=self.chats[-1]['id'],
+                limit=limit
+            )
+        else:
+            result = self.tg.get_chats(
+                offset_order=2 ** 63 - 1,
+                offset_chat_id=offset,
+                limit=limit
+            )
 
-            result.wait()
-            if result.error:
-                log.error(f'get chat ids error: {result.error_info}')
-                return {}
+        result.wait()
+        if result.error:
+            log.error(f'get chat ids error: {result.error_info}')
+            return {}
 
-            for chat_id in result.update['chat_ids']:
-                self.chat_ids.append(chat_id)
+        for chat_id in result.update['chat_ids']:
+            self.chat_ids.append(chat_id)
 
-            if len(self.chat_ids) >= offset + limit:
-                break
+        # TODO:
+        # if len(self.chat_ids) >= offset + limit:
+        #     break
 
         return self.chat_ids[offset:limit]
 
@@ -184,25 +186,25 @@ class MsgModel:
         if offset + limit < len(self.msgs[chat_id]):
             return sorted(self.msgs[chat_id], key=lambda d: d['id'])[::-1][offset:limit]
 
-        for i in range(3):
-            if len(self.msgs[chat_id]):
-                result = self.tg.get_chat_history(
-                    chat_id,
-                    from_message_id=self.msgs[chat_id][-1]['id'],
-                    limit=len(self.msgs[chat_id]) + limit
-                )
-            else:
-                result = self.tg.get_chat_history(
-                    chat_id,
-                    offset=len(self.msgs[chat_id]),
-                    limit=len(self.msgs[chat_id]) + limit
-                )
+        if len(self.msgs[chat_id]):
+            result = self.tg.get_chat_history(
+                chat_id,
+                from_message_id=self.msgs[chat_id][-1]['id'],
+                limit=len(self.msgs[chat_id]) + limit
+            )
+        else:
+            result = self.tg.get_chat_history(
+                chat_id,
+                offset=len(self.msgs[chat_id]),
+                limit=len(self.msgs[chat_id]) + limit
+            )
 
-            result.wait()
-            for msg in result.update['messages']:
-                self.msgs[chat_id].append(msg)
-            if len(self.msgs[chat_id]) >= offset + limit:
-                break
+        result.wait()
+        for msg in result.update['messages']:
+            self.msgs[chat_id].append(msg)
+        # TODO:
+        # if len(self.msgs[chat_id]) >= offset + limit:
+        #     break
 
         return sorted(self.msgs[chat_id], key=lambda d: d['id'])[::-1][offset:limit]
 
