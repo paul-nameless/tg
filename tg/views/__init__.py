@@ -53,7 +53,7 @@ class View:
     def draw_msgs(self, current, msgs):
         self.msgs.draw(current, msgs)
 
-    def get_key(self, y, x):
+    def get_keys(self, y, x):
         keys = repeat_factor = ''
 
         for _ in range(MAX_KEYBINDING_LENGTH):
