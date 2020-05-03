@@ -23,11 +23,19 @@ class Model:
             return None
         return self.chats.chat_ids[self.current_chat]
 
-    def get_current_msg(self):
+    def get_current_msgs(self):
         chat_id = self.get_current_chat_id()
         if chat_id is None:
             return []
-        return self.msgs.current_msgs[self.get_current_chat_id()]
+        return self.msgs.current_msgs[chat_id]
+
+    def fetch_msgs(self, offset=0, limit=10):
+        chat_id = self.get_current_chat_id()
+        if chat_id is None:
+            return []
+        return self.msgs.fetch_msgs(
+            chat_id, offset=offset, limit=limit
+        )
 
     def jump_bottom(self):
         chat_id = self.chats.chat_ids[self.current_chat]
@@ -70,15 +78,6 @@ class Model:
 
     def get_chats(self, offset=0, limit=10):
         return self.chats.get_chats(offset=offset, limit=limit)
-
-    def get_current_msgs(self, offset=0, limit=10):
-        if self.current_chat >= len(self.chats.chat_ids):
-            return []
-        chat_id = self.chats.chat_ids[self.current_chat]
-        return self.msgs.get_msgs(
-            chat_id, offset=offset, limit=limit
-        )
-
 
 
 class ChatModel:
@@ -178,7 +177,7 @@ class MsgModel:
             return True
         return False
 
-    def get_msgs(self, chat_id, offset=0, limit=10):
+    def fetch_msgs(self, chat_id, offset=0, limit=10):
         if offset + limit < len(self.msgs[chat_id]):
             return sorted(self.msgs[chat_id], key=lambda d: d['id'])[::-1][offset:limit]
 

@@ -136,8 +136,8 @@ class Controller:
 
     def refresh_msgs(self):
         self.view.msgs.users = self.model.users
-        msgs = self.model.get_current_msgs(limit=self.view.msgs.h)
-        self.view.draw_msgs(self.model.get_current_msg(), msgs)
+        msgs = self.model.fetch_msgs(limit=self.view.msgs.h)
+        self.view.draw_msgs(self.model.get_current_msgs(), msgs)
 
     def update_handler(self, update):
         try:
