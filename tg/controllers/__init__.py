@@ -6,7 +6,7 @@ from utils import notify
 
 log = logging.getLogger(__name__)
 
-SUPPORTED_MSG_TYPES = "updateNewMessage", "updateChatLastMessage"
+SUPPORTED_MSG_TYPES = "updateNewMessage", "updateChatLastMessage", "updateMessageSendSucceeded"
 
 
 class Controller:
@@ -150,7 +150,7 @@ class Controller:
             if _type == 'updateNewMessage':
                 # with self.lock():
                 chat_id = update['message']['chat_id']
-                self.model.msgs.msgs[chat_id].append(update['message'])
+                self.model.msgs.add_message(chat_id, update['message'])
                 # msgs = self.model.get_current_chat_msg()
                 self.refresh_msgs()
                 if not update.get('disable_notification'):
@@ -162,6 +162,12 @@ class Controller:
                 message = update['last_message']
                 self.model.chats.update_last_message(chat_id, message)
                 self.refresh_chats()
+            elif _type == "updateMessageSendSucceeded":
+                chat_id = update['message']['chat_id']
+                msg_id = update['old_message_id']
+                self.model.msgs.add_message(chat_id, update['message'])
+                self.model.msgs.remove_message(chat_id, msg_id)
+                self.refresh_msgs()
 
         except Exception:
             log.exception("Error happened in update_handler")

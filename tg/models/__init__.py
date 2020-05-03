@@ -173,6 +173,7 @@ class MsgModel:
         self.tg = tg
         self.msgs = defaultdict(list)  # Dict[int, list]
         self.current_msgs = defaultdict(int)
+        self.msg_ids = defaultdict(set)
 
     def next_msg(self, chat_id, step=1):
         current_msg = self.current_msgs[chat_id]
@@ -200,6 +201,29 @@ class MsgModel:
             return True
         return False
 
+    def remove_message(self, chat_id, msg_id):
+        msg_set = self.msg_ids[chat_id]
+        if msg_id not in msg_set:
+            return False
+        log.info(f"removing msg {msg_id=}")
+        # FIXME: potential bottleneck, replace with constan time operation
+        self.msgs[chat_id] = [m for m in self.msgs[chat_id] if m['id'] != msg_id]
+        msg_set.remove(msg_id)
+        return True
+
+    def add_message(self, chat_id, message):
+        msg_id = message['id']
+        msg_set = self.msg_ids[chat_id]
+        if msg_id in msg_set:
+            return False
+        log.info(f"adding {msg_id=} {message}")
+        self.msgs[chat_id].append(message)
+        msg_set.add(msg_id)
+        return True
+
+    def add_messages(self, chat_id, messages):
+        return any(self.add_message(chat_id, msg) for msg in messages)
+
     def fetch_msgs(self, chat_id, offset=0, limit=10):
         if offset + limit < len(self.msgs[chat_id]):
             return sorted(self.msgs[chat_id], key=lambda d: d['id'])[::-1][offset:limit]
@@ -218,11 +242,7 @@ class MsgModel:
             )
 
         result.wait()
-        for msg in result.update['messages']:
-            self.msgs[chat_id].append(msg)
-        # TODO:
-        # if len(self.msgs[chat_id]) >= offset + limit:
-        #     break
+        self.add_messages(chat_id, result.update['messages'])
 
         return sorted(self.msgs[chat_id], key=lambda d: d["id"])[::-1][
             offset:limit
