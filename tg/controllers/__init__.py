@@ -35,7 +35,7 @@ class Controller:
 
         while True:
 
-            key = self.view.get_key(self.view.chats.h, self.view.chats.w)
+            repeat_factor, key = self.view.get_key(self.view.chats.h, self.view.chats.w)
             log.info('Pressed key: %s', key)
             if key == 'q':
                 return 'QUIT'
@@ -52,10 +52,10 @@ class Controller:
                 if self.model.jump_prev_msg():
                     self.refresh_msgs()
             elif key in ('j', '^B'):
-                if self.model.next_msg():
+                if self.model.next_msg(repeat_factor):
                     self.refresh_msgs()
             elif key in ('k', '^C'):
-                if self.model.prev_msg():
+                if self.model.prev_msg(repeat_factor):
                     self.refresh_msgs()
             elif key == 'G':
                 if self.model.jump_bottom():
@@ -99,7 +99,7 @@ class Controller:
         self.refresh_chats()
         while True:
 
-            key = self.view.get_key(self.view.chats.h, self.view.chats.w)
+            repeat_factor, key = self.view.get_key(self.view.chats.h, self.view.chats.w)
             log.info('Pressed key: %s', key)
             if key == 'q':
                 return
@@ -112,12 +112,17 @@ class Controller:
                 self.refresh_chats()
 
             elif key in ('j', '^B'):
-                is_changed = self.model.next_chat()
+                is_changed = self.model.next_chat(repeat_factor)
                 if is_changed:
                     self.refresh_chats()
 
             elif key in ('k', '^C'):
-                is_changed = self.model.prev_chat()
+                is_changed = self.model.prev_chat(repeat_factor)
+                if is_changed:
+                    self.refresh_chats()
+
+            elif key == 'gg':
+                is_changed = self.model.first_chat()
                 if is_changed:
                     self.refresh_chats()
 

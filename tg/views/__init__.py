@@ -4,7 +4,12 @@ import math
 import re
 from datetime import datetime
 
+from utils import num
+
 log = logging.getLogger(__name__)
+
+MAX_KEYBINDING_LENGTH = 5
+MULTICHAR_KEYBINDINGS = ("gg",)
 
 
 class View:
@@ -49,21 +54,28 @@ class View:
         self.msgs.draw(current, msgs)
 
     def get_key(self, y, x):
-        # return self.stdscr.getkey()
+        keys = repeat_factor = ''
 
-        ch = self.stdscr.getch(y, x)
-        log.info('raw ch without unctrl: %s', ch)
-        try:
-            return curses.unctrl(ch).decode()
-        except UnicodeDecodeError:
-            log.warning('cant uncrtl: %s', ch)
-            return 'UNKNOWN'
+        for _ in range(MAX_KEYBINDING_LENGTH):
+            ch = self.stdscr.getch(y, x)
+            log.info('raw ch without unctrl: %s', ch)
+            try:
+                key = curses.unctrl(ch).decode()
+            except UnicodeDecodeError:
+                log.warning('cant uncrtl: %s', ch)
+                break
+            if key.isdigit():
+                repeat_factor += key
+                continue
+            keys += key
+            # if match found or there are not any shortcut matches at all
+            if all(
+                p == keys or not p.startswith(keys)
+                for p in MULTICHAR_KEYBINDINGS
+            ):
+                break
 
-    def get_key_input(self, y, x):
-        ch = self.msgs.win.getch(y, x)
-        log.info('raw ch without unctrl in msgs: %s', ch)
-        return ch
-        # return curses.unctrl(ch).decode()
+        return num(repeat_factor, default=1), keys or 'UNKNOWN'
 
     def get_input(self):
         return self.status.get_input()

@@ -4,6 +4,13 @@ import os
 log = logging.getLogger(__name__)
 
 
+def num(value, default=None):
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
 def notify(msg, subtitle='New message', title='Telegram'):
     msg = '-message {!r}'.format(msg)
     subtitle = '-subtitle {!r}'.format(subtitle)
