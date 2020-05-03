@@ -79,6 +79,11 @@ class Model:
     def get_chats(self, offset=0, limit=10):
         return self.chats.get_chats(offset=offset, limit=limit)
 
+    def delete_msg(self):
+        chat_id = self.get_current_chat_id()
+        if chat_id:
+            return self.msgs.delete_msg(chat_id)
+
 
 class ChatModel:
 
@@ -152,10 +157,10 @@ class MsgModel:
         self.current_msgs = defaultdict(int)
 
     def next_msg(self, chat_id, step=1):
-        current_msgs = self.current_msgs[chat_id]
-        if current_msgs == 0:
+        current_msg = self.current_msgs[chat_id]
+        if current_msg == 0:
             return False
-        self.current_msgs[chat_id] = max(0, current_msgs - step)
+        self.current_msgs[chat_id] = max(0, current_msg - step)
         return True
 
     def jump_bottom(self, chat_id):
@@ -214,6 +219,17 @@ class MsgModel:
             log.info(f'send message error: {result.error_info}')
         else:
             log.info(f'message has been sent: {result.update}')
+
+    def delete_msg(self, chat_id):
+        current_msg = self.current_msgs[chat_id]
+        msg = self.msgs[chat_id].pop(current_msg)
+        log.info(f"Deleting msg {msg}")
+
+        message_ids = [msg["id"]]
+        r = self.tg.delete_messages(chat_id, message_ids, revoke=True)
+        r.wait(raise_exc=True)
+        self.current_msgs[chat_id] -= 1
+        return True
 
 
 class UserModel:
