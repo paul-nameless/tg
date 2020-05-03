@@ -137,7 +137,7 @@ class Controller:
     def refresh_msgs(self):
         self.view.msgs.users = self.model.users
         msgs = self.model.fetch_msgs(limit=self.view.msgs.h)
-        self.view.draw_msgs(self.model.get_current_msgs(), msgs)
+        self.view.draw_msgs(self.model.get_current_chat_msg(), msgs)
 
     def update_handler(self, update):
         try:
@@ -147,7 +147,7 @@ class Controller:
                 # with self.lock:
                 chat_id = update['message']['chat_id']
                 self.model.msgs.msgs[chat_id].append(update['message'])
-                # msgs = self.model.get_current_msgs()
+                # msgs = self.model.get_current_chat_msg()
                 self.refresh_msgs()
                 if not update.get('disable_notification'):
                     if update['message']['content'] == 'text':

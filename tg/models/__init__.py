@@ -23,7 +23,7 @@ class Model:
             return None
         return self.chats.chat_ids[self.current_chat]
 
-    def get_current_msgs(self):
+    def get_current_chat_msg(self):
         chat_id = self.get_current_chat_id()
         if chat_id is None:
             return []
