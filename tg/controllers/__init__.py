@@ -6,6 +6,8 @@ from utils import notify
 
 log = logging.getLogger(__name__)
 
+SUPPORTED_MSG_TYPES = "updateNewMessage", "updateChatLastMessage"
+
 
 class Controller:
     """
@@ -85,11 +87,7 @@ class Controller:
                 # write new message
                 msg = self.view.get_input()
                 if msg:
-                    chat_id = self.model.get_current_chat_id()
-                    self.model.msgs.send_message(
-                        chat_id=chat_id,
-                        text=msg,
-                    )
+                    self.model.send_message(text=msg)
                     self.view.draw_status(f'Sent: {msg}')
 
             elif keys in ('h', '^D'):
@@ -131,12 +129,14 @@ class Controller:
                     self.refresh_chats()
 
     def refresh_chats(self):
-        self.view.draw_chats(
-            self.model.current_chat,
-            self.model.get_chats(limit=self.view.chats.h)
-        )
-        self.refresh_msgs()
-        self.view.draw_status()
+        with self.lock:
+            # using lock here, because model.get_chats is vulnerable to race conditions
+            self.view.draw_chats(
+                self.model.current_chat,
+                self.model.get_chats(limit=self.view.chats.h)
+            )
+            self.refresh_msgs()
+            self.view.draw_status()
 
     def refresh_msgs(self):
         self.view.msgs.users = self.model.users
@@ -145,10 +145,10 @@ class Controller:
 
     def update_handler(self, update):
         try:
-            log.info('===Received: %s', update)
             _type = update['@type']
+            log.info('===Received %s type: %s', _type, update)
             if _type == 'updateNewMessage':
-                # with self.lock:
+                # with self.lock():
                 chat_id = update['message']['chat_id']
                 self.model.msgs.msgs[chat_id].append(update['message'])
                 # msgs = self.model.get_current_chat_msg()
@@ -156,6 +156,13 @@ class Controller:
                 if not update.get('disable_notification'):
                     if update['message']['content'] == 'text':
                         notify(update['message']['content']['text']['text'])
+            elif _type == 'updateChatLastMessage':
+                log.info("Proccessing updateChatLastMessage")
+                chat_id = update['chat_id']
+                message = update['last_message']
+                self.model.chats.update_last_message(chat_id, message)
+                self.refresh_chats()
+
         except Exception:
             log.exception("Error happened in update_handler")
         # message_content = update['message']['content'].get('text', {})

@@ -7,7 +7,7 @@ from functools import partial
 
 from telegram.client import Telegram
 
-from tg.controllers import Controller
+from tg.controllers import Controller, SUPPORTED_MSG_TYPES
 from tg.models import Model
 from tg.views import View
 
@@ -37,7 +37,8 @@ def run(tg, stdscr):
     model = Model(tg)
     controller = Controller(model, view)
     controller.tg = tg
-    tg.add_message_handler(controller.update_handler)
+    for msg_type in SUPPORTED_MSG_TYPES:
+        tg.add_update_handler(msg_type, controller.update_handler)
 
     t = threading.Thread(
         target=controller.run,
