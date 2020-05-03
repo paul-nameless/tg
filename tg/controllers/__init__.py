@@ -82,7 +82,7 @@ class Controller:
                 msg = self.view.get_input()
                 if msg:
                     chat_id = self.model.get_current_chat_id()
-                    self.model.msgs.tg.send_message(
+                    self.model.msgs.send_message(
                         chat_id=chat_id,
                         text=msg,
                     )

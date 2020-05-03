@@ -79,17 +79,6 @@ class Model:
             chat_id, offset=offset, limit=limit
         )
 
-    def send_msg(self, chat_id, msg):
-        result = self.users.tg.send_message(
-            chat_id=chat_id,
-            text=msg,
-        )
-
-        result.wait()
-        if result.error:
-            log.info(f'send message error: {result.error_info}')
-        else:
-            log.info(f'message has been sent: {result.update}')
 
 
 class ChatModel:
@@ -213,7 +202,19 @@ class MsgModel:
         # if len(self.msgs[chat_id]) >= offset + limit:
         #     break
 
-        return sorted(self.msgs[chat_id], key=lambda d: d['id'])[::-1][offset:limit]
+        return sorted(self.msgs[chat_id], key=lambda d: d["id"])[::-1][
+            offset:limit
+        ]
+
+    def send_message(self, chat_id, text):
+        log.info('Sending msg')
+        result = self.tg.send_message(chat_id=chat_id, text=text)
+
+        result.wait()
+        if result.error:
+            log.info(f'send message error: {result.error_info}')
+        else:
+            log.info(f'message has been sent: {result.update}')
 
 
 class UserModel:
