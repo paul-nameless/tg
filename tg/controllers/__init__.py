@@ -148,7 +148,7 @@ class Controller:
             _type = update['@type']
             log.info('===Received %s type: %s', _type, update)
             if _type == 'updateNewMessage':
-                # with self.lock():
+                # with self.lock:
                 chat_id = update['message']['chat_id']
                 self.model.msgs.add_message(chat_id, update['message'])
                 # msgs = self.model.get_current_chat_msg()
@@ -168,7 +168,6 @@ class Controller:
                 self.model.msgs.add_message(chat_id, update['message'])
                 self.model.msgs.remove_message(chat_id, msg_id)
                 self.refresh_msgs()
-
         except Exception:
             log.exception("Error happened in update_handler")
         # message_content = update['message']['content'].get('text', {})
