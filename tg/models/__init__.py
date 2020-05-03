@@ -69,7 +69,14 @@ class Model:
         return self.msgs.jump_prev_msg(chat_id)
 
     def get_chats(self, offset=0, limit=10):
-        return self.chats.get_chats(offset=offset, limit=limit)
+        return self.chats.fetch_chats(offset=offset, limit=limit)
+
+    def send_message(self, text):
+        chat_id = self.get_current_chat_id()
+        if chat_id is None:
+            return False
+        self.msgs.send_message(chat_id, text)
+        return True
 
     def get_current_msgs(self, offset=0, limit=10):
         if self.current_chat >= len(self.chats.chat_ids):
@@ -99,14 +106,14 @@ class ChatModel:
         self.chats = []  # Dict[int, list]
         self.chat_ids = []
 
-    def get_chats(self, offset=0, limit=10):
+    def fetch_chats(self, offset=0, limit=10):
         if offset + limit < len(self.chats):
             # return data from cache
             return self.chats[offset:limit]
 
         previous_chats_num = len(self.chat_ids)
 
-        self.get_chat_ids(
+        self.fetch_chat_ids(
             offset=len(self.chats),
             limit=len(self.chats) + limit
         )
@@ -114,12 +121,12 @@ class ChatModel:
             return self.chats[offset:limit]
 
         for chat_id in self.chat_ids:
-            chat = self.get_chat(chat_id)
+            chat = self.fetch_chat(chat_id)
             self.chats.append(chat)
 
         return self.chats[offset:limit]
 
-    def get_chat_ids(self, offset=0, limit=10):
+    def fetch_chat_ids(self, offset=0, limit=10):
         if len(self.chats):
             result = self.tg.get_chats(
                 offset_chat_id=self.chats[-1]['id'],
@@ -146,7 +153,7 @@ class ChatModel:
 
         return self.chat_ids[offset:limit]
 
-    def get_chat(self, chat_id):
+    def fetch_chat(self, chat_id):
         result = self.tg.get_chat(chat_id)
         result.wait()
 
@@ -154,6 +161,17 @@ class ChatModel:
             log.error(f'get chat error: {result.error_info}')
             return {}
         return result.update
+
+    def update_last_message(self, chat_id, message):
+        for i, c in enumerate(self.chats):
+            if c['id'] != chat_id:
+                continue
+            self.chats[i]['last_message'] = message
+            log.info("Updated last message")
+            return True
+        else:
+            log.error(f"Can't find chat {chat_id} in existing chats")
+            return False
 
 
 class MsgModel:
