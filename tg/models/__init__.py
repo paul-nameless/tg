@@ -99,15 +99,21 @@ class ChatModel:
         if offset + limit < len(self.chats):
             # return data from cache
             return sorted(
-                self.chats, key=lambda it: it["last_message"]["date"], reverse=True
+                self.chats,
+                key=lambda it: it["last_message"]["date"],
+                reverse=True,
             )[offset:limit]
 
         previous_chats_num = len(self.chat_ids)
 
-        self.fetch_chat_ids(offset=len(self.chats), limit=len(self.chats) + limit)
+        self.fetch_chat_ids(
+            offset=len(self.chats), limit=len(self.chats) + limit
+        )
         if len(self.chat_ids) == previous_chats_num:
             return sorted(
-                self.chats, key=lambda it: it["last_message"]["date"], reverse=True
+                self.chats,
+                key=lambda it: it["last_message"]["date"],
+                reverse=True,
             )[offset:limit]
 
         for chat_id in self.chat_ids:
@@ -120,7 +126,9 @@ class ChatModel:
 
     def fetch_chat_ids(self, offset=0, limit=10):
         if len(self.chats):
-            result = self.tg.get_chats(offset_chat_id=self.chats[-1]["id"], limit=limit)
+            result = self.tg.get_chats(
+                offset_chat_id=self.chats[-1]["id"], limit=limit
+            )
         else:
             result = self.tg.get_chats(
                 offset_order=2 ** 63 - 1, offset_chat_id=offset, limit=limit
@@ -200,7 +208,9 @@ class MsgModel:
             return False
         log.info(f"removing msg {msg_id=}")
         # FIXME: potential bottleneck, replace with constan time operation
-        self.msgs[chat_id] = [m for m in self.msgs[chat_id] if m["id"] != msg_id]
+        self.msgs[chat_id] = [
+            m for m in self.msgs[chat_id] if m["id"] != msg_id
+        ]
         msg_set.remove(msg_id)
         return True
 
@@ -219,7 +229,9 @@ class MsgModel:
 
     def fetch_msgs(self, chat_id, offset=0, limit=10):
         if offset + limit < len(self.msgs[chat_id]):
-            return sorted(self.msgs[chat_id], key=lambda d: d["id"])[::-1][offset:limit]
+            return sorted(self.msgs[chat_id], key=lambda d: d["id"])[::-1][
+                offset:limit
+            ]
 
         if len(self.msgs[chat_id]):
             result = self.tg.get_chat_history(
@@ -237,7 +249,9 @@ class MsgModel:
         result.wait()
         self.add_messages(chat_id, result.update["messages"])
 
-        return sorted(self.msgs[chat_id], key=lambda d: d["id"])[::-1][offset:limit]
+        return sorted(self.msgs[chat_id], key=lambda d: d["id"])[::-1][
+            offset:limit
+        ]
 
     def send_message(self, chat_id, text):
         log.info("Sending msg")
@@ -254,7 +268,9 @@ class MsgModel:
             return False
         selected_msg = self.current_msgs[chat_id]
         msg_item = self.msgs[chat_id].pop(selected_msg)
-        self.current_msgs[chat_id] = min(selected_msg, len(self.msgs[chat_id]) - 1)
+        self.current_msgs[chat_id] = min(
+            selected_msg, len(self.msgs[chat_id]) - 1
+        )
         log.info(f"Deleting msg from the chat {chat_id}: {msg_item}")
         message_ids = [msg_item["id"]]
         r = self.tg.delete_messages(chat_id, message_ids, revoke=True)

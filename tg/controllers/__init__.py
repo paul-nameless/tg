@@ -140,7 +140,8 @@ class Controller:
             # using lock here, because refresh_chats is used from another
             # thread by tdlib python wrapper
             self.view.draw_chats(
-                self.model.current_chat, self.model.get_chats(limit=self.view.chats.h)
+                self.model.current_chat,
+                self.model.get_chats(limit=self.view.chats.h),
             )
             self.refresh_msgs()
             self.view.draw_status()

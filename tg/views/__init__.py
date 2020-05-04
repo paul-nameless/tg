@@ -71,7 +71,10 @@ class View:
                 continue
             keys += key
             # if match found or there are not any shortcut matches at all
-            if all(p == keys or not p.startswith(keys) for p in MULTICHAR_KEYBINDINGS):
+            if all(
+                p == keys or not p.startswith(keys)
+                for p in MULTICHAR_KEYBINDINGS
+            ):
                 break
 
         return num(repeat_factor, default=1), keys or "UNKNOWN"
@@ -300,7 +303,11 @@ class MsgView:
         if _type == "message":
             return dt, msg["sender_user_id"], parse_content(msg["content"])
         log.debug("Unknown message type: %s", msg)
-        return dt, msg["sender_user_id"], "unknown msg type: " + str(msg["content"])
+        return (
+            dt,
+            msg["sender_user_id"],
+            "unknown msg type: " + str(msg["content"]),
+        )
 
 
 def get_last_msg(chat):

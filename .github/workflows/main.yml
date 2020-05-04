@@ -30,10 +30,11 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install dependencies
+    - name: Install black
       run: |
         pip install black==19.10b0
-    - name: Lint with flake8
+
+    - name: Check formatting with black
       run: |
         black --check .
 
