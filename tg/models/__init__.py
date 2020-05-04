@@ -218,6 +218,10 @@ class MsgModel:
         msg_id = message["id"]
         msg_set = self.msg_ids[chat_id]
         if msg_id in msg_set:
+            log.warning(
+                f"message {msg_id} was added earlier. probably, inaccurate "
+                "usage of the tdlib lead to unnecessary requests"
+            )
             return False
         log.info(f"adding {msg_id=} {message}")
         self.msgs[chat_id].append(message)
@@ -225,14 +229,9 @@ class MsgModel:
         return True
 
     def add_messages(self, chat_id, messages):
-        return any(self.add_message(chat_id, msg) for msg in messages)
+        return any([self.add_message(chat_id, msg) for msg in messages])
 
-    def fetch_msgs(self, chat_id, offset=0, limit=10):
-        if offset + limit < len(self.msgs[chat_id]):
-            return sorted(self.msgs[chat_id], key=lambda d: d["id"])[::-1][
-                offset:limit
-            ]
-
+    def _fetch_msgs_until_limit(self, chat_id, offset=0, limit=10):
         if len(self.msgs[chat_id]):
             result = self.tg.get_chat_history(
                 chat_id,
@@ -245,9 +244,31 @@ class MsgModel:
                 offset=len(self.msgs[chat_id]),
                 limit=len(self.msgs[chat_id]) + limit,
             )
-
         result.wait()
-        self.add_messages(chat_id, result.update["messages"])
+        messages = result.update["messages"]
+        if not messages:
+            return messages
+
+        # tdlib could doesn't guarantee number of messages, so we need to
+        # send another request on demand
+        # see https://github.com/tdlib/td/issues/168
+        for i in range(3):
+            if len(messages) >= limit + offset:
+                break
+            result = self.tg.get_chat_history(
+                chat_id,
+                from_message_id=messages[-1]["id"],
+                limit=len(self.msgs[chat_id]) + limit,
+            )
+            result.wait()
+            messages += result.update["messages"]
+
+        return messages
+
+    def fetch_msgs(self, chat_id, offset=0, limit=10):
+        if offset + limit > len(self.msgs[chat_id]):
+            messages = self._fetch_msgs_until_limit(chat_id, offset, limit)
+            self.add_messages(chat_id, messages)
 
         return sorted(self.msgs[chat_id], key=lambda d: d["id"])[::-1][
             offset:limit
