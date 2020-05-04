@@ -34,8 +34,8 @@ class View:
 
         # selection
         curses.init_pair(7, -1, curses.COLOR_BLACK)
-        curses.init_pair(8, curses.COLOR_CYAN, curses.COLOR_BLACK)
-        curses.init_pair(9, curses.COLOR_BLUE, curses.COLOR_BLACK)
+        curses.init_pair(8, curses.COLOR_GREEN, curses.COLOR_BLACK)
+        curses.init_pair(9, curses.COLOR_GREEN, curses.COLOR_BLACK)
         curses.init_pair(10, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
 
         self.stdscr = stdscr
