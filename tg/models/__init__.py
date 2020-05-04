@@ -69,7 +69,8 @@ class Model:
         return self.msgs.jump_prev_msg(chat_id)
 
     def get_chats(self, offset=0, limit=10):
-        return self.chats.fetch_chats(offset=offset, limit=limit)
+        chats = self.chats.fetch_chats(offset=offset, limit=limit)
+        return sorted(chats, key=lambda it: it['last_message']['date'], reverse=True)
 
     def send_message(self, text):
         chat_id = self.get_current_chat_id()
@@ -103,7 +104,7 @@ class ChatModel:
 
     def __init__(self, tg):
         self.tg = tg
-        self.chats = []  # Dict[int, list]
+        self.chats = []  # TODO: Dict[int, Dict[str, str]]
         self.chat_ids = []
 
     def fetch_chats(self, offset=0, limit=10):

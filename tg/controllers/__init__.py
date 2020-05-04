@@ -126,7 +126,8 @@ class Controller:
 
     def refresh_chats(self):
         with self.lock:
-            # using lock here, because model.get_chats is vulnerable to race conditions
+            # using lock here, because refresh_chats is used from another
+            # thread
             self.view.draw_chats(
                 self.model.current_chat,
                 self.model.get_chats(limit=self.view.chats.h)
