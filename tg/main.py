@@ -13,22 +13,20 @@ from tg.views import View
 
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(asctime)s %(levelname)s %(message)s',
+    format="%(asctime)s %(levelname)s %(message)s",
     handlers=[
         logging.handlers.RotatingFileHandler(
-            './tg.log',
-            backupCount=1,
-            maxBytes=1024*256
+            "./tg.log", backupCount=1, maxBytes=1024 * 256
         ),
-    ]
+    ],
 )
 
 log = logging.getLogger(__name__)
-API_ID = os.getenv('API_ID')
-API_HASH = os.getenv('API_HASH')
-PHONE = os.getenv('PHONE')
+API_ID = os.getenv("API_ID")
+API_HASH = os.getenv("API_HASH")
+PHONE = os.getenv("PHONE")
 if PHONE is None:
-    raise Exception('Environment variables did not provided')
+    raise Exception("Environment variables did not provided")
 
 
 def run(tg, stdscr):
@@ -40,20 +38,18 @@ def run(tg, stdscr):
     for msg_type in SUPPORTED_MSG_TYPES:
         tg.add_update_handler(msg_type, controller.update_handler)
 
-    t = threading.Thread(
-        target=controller.run,
-    )
+    t = threading.Thread(target=controller.run,)
     t.start()
     t.join()
 
 
 def main():
-    log.debug('#' * 64)
+    log.debug("#" * 64)
     tg = Telegram(
         api_id=API_ID,
         api_hash=API_HASH,
         phone=PHONE,
-        database_encryption_key='changeme1234',
+        database_encryption_key="changeme1234",
     )
     tg.login()
 
@@ -66,5 +62,5 @@ def main():
     wrapper(partial(run, tg))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

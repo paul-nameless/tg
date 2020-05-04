@@ -5,7 +5,6 @@ log = logging.getLogger(__name__)
 
 
 class Model:
-
     def __init__(self, tg):
         self.chats = ChatModel(tg)
         self.msgs = MsgModel(tg)
@@ -33,9 +32,7 @@ class Model:
         chat_id = self.get_current_chat_id()
         if chat_id is None:
             return []
-        return self.msgs.fetch_msgs(
-            chat_id, offset=offset, limit=limit
-        )
+        return self.msgs.fetch_msgs(chat_id, offset=offset, limit=limit)
 
     def jump_bottom(self):
         chat_id = self.chats.chat_ids[self.current_chat]
@@ -93,7 +90,6 @@ class Model:
 
 
 class ChatModel:
-
     def __init__(self, tg):
         self.tg = tg
         self.chats = []  # Dict[int, list]
@@ -102,42 +98,40 @@ class ChatModel:
     def fetch_chats(self, offset=0, limit=10):
         if offset + limit < len(self.chats):
             # return data from cache
-            return sorted(self.chats, key=lambda it: it['last_message']['date'], reverse=True)[offset:limit]
+            return sorted(
+                self.chats, key=lambda it: it["last_message"]["date"], reverse=True
+            )[offset:limit]
 
         previous_chats_num = len(self.chat_ids)
 
-        self.fetch_chat_ids(
-            offset=len(self.chats),
-            limit=len(self.chats) + limit
-        )
+        self.fetch_chat_ids(offset=len(self.chats), limit=len(self.chats) + limit)
         if len(self.chat_ids) == previous_chats_num:
-            return sorted(self.chats, key=lambda it: it['last_message']['date'], reverse=True)[offset:limit]
+            return sorted(
+                self.chats, key=lambda it: it["last_message"]["date"], reverse=True
+            )[offset:limit]
 
         for chat_id in self.chat_ids:
             chat = self.fetch_chat(chat_id)
             self.chats.append(chat)
 
-        return sorted(self.chats, key=lambda it: it['last_message']['date'], reverse=True)[offset:limit]
+        return sorted(
+            self.chats, key=lambda it: it["last_message"]["date"], reverse=True
+        )[offset:limit]
 
     def fetch_chat_ids(self, offset=0, limit=10):
         if len(self.chats):
-            result = self.tg.get_chats(
-                offset_chat_id=self.chats[-1]['id'],
-                limit=limit
-            )
+            result = self.tg.get_chats(offset_chat_id=self.chats[-1]["id"], limit=limit)
         else:
             result = self.tg.get_chats(
-                offset_order=2 ** 63 - 1,
-                offset_chat_id=offset,
-                limit=limit
+                offset_order=2 ** 63 - 1, offset_chat_id=offset, limit=limit
             )
 
         result.wait()
         if result.error:
-            log.error(f'get chat ids error: {result.error_info}')
+            log.error(f"get chat ids error: {result.error_info}")
             return {}
 
-        for chat_id in result.update['chat_ids']:
+        for chat_id in result.update["chat_ids"]:
             self.chat_ids.append(chat_id)
 
         # TODO:
@@ -151,15 +145,15 @@ class ChatModel:
         result.wait()
 
         if result.error:
-            log.error(f'get chat error: {result.error_info}')
+            log.error(f"get chat error: {result.error_info}")
             return {}
         return result.update
 
     def update_last_message(self, chat_id, message):
         for i, c in enumerate(self.chats):
-            if c['id'] != chat_id:
+            if c["id"] != chat_id:
                 continue
-            self.chats[i]['last_message'] = message
+            self.chats[i]["last_message"] = message
             log.info("Updated last message")
             return True
         else:
@@ -168,7 +162,6 @@ class ChatModel:
 
 
 class MsgModel:
-
     def __init__(self, tg):
         self.tg = tg
         self.msgs = defaultdict(list)  # Dict[int, list]
@@ -207,12 +200,12 @@ class MsgModel:
             return False
         log.info(f"removing msg {msg_id=}")
         # FIXME: potential bottleneck, replace with constan time operation
-        self.msgs[chat_id] = [m for m in self.msgs[chat_id] if m['id'] != msg_id]
+        self.msgs[chat_id] = [m for m in self.msgs[chat_id] if m["id"] != msg_id]
         msg_set.remove(msg_id)
         return True
 
     def add_message(self, chat_id, message):
-        msg_id = message['id']
+        msg_id = message["id"]
         msg_set = self.msg_ids[chat_id]
         if msg_id in msg_set:
             return False
@@ -226,46 +219,42 @@ class MsgModel:
 
     def fetch_msgs(self, chat_id, offset=0, limit=10):
         if offset + limit < len(self.msgs[chat_id]):
-            return sorted(self.msgs[chat_id], key=lambda d: d['id'])[::-1][offset:limit]
+            return sorted(self.msgs[chat_id], key=lambda d: d["id"])[::-1][offset:limit]
 
         if len(self.msgs[chat_id]):
             result = self.tg.get_chat_history(
                 chat_id,
-                from_message_id=self.msgs[chat_id][-1]['id'],
-                limit=len(self.msgs[chat_id]) + limit
+                from_message_id=self.msgs[chat_id][-1]["id"],
+                limit=len(self.msgs[chat_id]) + limit,
             )
         else:
             result = self.tg.get_chat_history(
                 chat_id,
                 offset=len(self.msgs[chat_id]),
-                limit=len(self.msgs[chat_id]) + limit
+                limit=len(self.msgs[chat_id]) + limit,
             )
 
         result.wait()
-        self.add_messages(chat_id, result.update['messages'])
+        self.add_messages(chat_id, result.update["messages"])
 
-        return sorted(self.msgs[chat_id], key=lambda d: d["id"])[::-1][
-            offset:limit
-        ]
+        return sorted(self.msgs[chat_id], key=lambda d: d["id"])[::-1][offset:limit]
 
     def send_message(self, chat_id, text):
-        log.info('Sending msg')
+        log.info("Sending msg")
         result = self.tg.send_message(chat_id=chat_id, text=text)
 
         result.wait()
         if result.error:
-            log.info(f'send message error: {result.error_info}')
+            log.info(f"send message error: {result.error_info}")
         else:
-            log.info(f'message has been sent: {result.update}')
+            log.info(f"message has been sent: {result.update}")
 
     def delete_msg(self, chat_id):
         if chat_id is None:
             return False
         selected_msg = self.current_msgs[chat_id]
         msg_item = self.msgs[chat_id].pop(selected_msg)
-        self.current_msgs[chat_id] = min(
-            selected_msg, len(self.msgs[chat_id]) - 1
-        )
+        self.current_msgs[chat_id] = min(selected_msg, len(self.msgs[chat_id]) - 1)
         log.info(f"Deleting msg from the chat {chat_id}: {msg_item}")
         message_ids = [msg_item["id"]]
         r = self.tg.delete_messages(chat_id, message_ids, revoke=True)
@@ -274,7 +263,6 @@ class MsgModel:
 
 
 class UserModel:
-
     def __init__(self, tg):
         self.tg = tg
         self.me = None
@@ -286,7 +274,7 @@ class UserModel:
         result = self.tg.get_me()
         result.wait()
         if result.error:
-            log.error(f'get chat ids error: {result.error_info}')
+            log.error(f"get chat ids error: {result.error_info}")
             return {}
         self.me = result.update
         return self.me
@@ -294,10 +282,10 @@ class UserModel:
     def get_user(self, user_id):
         if user_id in self.users:
             return self.users[user_id]
-        result = self.tg.call_method('getUser', {'user_id': user_id})
+        result = self.tg.call_method("getUser", {"user_id": user_id})
         result.wait()
         if result.error:
-            log.error(f'get chat ids error: {result.error_info}')
+            log.error(f"get chat ids error: {result.error_info}")
             return {}
         self.users[user_id] = result.update
         return result.update

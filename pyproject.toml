@@ -14,3 +14,7 @@ requires = ['python-telegram']
 
 [tool.flit.scripts]
 j = "j.main:main"
+
+[tool.black]
+line-length = 79
+

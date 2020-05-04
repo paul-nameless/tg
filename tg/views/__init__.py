@@ -9,11 +9,13 @@ from utils import num
 log = logging.getLogger(__name__)
 
 MAX_KEYBINDING_LENGTH = 5
-MULTICHAR_KEYBINDINGS = ("gg", "dd",)
+MULTICHAR_KEYBINDINGS = (
+    "gg",
+    "dd",
+)
 
 
 class View:
-
     def __init__(self, stdscr):
         curses.start_color()
         curses.noecho()
@@ -54,35 +56,31 @@ class View:
         self.msgs.draw(current, msgs)
 
     def get_keys(self, y, x):
-        keys = repeat_factor = ''
+        keys = repeat_factor = ""
 
         for _ in range(MAX_KEYBINDING_LENGTH):
             ch = self.stdscr.getch(y, x)
-            log.info('raw ch without unctrl: %s', ch)
+            log.info("raw ch without unctrl: %s", ch)
             try:
                 key = curses.unctrl(ch).decode()
             except UnicodeDecodeError:
-                log.warning('cant uncrtl: %s', ch)
+                log.warning("cant uncrtl: %s", ch)
                 break
             if key.isdigit():
                 repeat_factor += key
                 continue
             keys += key
             # if match found or there are not any shortcut matches at all
-            if all(
-                p == keys or not p.startswith(keys)
-                for p in MULTICHAR_KEYBINDINGS
-            ):
+            if all(p == keys or not p.startswith(keys) for p in MULTICHAR_KEYBINDINGS):
                 break
 
-        return num(repeat_factor, default=1), keys or 'UNKNOWN'
+        return num(repeat_factor, default=1), keys or "UNKNOWN"
 
     def get_input(self):
         return self.status.get_input()
 
 
 class StatusView:
-
     def __init__(self, stdscr):
         self.h = 1
         self.w = curses.COLS
@@ -100,43 +98,42 @@ class StatusView:
         # msg = '-' * (self.w - 1)
         # msg = '>'
         if not msg:
-            msg = 'Status'
-        self.win.addstr(0, 0, msg[:self.w])
+            msg = "Status"
+        self.win.addstr(0, 0, msg[: self.w])
         self.win.refresh()
 
     def get_input(self):
         curses.curs_set(1)
         self.win.erase()
 
-        buff = ''
+        buff = ""
         while True:
-            key = self.win.get_wch(0, min(len(buff), self.w-1))
+            key = self.win.get_wch(0, min(len(buff), self.w - 1))
             key = ord(key)
             log.info('Pressed in send msg: "%s"', key)
             # try:
-            log.info('Trying to chr: %s', chr(key))
+            log.info("Trying to chr: %s", chr(key))
             # except ValueError:
             # log.exception()
             if key == 10:  # return
-                log.info('Sending msg: %s', buff)
+                log.info("Sending msg: %s", buff)
                 break
             elif key == 127:  # del
                 if buff:
                     buff = buff[:-1]
             elif key == 7:  # ^G cancel
-                log.info('Not Sending msg: %s', buff)
+                log.info("Not Sending msg: %s", buff)
                 buff = None
                 break
             elif chr(key).isprintable():
                 buff += chr(key)
             if len(buff) >= self.w:
                 start = len(buff) - self.w
-                buff_wrapped = buff[start+1:]
+                buff_wrapped = buff[start + 1 :]
             else:
-                buff_wrapped = (buff + ' ' * (self.w -
-                                              len(buff) - 1))
+                buff_wrapped = buff + " " * (self.w - len(buff) - 1)
             self.win.addstr(0, 0, buff_wrapped)
-            self.win.move(0, min(len(buff), self.w-1))
+            self.win.move(0, min(len(buff), self.w - 1))
 
         curses.curs_set(0)
         return buff
@@ -160,11 +157,15 @@ class ChatView:
         # self.win.vline(0, self.w-1, curses.ACS_VLINE, self.h)
         for i, chat in enumerate(chats):
             # msg = f' {get_date(chat)} {chat["title"]} [{chat["unread_count"]}]: {get_last_msg(chat)}'
-            date, title, unread, last_msg = get_date(
-                chat), chat["title"], chat["unread_count"], get_last_msg(chat)
+            date, title, unread, last_msg = (
+                get_date(chat),
+                chat["title"],
+                chat["unread_count"],
+                get_last_msg(chat),
+            )
             # msg = emoji_pattern.sub(r'', msg)[:self.w-1]
             # last_msg = emoji_pattern.sub(r'', msg)[:self.w-2] + ' '
-            last_msg = emoji_pattern.sub(r'', last_msg)
+            last_msg = emoji_pattern.sub(r"", last_msg)
             # msg = msg[:self.w-1]
             # if len(msg) < self.w:
             #     msg += ' ' * (self.w - len(msg) - 1)
@@ -177,31 +178,31 @@ class ChatView:
             offset = 0
             j = 0
             # for color, e in zip(colors, msg.split(' ', maxsplit=3)):
-            for color, e in zip(colors, [' ' + date, title]):
+            for color, e in zip(colors, [" " + date, title]):
                 attr = curses.color_pair(color)
                 if offset > self.w:
                     break
                 j += 1
                 if j < 4:
-                    e = e + ' '
-                self.win.addstr(i, offset, e[:self.w-offset-1], attr)
+                    e = e + " "
+                self.win.addstr(i, offset, e[: self.w - offset - 1], attr)
                 offset += len(e)
 
             if offset >= self.w:
                 continue
 
             attr = curses.color_pair(colors[-2])
-            msg = last_msg[:self.w-offset-1]
+            msg = last_msg[: self.w - offset - 1]
 
             # msg = msg[:self.w-1]
             if len(msg) < self.w:
-                msg += ' ' * (self.w - offset - len(msg) - 1)
+                msg += " " * (self.w - offset - len(msg) - 1)
 
             self.win.addstr(i, offset, msg, attr)
 
             if unread:
                 attr = curses.color_pair(colors[-1])
-                unread = ' ' + str(unread) + ' '
+                unread = " " + str(unread) + " "
                 self.win.addstr(i, self.w - len(unread) - 1, unread, attr)
 
             # if i == current:
@@ -250,8 +251,8 @@ class MsgView:
             # s = self._parse_msg(msg)
             dt, user_id, msg = self._parse_msg(msg)
             user_id = self._get_user_by_id(user_id)
-            msg = msg.replace('\n', ' ')
-            s = ' '.join([' ' + dt, user_id, msg])
+            msg = msg.replace("\n", " ")
+            s = " ".join([" " + dt, user_id, msg])
             # s = s.replace('\n', ' ')
             # if len(s) < self.w:
             #     s += ' ' * (self.w - len(s) - 1)
@@ -268,11 +269,11 @@ class MsgView:
 
             offset = 0
             j = 0
-            for color, e in zip(colors, s.split(' ', maxsplit=3)):
+            for color, e in zip(colors, s.split(" ", maxsplit=3)):
                 attr = curses.color_pair(color)
                 j += 1
                 if j < 4:
-                    e = e + ' '
+                    e = e + " "
                 # log.info('####: %s', (e, offset, count))
                 self.win.addstr(count, offset, e, attr)
                 offset += len(e)
@@ -281,7 +282,7 @@ class MsgView:
 
     def _get_user_by_id(self, user_id):
         if user_id == 0:
-            return ''
+            return ""
         user = self.users.get_user(user_id)
         if user["first_name"] and user["last_name"]:
             return f'{user["first_name"]} {user["last_name"]}'[:20]
@@ -289,46 +290,45 @@ class MsgView:
         if user["first_name"]:
             return f'{user["first_name"]}'[:20]
 
-        if user.get('username'):
-            return '@' + user['username']
-        return 'Unknown?'
+        if user.get("username"):
+            return "@" + user["username"]
+        return "Unknown?"
 
     def _parse_msg(self, msg):
-        dt = datetime.fromtimestamp(
-            msg['date']).strftime("%H:%M:%S")
-        _type = msg['@type']
-        if _type == 'message':
-            return dt, msg['sender_user_id'], parse_content(msg['content'])
-        log.debug('Unknown message type: %s', msg)
-        return dt, msg['sender_user_id'], 'unknown msg type: ' + str(msg['content'])
+        dt = datetime.fromtimestamp(msg["date"]).strftime("%H:%M:%S")
+        _type = msg["@type"]
+        if _type == "message":
+            return dt, msg["sender_user_id"], parse_content(msg["content"])
+        log.debug("Unknown message type: %s", msg)
+        return dt, msg["sender_user_id"], "unknown msg type: " + str(msg["content"])
 
 
 def get_last_msg(chat):
-    last_msg = chat.get('last_message')
+    last_msg = chat.get("last_message")
     if not last_msg:
         return "<No messages yet>"
-    content = last_msg['content']
-    _type = content['@type']
-    if _type == 'messageText':
-        return content['text']['text']
-    return f'[{_type}]'
+    content = last_msg["content"]
+    _type = content["@type"]
+    if _type == "messageText":
+        return content["text"]["text"]
+    return f"[{_type}]"
 
 
 def get_date(chat):
-    last_msg = chat.get('last_message')
+    last_msg = chat.get("last_message")
     if not last_msg:
         return "<NA>"
-    dt = datetime.fromtimestamp(last_msg['date'])
+    dt = datetime.fromtimestamp(last_msg["date"])
     if datetime.today().date() == dt.date():
         return dt.strftime("%H:%M")
     return dt.strftime("%d/%b/%y")
 
 
 def parse_content(content):
-    _type = content['@type']
-    if _type == 'messageText':
-        return content['text']['text']
-    return f'[{_type}]'
+    _type = content["@type"]
+    if _type == "messageText":
+        return content["text"]["text"]
+    return f"[{_type}]"
 
 
 emoji_pattern = re.compile(
@@ -340,5 +340,5 @@ emoji_pattern = re.compile(
     "\U00002702-\U000027B0"
     "\U000024C2-\U0001F251"
     "]+",
-    flags=re.UNICODE
+    flags=re.UNICODE,
 )
