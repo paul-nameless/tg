@@ -9,7 +9,7 @@ from utils import num
 log = logging.getLogger(__name__)
 
 MAX_KEYBINDING_LENGTH = 5
-MULTICHAR_KEYBINDINGS = ("gg",)
+MULTICHAR_KEYBINDINGS = ("gg", "dd",)
 
 
 class View:

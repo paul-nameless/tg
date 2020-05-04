@@ -62,7 +62,7 @@ class Controller:
             elif keys == 'G':
                 if self.model.jump_bottom():
                     self.refresh_msgs()
-            elif keys == 'd':
+            elif keys == 'dd':
                 if self.model.delete_msg():
                     self.refresh_msgs()
 
