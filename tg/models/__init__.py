@@ -102,7 +102,7 @@ class ChatModel:
     def fetch_chats(self, offset=0, limit=10):
         if offset + limit < len(self.chats):
             # return data from cache
-            return self.chats[offset:limit]
+            return sorted(self.chats, key=lambda it: it['last_message']['date'], reverse=True)[offset:limit]
 
         previous_chats_num = len(self.chat_ids)
 
@@ -111,13 +111,13 @@ class ChatModel:
             limit=len(self.chats) + limit
         )
         if len(self.chat_ids) == previous_chats_num:
-            return self.chats[offset:limit]
+            return sorted(self.chats, key=lambda it: it['last_message']['date'], reverse=True)[offset:limit]
 
         for chat_id in self.chat_ids:
             chat = self.fetch_chat(chat_id)
             self.chats.append(chat)
 
-        return self.chats[offset:limit]
+        return sorted(self.chats, key=lambda it: it['last_message']['date'], reverse=True)[offset:limit]
 
     def fetch_chat_ids(self, offset=0, limit=10):
         if len(self.chats):
