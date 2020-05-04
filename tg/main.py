@@ -22,7 +22,7 @@ logging.basicConfig(
 )
 
 log = logging.getLogger(__name__)
-API_ID = os.getenv("API_ID")
+API_ID = os.getenv('API_ID')
 API_HASH = os.getenv("API_HASH")
 PHONE = os.getenv("PHONE")
 if PHONE is None:
