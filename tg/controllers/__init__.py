@@ -35,49 +35,49 @@ class Controller:
 
         while True:
 
-            key = self.view.get_key(self.view.chats.h, self.view.chats.w)
-            log.info('Pressed key: %s', key)
-            if key == 'q':
+            repeat_factor, keys = self.view.get_keys(self.view.chats.h, self.view.chats.w)
+            log.info('Pressed keys: %s', keys)
+            if keys == 'q':
                 return 'QUIT'
-            elif key == ']':
+            elif keys == ']':
                 if self.model.next_chat():
                     self.refresh_chats()
-            elif key == '[':
+            elif keys == '[':
                 if self.model.prev_chat():
                     self.refresh_chats()
-            elif key == 'J':
+            elif keys == 'J':
                 if self.model.jump_next_msg():
                     self.refresh_msgs()
-            elif key == 'K':
+            elif keys == 'K':
                 if self.model.jump_prev_msg():
                     self.refresh_msgs()
-            elif key in ('j', '^B'):
-                if self.model.next_msg():
+            elif keys in ('j', '^B'):
+                if self.model.next_msg(repeat_factor):
                     self.refresh_msgs()
-            elif key in ('k', '^C'):
-                if self.model.prev_msg():
+            elif keys in ('k', '^C'):
+                if self.model.prev_msg(repeat_factor):
                     self.refresh_msgs()
-            elif key == 'G':
+            elif keys == 'G':
                 if self.model.jump_bottom():
                     self.refresh_msgs()
 
-            elif key == '/':
+            elif keys == '/':
                 # search
                 pass
-            elif key == 'gg':
+            elif keys == 'gg':
                 # move to the top
                 pass
-            elif key == 'e':
+            elif keys == 'e':
                 # edit msg
                 pass
-            elif key == 'r':
+            elif keys == 'r':
                 # reply to this msg
                 # print to status line
                 pass
-            elif key == 'I':
+            elif keys == 'I':
                 # open vim or emacs to write long messages
                 pass
-            elif key == 'i':
+            elif keys == 'i':
                 # write new message
                 msg = self.view.get_input()
                 if msg:
@@ -88,7 +88,7 @@ class Controller:
                     )
                     self.view.draw_status(f'Sent: {msg}')
 
-            elif key in ('h', '^D'):
+            elif keys in ('h', '^D'):
                 return 'BACK'
 
     def handle_chats(self):
@@ -99,11 +99,11 @@ class Controller:
         self.refresh_chats()
         while True:
 
-            key = self.view.get_key(self.view.chats.h, self.view.chats.w)
-            log.info('Pressed key: %s', key)
-            if key == 'q':
+            repeat_factor, keys = self.view.get_keys(self.view.chats.h, self.view.chats.w)
+            log.info('Pressed keys: %s', keys)
+            if keys == 'q':
                 return
-            elif key in ('l', '^E'):
+            elif keys in ('l', '^E'):
                 rc = self.handle_msgs()
                 if rc == 'QUIT':
                     return
@@ -111,13 +111,18 @@ class Controller:
                 self.view.msgs.resize(0.5)
                 self.refresh_chats()
 
-            elif key in ('j', '^B'):
-                is_changed = self.model.next_chat()
+            elif keys in ('j', '^B'):
+                is_changed = self.model.next_chat(repeat_factor)
                 if is_changed:
                     self.refresh_chats()
 
-            elif key in ('k', '^C'):
-                is_changed = self.model.prev_chat()
+            elif keys in ('k', '^C'):
+                is_changed = self.model.prev_chat(repeat_factor)
+                if is_changed:
+                    self.refresh_chats()
+
+            elif keys == 'gg':
+                is_changed = self.model.first_chat()
                 if is_changed:
                     self.refresh_chats()
 
