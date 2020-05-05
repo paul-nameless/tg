@@ -5,6 +5,7 @@ import re
 from datetime import datetime
 
 from utils import num
+from colors import cyan, blue, white, normal, reverse, magenta, get_color
 
 log = logging.getLogger(__name__)
 
@@ -25,20 +26,6 @@ class View:
 
         curses.start_color()
         curses.use_default_colors()
-
-        # default
-        curses.init_pair(1, -1, -1)
-        curses.init_pair(2, curses.COLOR_CYAN, -1)
-        curses.init_pair(3, curses.COLOR_BLUE, -1)
-        curses.init_pair(4, curses.COLOR_MAGENTA, -1)
-        curses.init_pair(5, curses.COLOR_YELLOW, -1)
-        curses.init_pair(6, curses.COLOR_BLACK, -1)
-
-        # selection
-        curses.init_pair(7, -1, curses.COLOR_BLACK)
-        curses.init_pair(8, curses.COLOR_CYAN, curses.COLOR_BLACK)
-        curses.init_pair(9, curses.COLOR_BLUE, curses.COLOR_BLACK)
-        curses.init_pair(10, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
 
         self.stdscr = stdscr
         self.chats = ChatView(stdscr)
@@ -173,16 +160,18 @@ class ChatView:
             # if len(msg) < self.w:
             #     msg += ' ' * (self.w - len(msg) - 1)
 
+            msg_color = get_color(white, -1)
+            unread_color = get_color(magenta, -1)
+            attrs = [get_color(cyan, -1), get_color(blue, -1), msg_color]
             if i == current:
-                colors = [8, 9, 7, 10]
-            else:
-                colors = [2, 3, 1, 4]
+                attrs = [attr | reverse for attr in attrs]
+                msg_color |= reverse
+                unread_color |= reverse
 
             offset = 0
             j = 0
             # for color, e in zip(colors, msg.split(' ', maxsplit=3)):
-            for color, e in zip(colors, [" " + date, title]):
-                attr = curses.color_pair(color)
+            for attr, e in zip(attrs, [" " + date, title]):
                 if offset > self.w:
                     break
                 j += 1
@@ -194,7 +183,7 @@ class ChatView:
             if offset >= self.w:
                 continue
 
-            attr = curses.color_pair(colors[-2])
+            attr = msg_color
             msg = last_msg[: self.w - offset - 1]
 
             # msg = msg[:self.w-1]
@@ -204,16 +193,9 @@ class ChatView:
             self.win.addstr(i, offset, msg, attr)
 
             if unread:
-                attr = curses.color_pair(colors[-1])
+                attr = unread_color
                 unread = " " + str(unread) + " "
                 self.win.addstr(i, self.w - len(unread) - 1, unread, attr)
-
-            # if i == current:
-            #     # attr = curses.A_REVERSE | curses.color_pair(1)
-            #     attr = curses.A_REVERSE
-            #     self.win.addstr(i, 0, msg, attr)
-            #     continue
-            # self.win.addstr(i, 0, msg)
 
         self.win.refresh()
 
@@ -265,19 +247,18 @@ class MsgView:
                 # log.warning('Reched end of lines')
                 break
 
+            attrs = [get_color(cyan, -1), get_color(blue, -1), get_color(white, -1)]
             if i == current:
-                colors = [7, 8, 9, 7]
-            else:
-                colors = [1, 2, 3, 1]
+                attrs = [attr | reverse for attr in attrs]
 
             offset = 0
             j = 0
-            for color, e in zip(colors, s.split(" ", maxsplit=3)):
-                attr = curses.color_pair(color)
+            for attr, e in zip(attrs, [" " + dt, user_id, msg]):
+                if not e.strip():
+                    continue
                 j += 1
                 if j < 4:
                     e = e + " "
-                # log.info('####: %s', (e, offset, count))
                 self.win.addstr(count, offset, e, attr)
                 offset += len(e)
 
