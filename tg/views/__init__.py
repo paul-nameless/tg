@@ -160,16 +160,18 @@ class ChatView:
             # if len(msg) < self.w:
             #     msg += ' ' * (self.w - len(msg) - 1)
 
-            colors = [(cyan, -1), (blue, -1), (white, -1), (magenta, -1)]
-            mode = normal
+            msg_color = get_color(white, -1)
+            unread_color = get_color(magenta, -1)
+            attrs = [get_color(cyan, -1), get_color(blue, -1), msg_color]
             if i == current:
-                mode = reverse
+                attrs = [attr | reverse for attr in attrs]
+                msg_color |= reverse
+                unread_color |= reverse
 
             offset = 0
             j = 0
             # for color, e in zip(colors, msg.split(' ', maxsplit=3)):
-            for color, e in zip(colors, [" " + date, title]):
-                attr = mode | get_color(*color)
+            for attr, e in zip(attrs, [" " + date, title]):
                 if offset > self.w:
                     break
                 j += 1
@@ -181,8 +183,7 @@ class ChatView:
             if offset >= self.w:
                 continue
 
-            attr = get_color(*colors[-2]) | mode
-
+            attr = msg_color
             msg = last_msg[: self.w - offset - 1]
 
             # msg = msg[:self.w-1]
@@ -192,8 +193,7 @@ class ChatView:
             self.win.addstr(i, offset, msg, attr)
 
             if unread:
-                attr = get_color(*colors[-1]) | mode
-
+                attr = unread_color
                 unread = " " + str(unread) + " "
                 self.win.addstr(i, self.w - len(unread) - 1, unread, attr)
 
@@ -247,17 +247,15 @@ class MsgView:
                 # log.warning('Reched end of lines')
                 break
 
-            colors = [(cyan, -1), (blue, -1), (white, -1)]
-            mode = normal
+            attrs = [get_color(cyan, -1), get_color(blue, -1), get_color(white, -1)]
             if i == current:
-                mode = reverse
+                attrs = [attr | reverse for attr in attrs]
 
             offset = 0
             j = 0
-            for color, e in zip(colors, [" " + dt, user_id, msg]):
+            for attr, e in zip(attrs, [" " + dt, user_id, msg]):
                 if not e.strip():
                     continue
-                attr = get_color(*color) | mode
                 j += 1
                 if j < 4:
                     e = e + " "
