@@ -17,25 +17,20 @@ class Model:
     def get_user(self, user_id):
         return self.users.get_user(user_id)
 
-    def get_current_chat_id(self):
-        if self.current_chat >= len(self.chats.chat_ids):
-            return None
-        return self.chats.chat_ids[self.current_chat]
-
     def get_current_chat_msg(self):
-        chat_id = self.get_current_chat_id()
+        chat_id = self.chats.id_by_index(self.current_chat)
         if chat_id is None:
             return []
         return self.msgs.current_msgs[chat_id]
 
     def fetch_msgs(self, offset=0, limit=10):
-        chat_id = self.get_current_chat_id()
+        chat_id = self.chats.id_by_index(self.current_chat)
         if chat_id is None:
             return []
         return self.msgs.fetch_msgs(chat_id, offset=offset, limit=limit)
 
     def jump_bottom(self):
-        chat_id = self.chats.chat_ids[self.current_chat]
+        chat_id = self.chats.id_by_index(self.current_chat)
         return self.msgs.jump_bottom(chat_id)
 
     def next_chat(self, step=1):
@@ -58,25 +53,25 @@ class Model:
         return False
 
     def next_msg(self, step=1):
-        chat_id = self.chats.chat_ids[self.current_chat]
+        chat_id = self.chats.id_by_index(self.current_chat)
         return self.msgs.next_msg(chat_id, step)
 
     def prev_msg(self, step=1):
-        chat_id = self.chats.chat_ids[self.current_chat]
+        chat_id = self.chats.id_by_index(self.current_chat)
         return self.msgs.prev_msg(chat_id, step)
 
     def get_chats(self, offset=0, limit=10):
         return self.chats.fetch_chats(offset=offset, limit=limit)
 
     def send_message(self, text):
-        chat_id = self.get_current_chat_id()
+        chat_id = self.chats.id_by_index(self.current_chat)
         if chat_id is None:
             return False
         self.msgs.send_message(chat_id, text)
         return True
 
     def delete_msg(self):
-        chat_id = self.get_current_chat_id()
+        chat_id = self.chats.id_by_index(self.current_chat)
         if chat_id:
             return self.msgs.delete_msg(chat_id)
 
@@ -84,17 +79,18 @@ class Model:
 class ChatModel:
     def __init__(self, tg):
         self.tg = tg
-        self.chats = []  # Dict[int, list]
+        self.chats = []
         self.chat_ids = []
+
+    def id_by_index(self, index):
+        if index >= len(self.chats):
+            return None
+        return self.chats[index]["id"]
 
     def fetch_chats(self, offset=0, limit=10):
         if offset + limit < len(self.chats):
             # return data from cache
-            return sorted(
-                self.chats,
-                key=lambda it: it["last_message"]["date"],
-                reverse=True,
-            )[offset:limit]
+            return self.chats[offset:limit]
 
         previous_chats_num = len(self.chat_ids)
 
@@ -102,19 +98,13 @@ class ChatModel:
             offset=len(self.chats), limit=len(self.chats) + limit
         )
         if len(self.chat_ids) == previous_chats_num:
-            return sorted(
-                self.chats,
-                key=lambda it: it["last_message"]["date"],
-                reverse=True,
-            )[offset:limit]
+            return self.chats[offset:limit]
 
         for chat_id in self.chat_ids:
             chat = self.fetch_chat(chat_id)
             self.chats.append(chat)
 
-        return sorted(
-            self.chats, key=lambda it: it["last_message"]["date"], reverse=True
-        )[offset:limit]
+        return self.chats[offset:limit]
 
     def fetch_chat_ids(self, offset=0, limit=10):
         if len(self.chats):
@@ -154,6 +144,12 @@ class ChatModel:
             if c["id"] != chat_id:
                 continue
             self.chats[i]["last_message"] = message
+            self.chats = sorted(
+                self.chats,
+                key=lambda it: it["last_message"]["date"],
+                reverse=True,
+            )
+
             log.info("Updated last message")
             return True
         else:

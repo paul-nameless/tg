@@ -247,7 +247,11 @@ class MsgView:
                 # log.warning('Reched end of lines')
                 break
 
-            attrs = [get_color(cyan, -1), get_color(blue, -1), get_color(white, -1)]
+            attrs = [
+                get_color(cyan, -1),
+                get_color(blue, -1),
+                get_color(white, -1),
+            ]
             if i == current:
                 attrs = [attr | reverse for attr in attrs]
 
