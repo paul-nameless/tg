@@ -54,15 +54,15 @@ class Controller:
                 if self.model.prev_chat():
                     self.refresh_chats()
             elif keys == "J":
-                if self.model.jump_next_msg():
+                if self.model.next_msg(10):
                     self.refresh_msgs()
             elif keys == "K":
-                if self.model.jump_prev_msg():
+                if self.model.prev_msg(10):
                     self.refresh_msgs()
-            elif keys in ("j", "^B"):
+            elif keys in ("j", "^P"):
                 if self.model.next_msg(repeat_factor):
                     self.refresh_msgs()
-            elif keys in ("k", "^C"):
+            elif keys in ("k", "^N"):
                 if self.model.prev_msg(repeat_factor):
                     self.refresh_msgs()
             elif keys == "G":
@@ -88,7 +88,7 @@ class Controller:
             elif keys == "I":
                 # open vim or emacs to write long messages
                 pass
-            elif keys == "i":
+            elif keys in ("i", "a"):
                 # write new message
                 msg = self.view.get_input()
                 if msg:
@@ -112,7 +112,7 @@ class Controller:
             log.info("Pressed keys: %s", keys)
             if keys == "q":
                 return
-            elif keys in ("l", "^E"):
+            elif keys in ("l", "^J"):
                 rc = self.handle_msgs()
                 if rc == "QUIT":
                     return
@@ -120,19 +120,24 @@ class Controller:
                 self.view.msgs.resize(0.5)
                 self.refresh_chats()
 
-            elif keys in ("j", "^B"):
-                is_changed = self.model.next_chat(repeat_factor)
-                if is_changed:
+            elif keys in ("j", "^N"):
+                if self.model.next_chat(repeat_factor):
                     self.refresh_chats()
 
-            elif keys in ("k", "^C"):
-                is_changed = self.model.prev_chat(repeat_factor)
-                if is_changed:
+            elif keys in ("k", "^P"):
+                if self.model.prev_chat(repeat_factor):
+                    self.refresh_chats()
+
+            elif keys in ("J",):
+                if self.model.next_chat(10):
+                    self.refresh_chats()
+
+            elif keys in ("K",):
+                if self.model.prev_chat(10):
                     self.refresh_chats()
 
             elif keys == "gg":
-                is_changed = self.model.first_chat()
-                if is_changed:
+                if self.model.first_chat():
                     self.refresh_chats()
 
     def refresh_chats(self):
