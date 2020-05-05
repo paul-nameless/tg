@@ -93,21 +93,12 @@ class ChatModel:
     def id_by_index(self, index):
         if index >= len(self.chats):
             return None
-
-        return sorted(
-            self.chats,
-            key=lambda it: it["last_message"]["date"],
-            reverse=True,
-        )[index]["id"]
+        return self.chats[index]["id"]
 
     def fetch_chats(self, offset=0, limit=10):
         if offset + limit < len(self.chats):
             # return data from cache
-            return sorted(
-                self.chats,
-                key=lambda it: it["last_message"]["date"],
-                reverse=True,
-            )[offset:limit]
+            return self.chats[offset:limit]
 
         previous_chats_num = len(self.chat_ids)
 
@@ -115,19 +106,13 @@ class ChatModel:
             offset=len(self.chats), limit=len(self.chats) + limit
         )
         if len(self.chat_ids) == previous_chats_num:
-            return sorted(
-                self.chats,
-                key=lambda it: it["last_message"]["date"],
-                reverse=True,
-            )[offset:limit]
+            return self.chats[offset:limit]
 
         for chat_id in self.chat_ids:
             chat = self.fetch_chat(chat_id)
             self.chats.append(chat)
 
-        return sorted(
-            self.chats, key=lambda it: it["last_message"]["date"], reverse=True
-        )[offset:limit]
+        return self.chats[offset:limit]
 
     def fetch_chat_ids(self, offset=0, limit=10):
         if len(self.chats):
@@ -167,6 +152,12 @@ class ChatModel:
             if c["id"] != chat_id:
                 continue
             self.chats[i]["last_message"] = message
+            self.chats = sorted(
+                self.chats,
+                key=lambda it: it["last_message"]["date"],
+                reverse=True,
+            )
+
             log.info("Updated last message")
             return True
         else:
