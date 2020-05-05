@@ -54,15 +54,15 @@ class Controller:
                 if self.model.prev_chat():
                     self.refresh_chats()
             elif keys == "J":
-                if self.model.jump_next_msg():
+                if self.model.next_msg(10):
                     self.refresh_msgs()
             elif keys == "K":
-                if self.model.jump_prev_msg():
+                if self.model.prev_msg(10):
                     self.refresh_msgs()
-            elif keys in ("j", "^B"):
+            elif keys in ("j", "^P"):
                 if self.model.next_msg(repeat_factor):
                     self.refresh_msgs()
-            elif keys in ("k", "^C"):
+            elif keys in ("k", "^N"):
                 if self.model.prev_msg(repeat_factor):
                     self.refresh_msgs()
             elif keys == "G":
@@ -120,13 +120,23 @@ class Controller:
                 self.view.msgs.resize(0.5)
                 self.refresh_chats()
 
-            elif keys in ("j", "^B"):
+            elif keys in ("j", "^N"):
                 is_changed = self.model.next_chat(repeat_factor)
                 if is_changed:
                     self.refresh_chats()
 
-            elif keys in ("k", "^C"):
+            elif keys in ("k", "^P"):
                 is_changed = self.model.prev_chat(repeat_factor)
+                if is_changed:
+                    self.refresh_chats()
+
+            elif keys in ("J",):
+                is_changed = self.model.next_chat(10)
+                if is_changed:
+                    self.refresh_chats()
+
+            elif keys in ("K",):
+                is_changed = self.model.prev_chat(10)
                 if is_changed:
                     self.refresh_chats()
 

@@ -65,14 +65,6 @@ class Model:
         chat_id = self.chats.chat_ids[self.current_chat]
         return self.msgs.prev_msg(chat_id, step)
 
-    def jump_next_msg(self):
-        chat_id = self.chats.chat_ids[self.current_chat]
-        return self.msgs.jump_next_msg(chat_id)
-
-    def jump_prev_msg(self):
-        chat_id = self.chats.chat_ids[self.current_chat]
-        return self.msgs.jump_prev_msg(chat_id)
-
     def get_chats(self, offset=0, limit=10):
         return self.chats.fetch_chats(offset=offset, limit=limit)
 
@@ -188,12 +180,6 @@ class MsgModel:
             return False
         self.current_msgs[chat_id] = 0
         return True
-
-    def jump_next_msg(self, chat_id):
-        return self.next_msg(chat_id, step=10)
-
-    def jump_prev_msg(self, chat_id):
-        return self.prev_msg(chat_id, step=10)
 
     def prev_msg(self, chat_id, step=1):
         new_idx = self.current_msgs[chat_id] + step
