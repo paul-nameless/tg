@@ -185,12 +185,6 @@ class MsgModel:
         self.current_msgs[chat_id] = 0
         return True
 
-    def jump_next_msg(self, chat_id):
-        return self.next_msg(chat_id, step=10)
-
-    def jump_prev_msg(self, chat_id):
-        return self.prev_msg(chat_id, step=10)
-
     def prev_msg(self, chat_id, step=1):
         new_idx = self.current_msgs[chat_id] + step
         if new_idx < len(self.msgs[chat_id]):
