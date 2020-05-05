@@ -2,7 +2,7 @@ import logging
 import logging.handlers
 import os
 import threading
-from curses import wrapper
+from curses import wrapper, window
 from functools import partial
 
 from telegram.client import Telegram
@@ -29,7 +29,7 @@ if PHONE is None:
     raise Exception("Environment variables did not provided")
 
 
-def run(tg, stdscr):
+def run(tg: Telegram, stdscr: window) -> None:
     # run this function in thread?
     view = View(stdscr)
     model = Model(tg)

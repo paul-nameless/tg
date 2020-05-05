@@ -3,6 +3,8 @@ import os
 import threading
 
 from utils import notify
+from tg.models import Model
+from tg.views import View
 
 log = logging.getLogger(__name__)
 
@@ -21,18 +23,18 @@ class Controller:
     # View is terminal vindow
     """
 
-    def __init__(self, model, view):
+    def __init__(self, model: Model, view: View) -> None:
         self.model = model
         self.view = view
         self.lock = threading.Lock()
 
-    def run(self):
+    def run(self) -> None:
         try:
             self.handle_chats()
         except Exception as e:
             log.exception("Error happened in main loop")
 
-    def handle_msgs(self):
+    def handle_msgs(self) -> str:
         # set width to 0.25, move window to left
         # refresh everything
         self.view.chats.resize(0.2)
@@ -98,7 +100,7 @@ class Controller:
             elif keys in ("h", "^D"):
                 return "BACK"
 
-    def handle_chats(self):
+    def handle_chats(self) -> None:
         # set width to 0.5, move window to center?
         # refresh everything
         self.view.chats.resize(0.5)
@@ -140,7 +142,7 @@ class Controller:
                 if self.model.first_chat():
                     self.refresh_chats()
 
-    def refresh_chats(self):
+    def refresh_chats(self) -> None:
         with self.lock:
             # using lock here, because refresh_chats is used from another
             # thread by tdlib python wrapper
@@ -151,7 +153,7 @@ class Controller:
             self.refresh_msgs()
             self.view.draw_status()
 
-    def refresh_msgs(self):
+    def refresh_msgs(self) -> None:
         self.view.msgs.users = self.model.users
         msgs = self.model.fetch_msgs(limit=self.view.msgs.h)
         self.view.draw_msgs(self.model.get_current_chat_msg(), msgs)
