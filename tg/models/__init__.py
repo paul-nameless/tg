@@ -60,14 +60,6 @@ class Model:
         chat_id = self.chats.id_by_index(self.current_chat)
         return self.msgs.prev_msg(chat_id, step)
 
-    def jump_next_msg(self):
-        chat_id = self.chats.id_by_index(self.current_chat)
-        return self.msgs.jump_next_msg(chat_id)
-
-    def jump_prev_msg(self):
-        chat_id = self.chats.id_by_index(self.current_chat)
-        return self.msgs.jump_prev_msg(chat_id)
-
     def get_chats(self, offset=0, limit=10):
         return self.chats.fetch_chats(offset=offset, limit=limit)
 
