@@ -33,8 +33,7 @@ def run(tg: Telegram, stdscr: window) -> None:
     # run this function in thread?
     view = View(stdscr)
     model = Model(tg)
-    controller = Controller(model, view)
-    controller.tg = tg
+    controller = Controller(model, view, tg)
     for msg_type in SUPPORTED_MSG_TYPES:
         tg.add_update_handler(msg_type, controller.update_handler)
 

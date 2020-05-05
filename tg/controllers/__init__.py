@@ -2,6 +2,8 @@ import logging
 import os
 import threading
 
+from telegram.client import Telegram
+
 from utils import notify
 from tg.models import Model
 from tg.views import View
@@ -23,15 +25,18 @@ class Controller:
     # View is terminal vindow
     """
 
-    def __init__(self, model: Model, view: View) -> None:
+    tg: Telegram
+
+    def __init__(self, model: Model, view: View, tg: Telegram) -> None:
         self.model = model
         self.view = view
+        self.tg = tg
         self.lock = threading.Lock()
 
     def run(self) -> None:
         try:
             self.handle_chats()
-        except Exception as e:
+        except Exception:
             log.exception("Error happened in main loop")
 
     def handle_msgs(self) -> str:

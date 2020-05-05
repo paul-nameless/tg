@@ -94,7 +94,7 @@ class StatusView:
         self.win.addstr(0, 0, msg[: self.w])
         self.win.refresh()
 
-    def get_input(self) -> str:
+    def get_input(self) -> Optional[str]:
         curses.curs_set(1)
         self.win.erase()
 

@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from telegram.client import Telegram
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, Set, Optional
 
 log = logging.getLogger(__name__)
 
@@ -19,10 +19,10 @@ class Model:
     def get_user(self, user_id):
         return self.users.get_user(user_id)
 
-    def get_current_chat_msg(self) -> int:
+    def get_current_chat_msg(self) -> Optional[int]:
         chat_id = self.chats.id_by_index(self.current_chat)
         if chat_id is None:
-            return []
+            return None
         return self.msgs.current_msgs[chat_id]
 
     def fetch_msgs(self, offset: int = 0, limit: int = 10) -> Any:
@@ -56,10 +56,14 @@ class Model:
 
     def next_msg(self, step: int = 1) -> bool:
         chat_id = self.chats.id_by_index(self.current_chat)
+        if not chat_id:
+            return False
         return self.msgs.next_msg(chat_id, step)
 
     def prev_msg(self, step: int = 1) -> bool:
         chat_id = self.chats.id_by_index(self.current_chat)
+        if not chat_id:
+            return False
         return self.msgs.prev_msg(chat_id, step)
 
     def get_chats(
@@ -78,15 +82,16 @@ class Model:
         chat_id = self.chats.id_by_index(self.current_chat)
         if chat_id:
             return self.msgs.delete_msg(chat_id)
+        return False
 
 
 class ChatModel:
     def __init__(self, tg: Telegram) -> None:
         self.tg = tg
-        self.chats = []
-        self.chat_ids = []
+        self.chats: List[Dict[str, Any]] = []
+        self.chat_ids: List[int] = []
 
-    def id_by_index(self, index: int) -> int:
+    def id_by_index(self, index: int) -> Optional[int]:
         if index >= len(self.chats):
             return None
         return self.chats[index]["id"]
@@ -125,7 +130,7 @@ class ChatModel:
         result.wait()
         if result.error:
             log.error(f"get chat ids error: {result.error_info}")
-            return {}
+            return []
 
         for chat_id in result.update["chat_ids"]:
             self.chat_ids.append(chat_id)
@@ -166,9 +171,9 @@ class ChatModel:
 class MsgModel:
     def __init__(self, tg: Telegram) -> None:
         self.tg = tg
-        self.msgs = defaultdict(list)  # Dict[int, list]
-        self.current_msgs = defaultdict(int)
-        self.msg_ids = defaultdict(set)
+        self.msgs: Dict[int, List[Dict]] = defaultdict(list)
+        self.current_msgs: Dict[int, int] = defaultdict(int)
+        self.msg_ids: Dict[int, Set[int]] = defaultdict(set)
 
     def next_msg(self, chat_id: int, step: int = 1) -> bool:
         current_msg = self.current_msgs[chat_id]
@@ -295,7 +300,7 @@ class UserModel:
     def __init__(self, tg: Telegram) -> None:
         self.tg = tg
         self.me = None
-        self.users = {}
+        self.users: Dict[int, Dict] = {}
 
     def get_me(self):
         if self.me:

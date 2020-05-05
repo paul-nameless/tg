@@ -5,7 +5,7 @@ from typing import Optional
 log = logging.getLogger(__name__)
 
 
-def num(value: str, default: Optional[int] = None) -> int:
+def num(value: str, default: Optional[int] = None) -> Optional[int]:
     try:
         return int(value)
     except ValueError:
