@@ -54,20 +54,18 @@ class Controller:
         log.info("Open msg: %s", msg.msg)
         if msg.is_text:
             text = msg["content"]["text"]["text"]
-            with NamedTemporaryFile("w") as f:
+            with NamedTemporaryFile("w", suffix=".txt") as f:
                 f.write(text)
                 f.flush()
                 with suspend(self.view) as s:
-                    s.call(["less", f.name])
+                    s.run(f.name)
             return
 
         path = msg.local_path
         if path:
-            # handle with mimetype and mailcap
-            # if multiple entries in mailcap, open fzf to choose
             with suspend(self.view) as s:
                 log.info("Opening file: %s", path)
-                s.call(["open", path])
+                s.run(path)
 
     def handle_msgs(self) -> str:
         # set width to 0.25, move window to left
@@ -200,12 +198,24 @@ class Controller:
 
     @handle_exception
     def update_new_msg(self, update):
-        chat_id = update["message"]["chat_id"]
-        self.model.msgs.add_message(chat_id, update["message"])
+        msg = update["message"]
+        chat_id = msg["chat_id"]
+        self.model.msgs.add_message(chat_id, msg)
         self.refresh_msgs()
-        if not update.get("disable_notification"):
-            if update["message"]["content"] == "text":
-                notify(update["message"]["content"]["text"]["text"])
+
+        # notify
+        user_id = msg["sender_user_id"]
+        if msg["sender_user_id"] == self.model.get_me()["id"]:
+            return
+        user = self.model.users.get_user(user_id)
+        name = "{} {}".format(user["first_name"], user["last_name"])
+        _type = msg["content"]["@type"]
+
+        if _type == "messageText":
+            text = msg["content"]["text"]["text"]
+        else:
+            text = MsgProxy.types.get(_type, "")
+        notify(text, title=name)
 
     @handle_exception
     def update_chat_last_msg(self, update):
@@ -218,7 +228,7 @@ class Controller:
         # though need to make sure that creatinng index is atomic operation
         # requires locks for read, until index and chats will be the same
         for i, chat in enumerate(self.model.chats.chats):
-            if chat['id'] == current_chat_id:
+            if chat["id"] == current_chat_id:
                 self.model.current_chat = i
                 break
         self.refresh_chats()

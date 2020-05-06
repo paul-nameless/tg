@@ -1,6 +1,5 @@
 import logging
 import logging.handlers
-import os
 import threading
 from curses import wrapper, window
 from functools import partial
@@ -10,23 +9,10 @@ from telegram.client import Telegram
 from tg.controllers import Controller
 from tg.models import Model
 from tg.views import View
+from tg import config, utils
 
-logging.basicConfig(
-    level=os.getenv("LOG_LEVEL", "DEBUG"),
-    format="%(asctime)s %(levelname)s %(message)s",
-    handlers=[
-        logging.handlers.RotatingFileHandler(
-            "./tg.log", backupCount=1, maxBytes=1024 * 256
-        ),
-    ],
-)
 
 log = logging.getLogger(__name__)
-API_ID = os.getenv("API_ID")
-API_HASH = os.getenv("API_HASH")
-PHONE = os.getenv("PHONE")
-if PHONE is None:
-    raise Exception("Environment variables did not provided")
 
 
 def run(tg: Telegram, stdscr: window) -> None:
@@ -61,16 +47,17 @@ class TelegramApi(Telegram):
 
 
 def main():
+    cfg = config.get_cfg()["DEFAULT"]
+    utils.setup_log(cfg.get("level", "DEBUG"))
     log.debug("#" * 64)
     tg = TelegramApi(
-        api_id=API_ID,
-        api_hash=API_HASH,
-        phone=PHONE,
-        database_encryption_key="changeme1234",
-        files_directory=os.path.expanduser("~/.cache/tg/"),
-        tdlib_verbosity=0,
-        # TODO: add in config
-        library_path="/usr/local/Cellar/tdlib/1.6.0/lib/libtdjson.dylib",
+        api_id=cfg["api_id"],
+        api_hash=cfg["api_hash"],
+        phone=cfg["login"],
+        database_encryption_key=cfg["enc_key"],
+        files_directory=cfg.get("files", config.DEFAULT_FILES),
+        tdlib_verbosity=cfg.get("tdlib_verbosity", 0),
+        library_path=cfg.get("library_path"),
     )
     tg.login()
     wrapper(partial(run, tg))
