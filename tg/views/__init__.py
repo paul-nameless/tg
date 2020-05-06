@@ -6,6 +6,8 @@ from datetime import datetime
 
 from utils import num
 from colors import cyan, blue, white, normal, reverse, magenta, get_color
+from _curses import window
+from typing import Any, Dict, List, Optional, Tuple
 
 log = logging.getLogger(__name__)
 
@@ -17,7 +19,7 @@ MULTICHAR_KEYBINDINGS = (
 
 
 class View:
-    def __init__(self, stdscr):
+    def __init__(self, stdscr: window) -> None:
         curses.start_color()
         curses.noecho()
         curses.cbreak()
@@ -33,16 +35,16 @@ class View:
         self.status = StatusView(stdscr)
         self.max_read = 2048
 
-    def draw_chats(self, current, chats):
+    def draw_chats(self, current: int, chats: List[Dict[str, Any]]) -> None:
         self.chats.draw(current, chats)
 
-    def draw_status(self, msg=None):
+    def draw_status(self, msg: Optional[str] = None) -> None:
         self.status.draw(msg)
 
-    def draw_msgs(self, current, msgs):
+    def draw_msgs(self, current: int, msgs: Any) -> None:
         self.msgs.draw(current, msgs)
 
-    def get_keys(self, y, x):
+    def get_keys(self, y: int, x: int) -> Tuple[int, str]:
         keys = repeat_factor = ""
 
         for _ in range(MAX_KEYBINDING_LENGTH):
@@ -66,12 +68,12 @@ class View:
 
         return num(repeat_factor, default=1), keys or "UNKNOWN"
 
-    def get_input(self):
+    def get_input(self) -> str:
         return self.status.get_input()
 
 
 class StatusView:
-    def __init__(self, stdscr):
+    def __init__(self, stdscr: window) -> None:
         self.h = 1
         self.w = curses.COLS
         self.y = curses.LINES - 1
@@ -84,7 +86,7 @@ class StatusView:
         self.win.resize(self.h, self.w)
         self.win.wmove(self.y, self.x)
 
-    def draw(self, msg):
+    def draw(self, msg: Optional[str]) -> None:
         # msg = '-' * (self.w - 1)
         # msg = '>'
         if not msg:
@@ -92,7 +94,7 @@ class StatusView:
         self.win.addstr(0, 0, msg[: self.w])
         self.win.refresh()
 
-    def get_input(self):
+    def get_input(self) -> Optional[str]:
         curses.curs_set(1)
         self.win.erase()
 
@@ -130,19 +132,19 @@ class StatusView:
 
 
 class ChatView:
-    def __init__(self, stdscr, p=0.5):
+    def __init__(self, stdscr: window, p: float = 0.5) -> None:
         self.h = 0
         self.w = 0
         self.win = stdscr.subwin(self.h, self.w, 0, 0)
         # self.win.scrollok(True)
         # self.win.idlok(True)
 
-    def resize(self, p=0.25):
+    def resize(self, p: float = 0.25) -> None:
         self.h = curses.LINES - 1
         self.w = int((curses.COLS - 1) * p)
         self.win.resize(self.h, self.w)
 
-    def draw(self, current, chats):
+    def draw(self, current: int, chats: List[Dict[str, Any]]) -> None:
         self.win.erase()
         # self.win.vline(0, self.w-1, curses.ACS_VLINE, self.h)
         for i, chat in enumerate(chats):
@@ -201,7 +203,7 @@ class ChatView:
 
 
 class MsgView:
-    def __init__(self, stdscr, p=0.5):
+    def __init__(self, stdscr: window, p: float = 0.5) -> None:
         self.stdscr = stdscr
         # self.h = curses.LINES - 1
         # self.w = curses.COLS - int((curses.COLS - 1) * p)
@@ -214,7 +216,7 @@ class MsgView:
         self.win = None
         self.lines = 0
 
-    def resize(self, p=0.5):
+    def resize(self, p: float = 0.5) -> None:
         self.h = curses.LINES - 1
         self.w = curses.COLS - int((curses.COLS - 1) * p)
         self.x = curses.COLS - self.w
@@ -227,7 +229,7 @@ class MsgView:
         # self.win.resize(self.h, self.w)
         # self.win.mvwin(0, self.x)
 
-    def draw(self, current, msgs):
+    def draw(self, current: int, msgs: Any) -> None:
         # log.info('Dwaring msgs')
         self.win.erase()
         count = self.h
@@ -268,7 +270,7 @@ class MsgView:
 
         self.win.refresh()
 
-    def _get_user_by_id(self, user_id):
+    def _get_user_by_id(self, user_id: int) -> str:
         if user_id == 0:
             return ""
         user = self.users.get_user(user_id)
@@ -282,7 +284,7 @@ class MsgView:
             return "@" + user["username"]
         return "Unknown?"
 
-    def _parse_msg(self, msg):
+    def _parse_msg(self, msg: Dict[str, Any]) -> Tuple[str, int, str]:
         dt = datetime.fromtimestamp(msg["date"]).strftime("%H:%M:%S")
         _type = msg["@type"]
         if _type == "message":
@@ -295,7 +297,7 @@ class MsgView:
         )
 
 
-def get_last_msg(chat):
+def get_last_msg(chat: Dict[str, Any]) -> str:
     last_msg = chat.get("last_message")
     if not last_msg:
         return "<No messages yet>"
@@ -306,7 +308,7 @@ def get_last_msg(chat):
     return f"[{_type}]"
 
 
-def get_date(chat):
+def get_date(chat: Dict[str, Any]) -> str:
     last_msg = chat.get("last_message")
     if not last_msg:
         return "<NA>"
@@ -316,7 +318,7 @@ def get_date(chat):
     return dt.strftime("%d/%b/%y")
 
 
-def parse_content(content):
+def parse_content(content: Dict[str, Any]) -> str:
     _type = content["@type"]
     if _type == "messageText":
         return content["text"]["text"]

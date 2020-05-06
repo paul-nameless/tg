@@ -2,7 +2,7 @@ import curses
 
 DEFAULT_FG = curses.COLOR_WHITE
 DEFAULT_BG = curses.COLOR_BLACK
-COLOR_PAIRS = {10: 0}
+COLOR_PAIRS = {(10, 10): 0}
 
 # colors
 black = curses.COLOR_BLACK
@@ -25,7 +25,7 @@ invisible = curses.A_INVIS
 dim = curses.A_DIM
 
 
-def get_color(fg, bg):
+def get_color(fg: int, bg: int) -> int:
     """Returns the curses color pair for the given fg/bg combination."""
 
     key = (fg, bg)
