@@ -227,7 +227,6 @@ class MsgModel:
             return False
         log.info(f"adding {msg_id=} {message}")
         self.msgs[chat_id].append(message)
-        # self.current_msgs[chat_id] += 1
         msg_set.add(msg_id)
         return True
 

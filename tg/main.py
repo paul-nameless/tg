@@ -70,7 +70,7 @@ def main():
         files_directory=os.path.expanduser("~/.cache/tg/"),
         tdlib_verbosity=0,
         # TODO: add in config
-        # library_path="/usr/local/Cellar/tdlib/1.6.0/lib/libtdjson.dylib",
+        library_path="/usr/local/Cellar/tdlib/1.6.0/lib/libtdjson.dylib",
     )
     tg.login()
     wrapper(partial(run, tg))

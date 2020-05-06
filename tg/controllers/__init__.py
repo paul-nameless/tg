@@ -202,7 +202,6 @@ class Controller:
     def update_new_msg(self, update):
         chat_id = update["message"]["chat_id"]
         self.model.msgs.add_message(chat_id, update["message"])
-        # msgs = self.model.get_current_chat_msg()
         self.refresh_msgs()
         if not update.get("disable_notification"):
             if update["message"]["content"] == "text":
@@ -213,7 +212,15 @@ class Controller:
         log.info("Proccessing updateChatLastMessage")
         chat_id = update["chat_id"]
         message = update["last_message"]
+        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
         self.model.chats.update_last_message(chat_id, message)
+        # TODO: we can create <index> for chats, it's faster than sqlite anyway
+        # though need to make sure that creatinng index is atomic operation
+        # requires locks for read, until index and chats will be the same
+        for i, chat in enumerate(self.model.chats.chats):
+            if chat['id'] == current_chat_id:
+                self.model.current_chat = i
+                break
         self.refresh_chats()
 
     @handle_exception
@@ -226,7 +233,7 @@ class Controller:
 
     @handle_exception
     def update_file(self, update):
-        log.info("====: %s", update)
+        log.info("update_file: %s", update)
         file_id = update["file"]["id"]
         local = update["file"]["local"]
         chat_id, msg_id = self.model.downloads.get(file_id, (None, None))
