@@ -35,11 +35,11 @@ def handle_exception(fun):
             return fun(*args, **kwargs)
         except Exception:
             log.exception("Error happened in %s handler", fun.__name__)
+
     return wrapper
 
 
 class suspend:
-
     def __init__(self, view):
         self.view = view
 

@@ -324,27 +324,25 @@ def parse_content(content: Dict[str, Any]) -> str:
 
     if not msg.type:
         # not implemented
-        _type = content['@type']
+        _type = content["@type"]
         return f"[{_type}]"
 
     fields = dict(
         name=msg.file_name,
         duration=msg.duration,
         size=msg.size,
-        download=get_download(msg.local, msg.size)
+        download=get_download(msg.local, msg.size),
     )
-    info = ', '.join(
-        f"{k}={v}" for k, v in fields.items() if v is not None
-    )
+    info = ", ".join(f"{k}={v}" for k, v in fields.items() if v is not None)
 
     return f"[{msg.type}: {info}]"
 
 
 def get_download(local, size):
-    if local['is_downloading_completed']:
+    if local["is_downloading_completed"]:
         return "yes"
-    elif local['is_downloading_active']:
-        d = local['downloaded_size']
+    elif local["is_downloading_active"]:
+        d = local["downloaded_size"]
         percent = int(d * 100 / size)
         return f"{percent}%"
     return "no"

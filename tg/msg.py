@@ -6,29 +6,31 @@ log = logging.getLogger(__name__)
 class MsgProxy:
 
     fields_mapping = {
-        'messageDocument': ("document", "document"),
-        'messageVoiceNote': ("voice_note", "voice"),
-        'messageText': ("text", "text"),
+        "messageDocument": ("document", "document"),
+        "messageVoiceNote": ("voice_note", "voice"),
+        "messageText": ("text", "text"),
         "messagePhoto": ("photo", "sizes", 0, "photo"),
-        'messageAudio': ("audio", "audio"),
-        'messageVideo': ('video', "video"),
-        'messageVideoNote': ("video_note", "video"),
+        "messageAudio": ("audio", "audio"),
+        "messageVideo": ("video", "video"),
+        "messageVideoNote": ("video_note", "video"),
+        "messageSticker": ("sticker", "sticker"),
     }
 
     types = {
-        'messageDocument': 'document',
-        'messageVoiceNote': 'voice',
-        'messageText': 'text',
-        "messagePhoto": 'photo',
-        'messageAudio': 'audio',
-        'messageVideo': 'video',
-        'messageVideoNote': 'recording',
+        "messageDocument": "document",
+        "messageVoiceNote": "voice",
+        "messageText": "text",
+        "messagePhoto": "photo",
+        "messageAudio": "audio",
+        "messageVideo": "video",
+        "messageVideoNote": "recording",
+        "messageSticker": "sticker",
     }
 
     @classmethod
     def get_doc(cls, msg, deep=10):
-        doc = msg['content']
-        _type = doc['@type']
+        doc = msg["content"]
+        _type = doc["@type"]
         fields = cls.fields_mapping.get(_type)
         if fields is None:
             log.error("msg type not supported: %s", _type)
@@ -53,54 +55,65 @@ class MsgProxy:
 
     @property
     def type(self):
-        return self.types.get(self.msg['content']['@type'])
+        return self.types.get(self.msg["content"]["@type"])
 
     @property
     def size(self):
         doc = self.get_doc(self.msg)
-        return doc['size']
+        return doc["size"]
 
     @property
     def duration(self):
-        if self.type not in ('audio', 'voice'):
+        if self.type not in ("audio", "voice"):
             return None
         doc = self.get_doc(self.msg, deep=1)
-        return doc['duration']
+        return doc["duration"]
 
     @property
     def file_name(self):
-        if self.type not in ('audio', 'document', 'video'):
+        if self.type not in ("audio", "document", "video"):
             return None
         doc = self.get_doc(self.msg, deep=1)
-        return doc['file_name']
+        return doc["file_name"]
 
     @property
     def file_id(self):
-        if self.type not in ('audio', 'document', 'photo', 'video', 'recording'):
+        if self.type not in (
+            "audio",
+            "document",
+            "photo",
+            "video",
+            "recording",
+            "sticker",
+        ):
             return None
         doc = self.get_doc(self.msg)
-        return doc['id']
+        return doc["id"]
 
     @property
     def local_path(self):
+        if self.msg["content"]["@type"] not in self.types:
+            return None
         doc = self.get_doc(self.msg)
-        return doc['local']['path']
+        return doc["local"]["path"]
 
     @property
     def local(self):
         doc = self.get_doc(self.msg)
-        return doc['local']
+        return doc["local"]
 
     @local.setter
     def local(self, value):
+        if self.msg["content"]["@type"] not in self.types:
+            return None
         doc = self.get_doc(self.msg)
-        doc['local'] = value
+        doc["local"] = value
 
     @property
     def is_text(self):
-        return self.msg['content']['@type'] == 'messageText'
+        return self.msg["content"]["@type"] == "messageText"
 
     @property
     def is_downloaded(self):
         doc = self.get_doc(self.msg)
-        return doc['local']['is_downloading_completed']
+        return doc["local"]["is_downloading_completed"]

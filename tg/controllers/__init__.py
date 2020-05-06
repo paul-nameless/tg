@@ -42,17 +42,19 @@ class Controller:
     def download_current_file(self):
         msg = MsgProxy(self.model.current_msg())
         log.debug("Downloading msg: %s", msg.msg)
-        if msg.file_id:
-            log.info("Downloading file: file_id=%s", msg.file_id)
-            self.tg.download_file(file_id=msg.file_id)
-            log.info("Downloaded: file_id=%s", msg.file_id)
+        file_id = msg.file_id
+        if file_id:
+            log.info("Downloading file: file_id=%s", file_id)
+            self.model.downloads[file_id] = (msg["chat_id"], msg["id"])
+            self.tg.download_file(file_id=file_id)
+            log.info("Downloaded: file_id=%s", file_id)
 
     def open_current_msg(self):
         msg = MsgProxy(self.model.current_msg())
         log.info("Open msg: %s", msg.msg)
         if msg.is_text:
-            text = msg['content']['text']["text"]
-            with NamedTemporaryFile('w') as f:
+            text = msg["content"]["text"]["text"]
+            with NamedTemporaryFile("w") as f:
                 f.write(text)
                 f.flush()
                 with suspend(self.view) as s:
@@ -64,6 +66,7 @@ class Controller:
             # handle with mimetype and mailcap
             # if multiple entries in mailcap, open fzf to choose
             with suspend(self.view) as s:
+                log.info("Opening file: %s", path)
                 s.call(["open", path])
 
     def handle_msgs(self) -> str:
@@ -224,11 +227,20 @@ class Controller:
     @handle_exception
     def update_file(self, update):
         log.info("====: %s", update)
-        file_id = update['file']['id']
-        local = update['file']['local']
-        for msg in map(MsgProxy, self.model.get_current_chat_msgs()):
-            log.info("____: %s, %s", msg.file_id, file_id)
-            if msg.file_id == file_id:
-                msg.local = local
+        file_id = update["file"]["id"]
+        local = update["file"]["local"]
+        chat_id, msg_id = self.model.downloads.get(file_id, (None, None))
+        if chat_id is None:
+            log.warning(
+                "Can't find information about file with file_id=%s", file_id
+            )
+            return
+        msgs = self.model.msgs.msgs[chat_id]
+        for msg in msgs:
+            if msg["id"] == msg_id:
+                proxy = MsgProxy(msg)
+                proxy.local = local
                 self.refresh_msgs()
+                if proxy.is_downloaded():
+                    self.model.downloads.pop(file_id)
                 break

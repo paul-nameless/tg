@@ -13,6 +13,7 @@ class Model:
         self.msgs = MsgModel(tg)
         self.users = UserModel(tg)
         self.current_chat = 0
+        self.downloads = {}
 
     def get_me(self):
         return self.users.get_me()
@@ -26,12 +27,6 @@ class Model:
             return None
         return self.msgs.current_msgs[chat_id]
 
-    def get_current_chat_msgs(self) -> Optional[int]:
-        chat_id = self.chats.id_by_index(self.current_chat)
-        if chat_id is None:
-            return None
-        return self.msgs.msgs[chat_id]
-
     def fetch_msgs(self, offset: int = 0, limit: int = 10) -> Any:
         chat_id = self.chats.id_by_index(self.current_chat)
         if chat_id is None:
@@ -41,7 +36,7 @@ class Model:
     def current_msg(self):
         chat_id = self.chats.id_by_index(self.current_chat)
         if chat_id is None:
-            return []
+            return {}
         current_msg = self.msgs.current_msgs[chat_id]
         return self.msgs.msgs[chat_id][current_msg]
 
@@ -232,6 +227,7 @@ class MsgModel:
             return False
         log.info(f"adding {msg_id=} {message}")
         self.msgs[chat_id].append(message)
+        # self.current_msgs[chat_id] += 1
         msg_set.add(msg_id)
         return True
 
