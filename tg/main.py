@@ -7,12 +7,12 @@ from functools import partial
 
 from telegram.client import Telegram
 
-from tg.controllers import Controller, SUPPORTED_MSG_TYPES
+from tg.controllers import Controller
 from tg.models import Model
 from tg.views import View
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=os.getenv("LOG_LEVEL", "DEBUG"),
     format="%(asctime)s %(levelname)s %(message)s",
     handlers=[
         logging.handlers.RotatingFileHandler(
@@ -34,30 +34,45 @@ def run(tg: Telegram, stdscr: window) -> None:
     view = View(stdscr)
     model = Model(tg)
     controller = Controller(model, view, tg)
-    for msg_type in SUPPORTED_MSG_TYPES:
-        tg.add_update_handler(msg_type, controller.update_handler)
+    for msg_type, handler in controller.handlers.items():
+        tg.add_update_handler(msg_type, handler)
 
     t = threading.Thread(target=controller.run,)
     t.start()
     t.join()
 
 
+class TelegramApi(Telegram):
+    def download_file(
+        self, file_id, priority=16, offset=0, limit=0, synchronous=False,
+    ):
+        result = self.call_method(
+            "downloadFile",
+            params=dict(
+                file_id=file_id,
+                priority=priority,
+                offset=offset,
+                limit=limit,
+                synchronous=synchronous,
+            ),
+            block=False,
+        )
+        result.wait()
+
+
 def main():
     log.debug("#" * 64)
-    tg = Telegram(
+    tg = TelegramApi(
         api_id=API_ID,
         api_hash=API_HASH,
         phone=PHONE,
         database_encryption_key="changeme1234",
+        files_directory=os.path.expanduser("~/.cache/tg/"),
+        tdlib_verbosity=0,
+        # TODO: add in config
+        # library_path="/usr/local/Cellar/tdlib/1.6.0/lib/libtdjson.dylib",
     )
     tg.login()
-
-    # model = Model(tg)
-    # print(model.get_me())
-    # print(model.get_user(246785877))
-    # print(model.chats.get_chat(77769955))
-    # return
-
     wrapper(partial(run, tg))
 
 

@@ -4,8 +4,9 @@ import math
 import re
 from datetime import datetime
 
-from utils import num
-from colors import cyan, blue, white, normal, reverse, magenta, get_color
+from tg.utils import num
+from tg.msg import MsgProxy
+from tg.colors import cyan, blue, white, reverse, magenta, get_color
 from _curses import window
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -302,10 +303,7 @@ def get_last_msg(chat: Dict[str, Any]) -> str:
     if not last_msg:
         return "<No messages yet>"
     content = last_msg["content"]
-    _type = content["@type"]
-    if _type == "messageText":
-        return content["text"]["text"]
-    return f"[{_type}]"
+    return parse_content(content)
 
 
 def get_date(chat: Dict[str, Any]) -> str:
@@ -319,10 +317,37 @@ def get_date(chat: Dict[str, Any]) -> str:
 
 
 def parse_content(content: Dict[str, Any]) -> str:
-    _type = content["@type"]
-    if _type == "messageText":
+    msg = MsgProxy({"content": content})
+    log.info("Parsing: %s", msg.msg)
+    if msg.is_text:
         return content["text"]["text"]
-    return f"[{_type}]"
+
+    if not msg.type:
+        # not implemented
+        _type = content['@type']
+        return f"[{_type}]"
+
+    fields = dict(
+        name=msg.file_name,
+        duration=msg.duration,
+        size=msg.size,
+        download=get_download(msg.local, msg.size)
+    )
+    info = ', '.join(
+        f"{k}={v}" for k, v in fields.items() if v is not None
+    )
+
+    return f"[{msg.type}: {info}]"
+
+
+def get_download(local, size):
+    if local['is_downloading_completed']:
+        return "yes"
+    elif local['is_downloading_active']:
+        d = local['downloaded_size']
+        percent = int(d * 100 / size)
+        return f"{percent}%"
+    return "no"
 
 
 emoji_pattern = re.compile(

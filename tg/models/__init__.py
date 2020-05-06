@@ -2,6 +2,7 @@ import logging
 from collections import defaultdict
 from telegram.client import Telegram
 from typing import Any, Dict, List, Union, Set, Optional
+from tg.msg import MsgProxy
 
 log = logging.getLogger(__name__)
 
@@ -25,11 +26,24 @@ class Model:
             return None
         return self.msgs.current_msgs[chat_id]
 
+    def get_current_chat_msgs(self) -> Optional[int]:
+        chat_id = self.chats.id_by_index(self.current_chat)
+        if chat_id is None:
+            return None
+        return self.msgs.msgs[chat_id]
+
     def fetch_msgs(self, offset: int = 0, limit: int = 10) -> Any:
         chat_id = self.chats.id_by_index(self.current_chat)
         if chat_id is None:
             return []
         return self.msgs.fetch_msgs(chat_id, offset=offset, limit=limit)
+
+    def current_msg(self):
+        chat_id = self.chats.id_by_index(self.current_chat)
+        if chat_id is None:
+            return []
+        current_msg = self.msgs.current_msgs[chat_id]
+        return self.msgs.msgs[chat_id][current_msg]
 
     def jump_bottom(self):
         chat_id = self.chats.id_by_index(self.current_chat)
