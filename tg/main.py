@@ -1,32 +1,18 @@
 import logging
 import logging.handlers
-import os
 import threading
 from curses import wrapper, window
 from functools import partial
 
 from telegram.client import Telegram
 
-from tg.controllers import Controller, SUPPORTED_MSG_TYPES
+from tg.controllers import Controller
 from tg.models import Model
 from tg.views import View
+from tg import config, utils
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s %(levelname)s %(message)s",
-    handlers=[
-        logging.handlers.RotatingFileHandler(
-            "./tg.log", backupCount=1, maxBytes=1024 * 256
-        ),
-    ],
-)
 
 log = logging.getLogger(__name__)
-API_ID = os.getenv("API_ID")
-API_HASH = os.getenv("API_HASH")
-PHONE = os.getenv("PHONE")
-if PHONE is None:
-    raise Exception("Environment variables did not provided")
 
 
 def run(tg: Telegram, stdscr: window) -> None:
@@ -34,30 +20,46 @@ def run(tg: Telegram, stdscr: window) -> None:
     view = View(stdscr)
     model = Model(tg)
     controller = Controller(model, view, tg)
-    for msg_type in SUPPORTED_MSG_TYPES:
-        tg.add_update_handler(msg_type, controller.update_handler)
+    for msg_type, handler in controller.handlers.items():
+        tg.add_update_handler(msg_type, handler)
 
     t = threading.Thread(target=controller.run,)
     t.start()
     t.join()
 
 
+class TelegramApi(Telegram):
+    def download_file(
+        self, file_id, priority=16, offset=0, limit=0, synchronous=False,
+    ):
+        result = self.call_method(
+            "downloadFile",
+            params=dict(
+                file_id=file_id,
+                priority=priority,
+                offset=offset,
+                limit=limit,
+                synchronous=synchronous,
+            ),
+            block=False,
+        )
+        result.wait()
+
+
 def main():
+    cfg = config.get_cfg()["DEFAULT"]
+    utils.setup_log(cfg.get("level", "DEBUG"))
     log.debug("#" * 64)
-    tg = Telegram(
-        api_id=API_ID,
-        api_hash=API_HASH,
-        phone=PHONE,
-        database_encryption_key="changeme1234",
+    tg = TelegramApi(
+        api_id=cfg["api_id"],
+        api_hash=cfg["api_hash"],
+        phone=cfg["phone"],
+        database_encryption_key=cfg["enc_key"],
+        files_directory=cfg.get("files", config.DEFAULT_FILES),
+        tdlib_verbosity=cfg.get("tdlib_verbosity", 0),
+        library_path=cfg.get("library_path"),
     )
     tg.login()
-
-    # model = Model(tg)
-    # print(model.get_me())
-    # print(model.get_user(246785877))
-    # print(model.chats.get_chat(77769955))
-    # return
-
     wrapper(partial(run, tg))
 
 

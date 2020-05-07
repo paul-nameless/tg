@@ -39,5 +39,6 @@ pip3 install python-telegram
 
 Usefull links to help develop this project.
 
-- https://github.com/alexander-akhmetov/python-telegram
-- https://github.com/tdlib/td/tree/master/example#python
+- tdlib python wrapper: https://github.com/alexander-akhmetov/python-telegram
+- tdlib official repo: https://github.com/tdlib/td/tree/master/example#python
+- Build tdlib instructions: https://tdlib.github.io/td/build.html?language=Python

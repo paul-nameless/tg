@@ -2,6 +2,7 @@ import logging
 from collections import defaultdict
 from telegram.client import Telegram
 from typing import Any, Dict, List, Union, Set, Optional
+from tg.msg import MsgProxy
 
 log = logging.getLogger(__name__)
 
@@ -12,6 +13,7 @@ class Model:
         self.msgs = MsgModel(tg)
         self.users = UserModel(tg)
         self.current_chat = 0
+        self.downloads = {}
 
     def get_me(self):
         return self.users.get_me()
@@ -30,6 +32,14 @@ class Model:
         if chat_id is None:
             return []
         return self.msgs.fetch_msgs(chat_id, offset=offset, limit=limit)
+
+    def current_msg(self):
+        chat_id = self.chats.id_by_index(self.current_chat)
+        if chat_id is None:
+            return {}
+        current_msg = self.msgs.current_msgs[chat_id]
+        log.info("current-msg: %s", current_msg)
+        return self.msgs.msgs[chat_id][current_msg]
 
     def jump_bottom(self):
         chat_id = self.chats.id_by_index(self.current_chat)
@@ -219,6 +229,9 @@ class MsgModel:
         log.info(f"adding {msg_id=} {message}")
         self.msgs[chat_id].append(message)
         msg_set.add(msg_id)
+        self.msgs[chat_id] = sorted(
+            self.msgs[chat_id], key=lambda d: d["id"], reverse=True
+        )
         return True
 
     def add_messages(self, chat_id: int, messages: Any) -> bool:
@@ -267,9 +280,7 @@ class MsgModel:
             messages = self._fetch_msgs_until_limit(chat_id, offset, limit)
             self.add_messages(chat_id, messages)
 
-        return sorted(self.msgs[chat_id], key=lambda d: d["id"])[::-1][
-            offset:limit
-        ]
+        return self.msgs[chat_id][offset:limit]
 
     def send_message(self, chat_id: int, text: str) -> None:
         log.info("Sending msg")

@@ -3,6 +3,7 @@ import curses
 DEFAULT_FG = curses.COLOR_WHITE
 DEFAULT_BG = curses.COLOR_BLACK
 COLOR_PAIRS = {(10, 10): 0}
+COLOR_PAIRS = {}
 
 # colors
 black = curses.COLOR_BLACK

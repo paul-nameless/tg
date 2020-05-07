@@ -4,8 +4,9 @@ import math
 import re
 from datetime import datetime
 
-from utils import num
-from colors import cyan, blue, white, normal, reverse, magenta, get_color
+from tg.utils import num
+from tg.msg import MsgProxy
+from tg.colors import cyan, blue, white, reverse, magenta, get_color
 from _curses import window
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -148,19 +149,13 @@ class ChatView:
         self.win.erase()
         # self.win.vline(0, self.w-1, curses.ACS_VLINE, self.h)
         for i, chat in enumerate(chats):
-            # msg = f' {get_date(chat)} {chat["title"]} [{chat["unread_count"]}]: {get_last_msg(chat)}'
             date, title, unread, last_msg = (
                 get_date(chat),
                 chat["title"],
                 chat["unread_count"],
                 get_last_msg(chat),
             )
-            # msg = emoji_pattern.sub(r'', msg)[:self.w-1]
-            # last_msg = emoji_pattern.sub(r'', msg)[:self.w-2] + ' '
-            last_msg = emoji_pattern.sub(r"", last_msg)
-            # msg = msg[:self.w-1]
-            # if len(msg) < self.w:
-            #     msg += ' ' * (self.w - len(msg) - 1)
+            last_msg = " " + emoji_pattern.sub(r"", last_msg)
 
             msg_color = get_color(white, -1)
             unread_color = get_color(magenta, -1)
@@ -171,16 +166,11 @@ class ChatView:
                 unread_color |= reverse
 
             offset = 0
-            j = 0
-            # for color, e in zip(colors, msg.split(' ', maxsplit=3)):
-            for attr, e in zip(attrs, [" " + date, title]):
+            for attr, elem in zip(attrs, [" {} ".format(date), title]):
                 if offset > self.w:
                     break
-                j += 1
-                if j < 4:
-                    e = e + " "
-                self.win.addstr(i, offset, e[: self.w - offset - 1], attr)
-                offset += len(e)
+                self.win.addstr(i, offset, elem[: self.w - offset - 1], attr)
+                offset += len(elem)
 
             if offset >= self.w:
                 continue
@@ -188,7 +178,6 @@ class ChatView:
             attr = msg_color
             msg = last_msg[: self.w - offset - 1]
 
-            # msg = msg[:self.w-1]
             if len(msg) < self.w:
                 msg += " " * (self.w - offset - len(msg) - 1)
 
@@ -235,14 +224,11 @@ class MsgView:
         count = self.h
 
         for i, msg in enumerate(msgs):
-            # s = self._parse_msg(msg)
             dt, user_id, msg = self._parse_msg(msg)
             user_id = self._get_user_by_id(user_id)
             msg = msg.replace("\n", " ")
-            s = " ".join([" " + dt, user_id, msg])
-            # s = s.replace('\n', ' ')
-            # if len(s) < self.w:
-            #     s += ' ' * (self.w - len(s) - 1)
+            elements = [" {} ".format(dt), user_id, " " + msg]
+            s = " ".join(elements)
             offset = math.ceil((len(s) - 1) / self.w)
             count -= offset
             if count <= 0:
@@ -258,15 +244,11 @@ class MsgView:
                 attrs = [attr | reverse for attr in attrs]
 
             offset = 0
-            j = 0
-            for attr, e in zip(attrs, [" " + dt, user_id, msg]):
-                if not e.strip():
+            for attr, elem in zip(attrs, elements):
+                if not elem:
                     continue
-                j += 1
-                if j < 4:
-                    e = e + " "
-                self.win.addstr(count, offset, e, attr)
-                offset += len(e)
+                self.win.addstr(count, offset, elem, attr)
+                offset += len(elem)
 
         self.win.refresh()
 
@@ -302,10 +284,7 @@ def get_last_msg(chat: Dict[str, Any]) -> str:
     if not last_msg:
         return "<No messages yet>"
     content = last_msg["content"]
-    _type = content["@type"]
-    if _type == "messageText":
-        return content["text"]["text"]
-    return f"[{_type}]"
+    return parse_content(content)
 
 
 def get_date(chat: Dict[str, Any]) -> str:
@@ -319,10 +298,35 @@ def get_date(chat: Dict[str, Any]) -> str:
 
 
 def parse_content(content: Dict[str, Any]) -> str:
-    _type = content["@type"]
-    if _type == "messageText":
+    msg = MsgProxy({"content": content})
+    log.info("Parsing: %s", msg.msg)
+    if msg.is_text:
         return content["text"]["text"]
-    return f"[{_type}]"
+
+    if not msg.type:
+        # not implemented
+        _type = content["@type"]
+        return f"[{_type}]"
+
+    fields = dict(
+        name=msg.file_name,
+        duration=msg.duration,
+        size=msg.size,
+        download=get_download(msg.local, msg.size),
+    )
+    info = ", ".join(f"{k}={v}" for k, v in fields.items() if v)
+
+    return f"[{msg.type}: {info}]"
+
+
+def get_download(local, size):
+    if local["is_downloading_completed"]:
+        return "yes"
+    elif local["is_downloading_active"]:
+        d = local["downloaded_size"]
+        percent = int(d * 100 / size)
+        return f"{percent}%"
+    return "no"
 
 
 emoji_pattern = re.compile(
