@@ -258,6 +258,6 @@ class Controller:
                 proxy = MsgProxy(msg)
                 proxy.local = local
                 self.refresh_msgs()
-                if proxy.is_downloaded():
+                if proxy.is_downloaded:
                     self.model.downloads.pop(file_id)
                 break

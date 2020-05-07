@@ -9,7 +9,7 @@ class MsgProxy:
         "messageDocument": ("document", "document"),
         "messageVoiceNote": ("voice_note", "voice"),
         "messageText": ("text", "text"),
-        "messagePhoto": ("photo", "sizes", 0, "photo"),
+        "messagePhoto": ("photo", "sizes", -1, "photo"),
         "messageAudio": ("audio", "audio"),
         "messageVideo": ("video", "video"),
         "messageVideoNote": ("video_note", "video"),
