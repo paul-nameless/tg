@@ -85,6 +85,7 @@ class MsgProxy:
             "video",
             "recording",
             "sticker",
+            "voice",
         ):
             return None
         doc = self.get_doc(self.msg)

@@ -229,11 +229,9 @@ class MsgModel:
         log.info(f"adding {msg_id=} {message}")
         self.msgs[chat_id].append(message)
         msg_set.add(msg_id)
-
         self.msgs[chat_id] = sorted(
             self.msgs[chat_id], key=lambda d: d["id"], reverse=True
         )
-
         return True
 
     def add_messages(self, chat_id: int, messages: Any) -> bool:
@@ -282,9 +280,7 @@ class MsgModel:
             messages = self._fetch_msgs_until_limit(chat_id, offset, limit)
             self.add_messages(chat_id, messages)
 
-        return sorted(self.msgs[chat_id], key=lambda d: d["id"], reverse=True)[
-            offset:limit
-        ]
+        return self.msgs[chat_id][offset:limit]
 
     def send_message(self, chat_id: int, text: str) -> None:
         log.info("Sending msg")
