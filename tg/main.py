@@ -53,7 +53,7 @@ def main():
     tg = TelegramApi(
         api_id=cfg["api_id"],
         api_hash=cfg["api_hash"],
-        phone=cfg["login"],
+        phone=cfg["phone"],
         database_encryption_key=cfg["enc_key"],
         files_directory=cfg.get("files", config.DEFAULT_FILES),
         tdlib_verbosity=cfg.get("tdlib_verbosity", 0),
