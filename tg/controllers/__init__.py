@@ -133,7 +133,7 @@ class Controller:
                 msg = self.view.get_input()
                 if msg:
                     self.model.send_message(text=msg)
-                    self.view.draw_status(f"Sent: {msg}")
+                    self.view.status.draw(f"Sent: {msg}")
 
             elif keys in ("h", "^D"):
                 return "BACK"
@@ -184,17 +184,17 @@ class Controller:
         with self.lock:
             # using lock here, because refresh_chats is used from another
             # thread by tdlib python wrapper
-            self.view.draw_chats(
+            self.view.chats.draw(
                 self.model.current_chat,
                 self.model.get_chats(limit=self.view.chats.h),
             )
             self.refresh_msgs()
-            self.view.draw_status()
+            self.view.status.draw()
 
     def refresh_msgs(self) -> None:
         self.view.msgs.users = self.model.users
         msgs = self.model.fetch_msgs(limit=self.view.msgs.h)
-        self.view.draw_msgs(self.model.get_current_chat_msg(), msgs)
+        self.view.msgs.draw(self.model.get_current_chat_msg(), msgs)
 
     @handle_exception
     def update_new_msg(self, update):
