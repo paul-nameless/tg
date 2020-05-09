@@ -1,4 +1,5 @@
 import logging
+from tg import utils
 
 log = logging.getLogger(__name__)
 
@@ -60,14 +61,14 @@ class MsgProxy:
     @property
     def size(self):
         doc = self.get_doc(self.msg)
-        return doc["size"]
+        return utils.humanize_size(doc["size"])
 
     @property
     def duration(self):
-        if self.type not in ("audio", "voice"):
+        if self.type not in ("audio", "voice", "video", "recording"):
             return None
         doc = self.get_doc(self.msg, deep=1)
-        return doc["duration"]
+        return utils.humanize_duration(doc["duration"])
 
     @property
     def file_name(self):
