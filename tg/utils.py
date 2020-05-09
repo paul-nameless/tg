@@ -90,9 +90,12 @@ class suspend:
         subprocess.call(cmd, shell=True)
 
     def __enter__(self):
+        for view in (self.view.chats, self.view.msgs, self.view.status):
+            view._refresh = view.win.noutrefresh
         curses.endwin()
         return self
 
     def __exit__(self, exc_type, exc_val, tb):
-        # works without it, actually
+        for view in (self.view.chats, self.view.msgs, self.view.status):
+            view._refresh = view.win.refresh
         curses.doupdate()

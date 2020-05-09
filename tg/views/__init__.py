@@ -26,7 +26,6 @@ class View:
         curses.cbreak()
         stdscr.keypad(True)
         curses.curs_set(0)
-
         curses.start_color()
         curses.use_default_colors()
 
@@ -35,15 +34,6 @@ class View:
         self.msgs = MsgView(stdscr)
         self.status = StatusView(stdscr)
         self.max_read = 2048
-
-    def draw_chats(self, current: int, chats: List[Dict[str, Any]]) -> None:
-        self.chats.draw(current, chats)
-
-    def draw_status(self, msg: Optional[str] = None) -> None:
-        self.status.draw(msg)
-
-    def draw_msgs(self, current: int, msgs: Any) -> None:
-        self.msgs.draw(current, msgs)
 
     def get_keys(self, y: int, x: int) -> Tuple[int, str]:
         keys = repeat_factor = ""
@@ -80,6 +70,7 @@ class StatusView:
         self.y = curses.LINES - 1
         self.x = 0
         self.win = stdscr.subwin(self.h, self.w, self.y, self.x)
+        self._refresh = self.win.refresh
 
     def resize(self):
         self.w = curses.COLS
@@ -87,13 +78,11 @@ class StatusView:
         self.win.resize(self.h, self.w)
         self.win.wmove(self.y, self.x)
 
-    def draw(self, msg: Optional[str]) -> None:
-        # msg = '-' * (self.w - 1)
-        # msg = '>'
+    def draw(self, msg: Optional[str] = None) -> None:
         if not msg:
             msg = "Status"
         self.win.addstr(0, 0, msg[: self.w])
-        self.win.refresh()
+        self._refresh()
 
     def get_input(self) -> Optional[str]:
         curses.curs_set(1)
@@ -137,6 +126,7 @@ class ChatView:
         self.h = 0
         self.w = 0
         self.win = stdscr.subwin(self.h, self.w, 0, 0)
+        self._refresh = self.win.refresh
         # self.win.scrollok(True)
         # self.win.idlok(True)
 
@@ -188,7 +178,7 @@ class ChatView:
                 unread = " " + str(unread) + " "
                 self.win.addstr(i, self.w - len(unread) - 1, unread, attr)
 
-        self.win.refresh()
+        self._refresh()
 
 
 class MsgView:
@@ -202,16 +192,19 @@ class MsgView:
         # self.x = curses.COLS - (curses.COLS - int((curses.COLS - 1) * p))
         self.x = 0
         # self.win = stdscr.subwin(self.h, self.w, 0, self.x)
-        self.win = None
         self.lines = 0
+        self.win = self.stdscr.subwin(self.h, self.w, 0, self.x)
+        self._refresh = self.win.refresh
 
     def resize(self, p: float = 0.5) -> None:
         self.h = curses.LINES - 1
         self.w = curses.COLS - int((curses.COLS - 1) * p)
         self.x = curses.COLS - self.w
+        self.win.resize(self.h, self.w)
+        self.win.mvwin(0, self.x)
 
         # if self.win is None:
-        self.win = self.stdscr.subwin(self.h, self.w, 0, self.x)
+        # self.win = self.stdscr.subwin(self.h, self.w, 0, self.x)
         # self.win.scrollok(True)
         # self.win.idlok(True)
         # else:
@@ -250,7 +243,7 @@ class MsgView:
                 self.win.addstr(count, offset, elem, attr)
                 offset += len(elem)
 
-        self.win.refresh()
+        self._refresh()
 
     def _get_user_by_id(self, user_id: int) -> str:
         if user_id == 0:
