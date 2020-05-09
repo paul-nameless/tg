@@ -1,12 +1,33 @@
-import logging
-import os
-from typing import Optional
-import subprocess
-from functools import wraps
 import curses
+import logging
+import math
+import os
+import subprocess
+from datetime import datetime
+from functools import wraps
+from typing import Optional
+
 from tg import config
 
 log = logging.getLogger(__name__)
+
+
+def humanize_size(
+    num, suffix="B", suffixes=("", "K", "M", "G", "T", "P", "E", "Z")
+):
+    magnitude = int(math.floor(math.log(num, 1024)))
+    val = num / math.pow(1024, magnitude)
+    if magnitude > 7:
+        return "{:.1f}{}{}".format(val, "Yi", suffix)
+    return "{:3.1f}{}{}".format(val, suffixes[magnitude], suffix)
+
+
+def humanize_duration(seconds):
+    dt = datetime.utcfromtimestamp(seconds)
+    fmt = "%-M:%S"
+    if seconds >= 3600:
+        fmt = "%-H:%M:%S"
+    return dt.strftime(fmt)
 
 
 def num(value: str, default: Optional[int] = None) -> Optional[int]:
