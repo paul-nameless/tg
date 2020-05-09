@@ -11,7 +11,7 @@ from tg import config
 
 log = logging.getLogger(__name__)
 
-units = {"B": 1, "KB": 10**3, "MB": 10**6, "GB": 10**9, "TB": 10**12}
+units = {"B": 1, "KB": 10 ** 3, "MB": 10 ** 6, "GB": 10 ** 9, "TB": 10 ** 12}
 
 
 def parse_size(size):
@@ -19,7 +19,7 @@ def parse_size(size):
         number, unit = size[:-2], size[-2:]
     else:
         number, unit = size[:-1], size[-1:]
-    return int(float(number)*units[unit])
+    return int(float(number) * units[unit])
 
 
 def humanize_size(

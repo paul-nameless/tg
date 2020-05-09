@@ -202,7 +202,7 @@ class Controller:
         self.model.msgs.add_message(chat_id, msg)
         self.refresh_msgs()
         if msg.file_id and msg.size <= config.max_download_size:
-            self.download(msg.file_id, chat_id, msg['id'])
+            self.download(msg.file_id, chat_id, msg["id"])
 
         # notify
         user_id = msg["sender_user_id"]
