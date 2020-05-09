@@ -1,16 +1,15 @@
 import logging
 import logging.handlers
 import threading
-from curses import wrapper, window
+from curses import window, wrapper
 from functools import partial
 
 from telegram.client import Telegram
 
+from tg import config, utils
 from tg.controllers import Controller
 from tg.models import Model
 from tg.views import View
-from tg import config, utils
-
 
 log = logging.getLogger(__name__)
 
@@ -58,6 +57,9 @@ def main():
         files_directory=cfg.get("files", config.DEFAULT_FILES),
         tdlib_verbosity=cfg.get("tdlib_verbosity", 0),
         library_path=cfg.get("library_path"),
+    )
+    config.max_download_size = utils.parse_size(
+        cfg.get("max_download_size", config.max_download_size)
     )
     tg.login()
     wrapper(partial(run, tg))

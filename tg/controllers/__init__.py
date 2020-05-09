@@ -1,14 +1,14 @@
 import logging
-import os
 import threading
 from tempfile import NamedTemporaryFile
 
 from telegram.client import Telegram
 
-from tg.utils import notify, handle_exception, suspend
+from tg import config
 from tg.models import Model
-from tg.views import View
 from tg.msg import MsgProxy
+from tg.utils import handle_exception, notify, suspend
+from tg.views import View
 
 log = logging.getLogger(__name__)
 
@@ -44,10 +44,13 @@ class Controller:
         log.debug("Downloading msg: %s", msg.msg)
         file_id = msg.file_id
         if file_id:
-            log.info("Downloading file: file_id=%s", file_id)
-            self.model.downloads[file_id] = (msg["chat_id"], msg["id"])
-            self.tg.download_file(file_id=file_id)
-            log.info("Downloaded: file_id=%s", file_id)
+            self.download(file_id, msg["chat_id"], msg["id"])
+
+    def download(self, file_id: int, chat_id, msg_id):
+        log.info("Downloading file: file_id=%s", file_id)
+        self.model.downloads[file_id] = (chat_id, msg_id)
+        self.tg.download_file(file_id=file_id)
+        log.info("Downloaded: file_id=%s", file_id)
 
     def open_current_msg(self):
         msg = MsgProxy(self.model.current_msg())
@@ -68,10 +71,8 @@ class Controller:
                 s.run(path)
 
     def handle_msgs(self) -> str:
-        # set width to 0.25, move window to left
-        # refresh everything
         self.view.chats.resize(0.2)
-        self.view.msgs.resize(0.2)
+        self.view.msgs.resize(0.8)
         self.refresh_chats()
 
         while True:
@@ -139,8 +140,6 @@ class Controller:
                 return "BACK"
 
     def handle_chats(self) -> None:
-        # set width to 0.5, move window to center?
-        # refresh everything
         self.view.chats.resize(0.5)
         self.view.msgs.resize(0.5)
         self.refresh_chats()
@@ -198,10 +197,12 @@ class Controller:
 
     @handle_exception
     def update_new_msg(self, update):
-        msg = update["message"]
+        msg = MsgProxy(update["message"])
         chat_id = msg["chat_id"]
         self.model.msgs.add_message(chat_id, msg)
         self.refresh_msgs()
+        if msg.file_id and msg.size <= config.max_download_size:
+            self.download(msg.file_id, chat_id, msg['id'])
 
         # notify
         user_id = msg["sender_user_id"]

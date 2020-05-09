@@ -1,10 +1,11 @@
-import os
 import configparser
 import mailcap
 import mimetypes
+import os
 
 DEFAULT_CONFIG = os.path.expanduser("~/.config/tg/tg.conf")
 DEFAULT_FILES = os.path.expanduser("~/.cache/tg/")
+max_download_size = "10MB"
 
 
 def get_cfg(config=DEFAULT_CONFIG):
