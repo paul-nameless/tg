@@ -11,6 +11,16 @@ from tg import config
 
 log = logging.getLogger(__name__)
 
+units = {"B": 1, "KB": 10 ** 3, "MB": 10 ** 6, "GB": 10 ** 9, "TB": 10 ** 12}
+
+
+def parse_size(size):
+    if size[-2].isalpha():
+        number, unit = size[:-2], size[-2:]
+    else:
+        number, unit = size[:-1], size[-1:]
+    return int(float(number) * units[unit])
+
 
 def humanize_size(
     num, suffix="B", suffixes=("", "K", "M", "G", "T", "P", "E", "Z")

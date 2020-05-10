@@ -2,13 +2,13 @@ import curses
 import logging
 import math
 import re
-from datetime import datetime
-
-from tg.utils import num
-from tg.msg import MsgProxy
-from tg.colors import cyan, blue, white, reverse, magenta, get_color
 from _curses import window
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
+
+from tg.colors import blue, cyan, get_color, magenta, reverse, white
+from tg.msg import MsgProxy
+from tg.utils import num
 
 log = logging.getLogger(__name__)
 
@@ -127,12 +127,10 @@ class ChatView:
         self.w = 0
         self.win = stdscr.subwin(self.h, self.w, 0, 0)
         self._refresh = self.win.refresh
-        # self.win.scrollok(True)
-        # self.win.idlok(True)
 
     def resize(self, p: float = 0.25) -> None:
         self.h = curses.LINES - 1
-        self.w = int((curses.COLS - 1) * p)
+        self.w = round(curses.COLS * p)
         self.win.resize(self.h, self.w)
 
     def draw(self, current: int, chats: List[Dict[str, Any]]) -> None:
@@ -145,7 +143,7 @@ class ChatView:
                 chat["unread_count"],
                 get_last_msg(chat),
             )
-            last_msg = " " + emoji_pattern.sub(r"", last_msg)
+            last_msg = " " + emoji_pattern.sub(r"?", last_msg)
 
             msg_color = get_color(white, -1)
             unread_color = get_color(magenta, -1)
@@ -184,48 +182,35 @@ class ChatView:
 class MsgView:
     def __init__(self, stdscr: window, p: float = 0.5) -> None:
         self.stdscr = stdscr
-        # self.h = curses.LINES - 1
-        # self.w = curses.COLS - int((curses.COLS - 1) * p)
-        # self.x = curses.COLS - self.w
         self.h = 0
         self.w = 0
-        # self.x = curses.COLS - (curses.COLS - int((curses.COLS - 1) * p))
         self.x = 0
-        # self.win = stdscr.subwin(self.h, self.w, 0, self.x)
-        self.lines = 0
         self.win = self.stdscr.subwin(self.h, self.w, 0, self.x)
         self._refresh = self.win.refresh
 
     def resize(self, p: float = 0.5) -> None:
         self.h = curses.LINES - 1
-        self.w = curses.COLS - int((curses.COLS - 1) * p)
+        self.w = round(curses.COLS * p)
         self.x = curses.COLS - self.w
         self.win.resize(self.h, self.w)
         self.win.mvwin(0, self.x)
 
-        # if self.win is None:
-        # self.win = self.stdscr.subwin(self.h, self.w, 0, self.x)
-        # self.win.scrollok(True)
-        # self.win.idlok(True)
-        # else:
-        # self.win.resize(self.h, self.w)
-        # self.win.mvwin(0, self.x)
-
     def draw(self, current: int, msgs: Any) -> None:
-        # log.info('Dwaring msgs')
         self.win.erase()
-        count = self.h
+        line_num = self.h
 
         for i, msg in enumerate(msgs):
             dt, user_id, msg = self._parse_msg(msg)
             user_id = self._get_user_by_id(user_id)
             msg = msg.replace("\n", " ")
-            elements = [" {} ".format(dt), user_id, " " + msg]
-            s = " ".join(elements)
-            offset = math.ceil((len(s) - 1) / self.w)
-            count -= offset
-            if count <= 0:
-                # log.warning('Reched end of lines')
+            # remove utf-8 characters that take > 1 bytes to print
+            # it causes invalid offset
+            msg = emoji_pattern.sub(r"?", msg)
+            elements = (" {} ".format(dt), user_id, " " + msg)
+            total_len = sum(len(e) for e in elements)
+            needed_lines = (total_len // self.w) + 1
+            line_num -= needed_lines
+            if line_num <= 0:
                 break
 
             attrs = [
@@ -236,12 +221,12 @@ class MsgView:
             if i == current:
                 attrs = [attr | reverse for attr in attrs]
 
-            offset = 0
+            column = 0
             for attr, elem in zip(attrs, elements):
                 if not elem:
                     continue
-                self.win.addstr(count, offset, elem, attr)
-                offset += len(elem)
+                self.win.addstr(line_num, column, elem, attr)
+                column += len(elem)
 
         self._refresh()
 
@@ -304,7 +289,7 @@ def parse_content(content: Dict[str, Any]) -> str:
     fields = dict(
         name=msg.file_name,
         duration=msg.duration,
-        size=msg.size,
+        size=msg.human_size,
         download=get_download(msg.local, msg.size),
     )
     info = ", ".join(f"{k}={v}" for k, v in fields.items() if v)

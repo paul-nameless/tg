@@ -1,4 +1,5 @@
 import logging
+
 from tg import utils
 
 log = logging.getLogger(__name__)
@@ -60,6 +61,11 @@ class MsgProxy:
 
     @property
     def size(self):
+        doc = self.get_doc(self.msg)
+        return doc["size"]
+
+    @property
+    def human_size(self):
         doc = self.get_doc(self.msg)
         return utils.humanize_size(doc["size"])
 
