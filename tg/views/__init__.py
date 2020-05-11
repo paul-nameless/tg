@@ -1,6 +1,5 @@
 import curses
 import logging
-import math
 import re
 from _curses import window
 from datetime import datetime
@@ -16,6 +15,10 @@ MAX_KEYBINDING_LENGTH = 5
 MULTICHAR_KEYBINDINGS = (
     "gg",
     "dd",
+    "sd",
+    "sp",
+    "sa",
+    "sv",
 )
 
 
@@ -59,9 +62,6 @@ class View:
 
         return num(repeat_factor, default=1), keys or "UNKNOWN"
 
-    def get_input(self) -> str:
-        return self.status.get_input()
-
 
 class StatusView:
     def __init__(self, stdscr: window) -> None:
@@ -79,45 +79,39 @@ class StatusView:
         self.win.wmove(self.y, self.x)
 
     def draw(self, msg: Optional[str] = None) -> None:
+        self.win.clear()
         if not msg:
-            msg = "Status"
+            return
         self.win.addstr(0, 0, msg[: self.w])
         self._refresh()
 
-    def get_input(self) -> Optional[str]:
+    def get_input(self, msg="") -> Optional[str]:
+        self.draw(msg)
         curses.curs_set(1)
-        self.win.erase()
 
         buff = ""
         while True:
-            key = self.win.get_wch(0, min(len(buff), self.w - 1))
+            log.info("here:")
+            key = self.win.get_wch(0, min(len(buff) + len(msg), self.w - 1))
             key = ord(key)
-            log.info('Pressed in send msg: "%s"', key)
-            # try:
-            log.info("Trying to chr: %s", chr(key))
-            # except ValueError:
-            # log.exception()
             if key == 10:  # return
-                log.info("Sending msg: %s", buff)
                 break
             elif key == 127:  # del
                 if buff:
                     buff = buff[:-1]
             elif key == 7:  # ^G cancel
-                log.info("Not Sending msg: %s", buff)
                 buff = None
                 break
             elif chr(key).isprintable():
                 buff += chr(key)
-            if len(buff) >= self.w:
-                start = len(buff) - self.w
-                buff_wrapped = buff[start + 1 :]
-            else:
-                buff_wrapped = buff + " " * (self.w - len(buff) - 1)
-            self.win.addstr(0, 0, buff_wrapped)
-            self.win.move(0, min(len(buff), self.w - 1))
+            self.win.erase()
+            line = (msg + buff)[-(self.w-1):]
+            self.win.addstr(0, 0, line)
 
+        self.win.clear()
         curses.curs_set(0)
+        curses.cbreak()
+        curses.noecho()
         return buff
 
 
@@ -277,7 +271,6 @@ def get_date(chat: Dict[str, Any]) -> str:
 
 def parse_content(content: Dict[str, Any]) -> str:
     msg = MsgProxy({"content": content})
-    log.info("Parsing: %s", msg.msg)
     if msg.is_text:
         return content["text"]["text"]
 

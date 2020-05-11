@@ -1,5 +1,7 @@
 import logging
+import os
 import threading
+from datetime import datetime
 from tempfile import NamedTemporaryFile
 
 from telegram.client import Telegram
@@ -7,7 +9,15 @@ from telegram.client import Telegram
 from tg import config
 from tg.models import Model
 from tg.msg import MsgProxy
-from tg.utils import handle_exception, notify, suspend
+from tg.utils import (
+    get_duration,
+    get_video_resolution,
+    get_waveform,
+    handle_exception,
+    is_yes,
+    notify,
+    suspend,
+)
 from tg.views import View
 
 log = logging.getLogger(__name__)
@@ -32,6 +42,34 @@ class Controller:
             "updateMessageSendSucceeded": self.update_msg_send_succeeded,
             "updateFile": self.update_file,
         }
+
+    def send_file(self, send_file_fun, *args, **kwargs):
+        file_path = self.view.status.get_input()
+        if file_path and os.path.isfile(file_path):
+            chat_id = self.model.chats.id_by_index(
+                self.model.current_chat
+            )
+            send_file_fun(file_path, chat_id, *args, **kwargs)
+
+    def send_voice(self):
+        file_path = f"/tmp/voice-{datetime.now()}.oga"
+        with suspend(self.view) as s:
+            s.call(
+                config.record_cmd.format(file_path=file_path)
+            )
+        resp = self.view.status.get_input(
+            f"Do you want to send recording: {file_path}? [Y/n]"
+        )
+        if (
+                is_yes(resp) and os.path.isfile(file_path)
+        ):
+            chat_id = self.model.chats.id_by_index(
+                self.model.current_chat
+            )
+            duration = get_duration(file_path)
+            waveform = get_waveform(file_path)
+            self.tg.send_voice(file_path, chat_id, duration, waveform)
+            self.view.status.draw(f"Sent voice msg: {file_path}")
 
     def run(self) -> None:
         try:
@@ -61,14 +99,14 @@ class Controller:
                 f.write(text)
                 f.flush()
                 with suspend(self.view) as s:
-                    s.run(f.name)
+                    s.open_file(f.name)
             return
 
         path = msg.local_path
         if path:
             with suspend(self.view) as s:
                 log.info("Opening file: %s", path)
-                s.run(path)
+                s.open_file(path)
 
     def handle_msgs(self) -> str:
         self.view.chats.resize(0.2)
@@ -113,6 +151,28 @@ class Controller:
             elif keys == "l":
                 self.open_current_msg()
 
+            elif keys == "sd":
+                self.send_file(self.tg.send_doc)
+
+            elif keys == "sp":
+                self.send_file(self.tg.send_photo)
+
+            elif keys == "sa":
+                self.send_file(self.tg.send_audio)
+
+            elif keys == "sv":
+                file_path = self.view.status.get_input()
+                if file_path and os.path.isfile(file_path):
+                    chat_id = self.model.chats.id_by_index(
+                        self.model.current_chat
+                    )
+                    width, height = get_video_resolution(file_path)
+                    duration = get_duration(file_path)
+                    self.tg.send_video(file_path, chat_id, width, height, duration)
+
+            elif keys == "v":
+                self.send_voice()
+
             elif keys == "/":
                 # search
                 pass
@@ -131,7 +191,7 @@ class Controller:
                 pass
             elif keys in ("i", "a"):
                 # write new message
-                msg = self.view.get_input()
+                msg = self.view.status.get_input()
                 if msg:
                     self.model.send_message(text=msg)
                     self.view.status.draw(f"Sent: {msg}")
@@ -200,7 +260,9 @@ class Controller:
         msg = MsgProxy(update["message"])
         chat_id = msg["chat_id"]
         self.model.msgs.add_message(chat_id, msg)
-        self.refresh_msgs()
+        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        if current_chat_id == chat_id:
+            self.refresh_msgs()
         if msg.file_id and msg.size <= config.max_download_size:
             self.download(msg.file_id, chat_id, msg["id"])
 
@@ -240,7 +302,9 @@ class Controller:
         msg_id = update["old_message_id"]
         self.model.msgs.add_message(chat_id, update["message"])
         self.model.msgs.remove_message(chat_id, msg_id)
-        self.refresh_msgs()
+        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        if current_chat_id == chat_id:
+            self.refresh_msgs()
 
     @handle_exception
     def update_file(self, update):

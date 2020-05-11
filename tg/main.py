@@ -1,5 +1,7 @@
 import logging
 import logging.handlers
+import signal
+import sys
 import threading
 from curses import window, wrapper
 from functools import partial
@@ -44,8 +46,75 @@ class TelegramApi(Telegram):
         )
         result.wait()
 
+    def send_doc(self, file_path, chat_id):
+        data = {
+            "@type": "sendMessage",
+            "chat_id": chat_id,
+            "input_message_content": {
+                "@type": "inputMessageDocument",
+                "document": {"@type": "inputFileLocal", "path": file_path},
+            },
+        }
+        return self._send_data(data)
+
+    def send_audio(self, file_path, chat_id):
+        data = {
+            "@type": "sendMessage",
+            "chat_id": chat_id,
+            "input_message_content": {
+                "@type": "inputMessageAudio",
+                "audio": {"@type": "inputFileLocal", "path": file_path},
+            },
+        }
+        return self._send_data(data)
+
+    def send_photo(self, file_path, chat_id):
+        data = {
+            "@type": "sendMessage",
+            "chat_id": chat_id,
+            "input_message_content": {
+                "@type": "inputMessagePhoto",
+                "photo": {"@type": "inputFileLocal", "path": file_path},
+            },
+        }
+        return self._send_data(data)
+
+    def send_video(self, file_path, chat_id, width, height, duration):
+        data = {
+            "@type": "sendMessage",
+            "chat_id": chat_id,
+            "input_message_content": {
+                "@type": "inputMessageVideo",
+                "width": width,
+                "height": height,
+                "duration": duration,
+                "video": {"@type": "inputFileLocal", "path": file_path},
+            },
+        }
+        return self._send_data(data)
+
+    def send_voice(self, file_path, chat_id, duration, waveform):
+        data = {
+            "@type": "sendMessage",
+            "chat_id": chat_id,
+            "input_message_content": {
+                "@type": "inputMessageVoiceNote",
+                "duration": duration,
+                "waveform": waveform,
+                "voice_note": {
+                    "@type": "inputFileLocal",
+                    "path": file_path
+                },
+            },
+        }
+        return self._send_data(data)
+
 
 def main():
+    def signal_handler(sig, frame):
+        log.info('You pressed Ctrl+C!')
+    signal.signal(signal.SIGINT, signal_handler)
+
     cfg = config.get_cfg()["DEFAULT"]
     utils.setup_log(cfg.get("level", "DEBUG"))
     log.debug("#" * 64)
@@ -61,6 +130,7 @@ def main():
     config.max_download_size = utils.parse_size(
         cfg.get("max_download_size", config.max_download_size)
     )
+    config.record_cmd = cfg.get("record_cmd")
     tg.login()
     wrapper(partial(run, tg))
 
