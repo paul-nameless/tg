@@ -46,26 +46,18 @@ class Controller:
     def send_file(self, send_file_fun, *args, **kwargs):
         file_path = self.view.status.get_input()
         if file_path and os.path.isfile(file_path):
-            chat_id = self.model.chats.id_by_index(
-                self.model.current_chat
-            )
+            chat_id = self.model.chats.id_by_index(self.model.current_chat)
             send_file_fun(file_path, chat_id, *args, **kwargs)
 
     def send_voice(self):
         file_path = f"/tmp/voice-{datetime.now()}.oga"
         with suspend(self.view) as s:
-            s.call(
-                config.record_cmd.format(file_path=file_path)
-            )
+            s.call(config.record_cmd.format(file_path=file_path))
         resp = self.view.status.get_input(
             f"Do you want to send recording: {file_path}? [Y/n]"
         )
-        if (
-                is_yes(resp) and os.path.isfile(file_path)
-        ):
-            chat_id = self.model.chats.id_by_index(
-                self.model.current_chat
-            )
+        if is_yes(resp) and os.path.isfile(file_path):
+            chat_id = self.model.chats.id_by_index(self.model.current_chat)
             duration = get_duration(file_path)
             waveform = get_waveform(file_path)
             self.tg.send_voice(file_path, chat_id, duration, waveform)
@@ -168,7 +160,9 @@ class Controller:
                     )
                     width, height = get_video_resolution(file_path)
                     duration = get_duration(file_path)
-                    self.tg.send_video(file_path, chat_id, width, height, duration)
+                    self.tg.send_video(
+                        file_path, chat_id, width, height, duration
+                    )
 
             elif keys == "v":
                 self.send_voice()

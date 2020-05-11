@@ -101,10 +101,7 @@ class TelegramApi(Telegram):
                 "@type": "inputMessageVoiceNote",
                 "duration": duration,
                 "waveform": waveform,
-                "voice_note": {
-                    "@type": "inputFileLocal",
-                    "path": file_path
-                },
+                "voice_note": {"@type": "inputFileLocal", "path": file_path},
             },
         }
         return self._send_data(data)
@@ -112,7 +109,8 @@ class TelegramApi(Telegram):
 
 def main():
     def signal_handler(sig, frame):
-        log.info('You pressed Ctrl+C!')
+        log.info("You pressed Ctrl+C!")
+
     signal.signal(signal.SIGINT, signal_handler)
 
     cfg = config.get_cfg()["DEFAULT"]

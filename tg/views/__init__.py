@@ -105,7 +105,7 @@ class StatusView:
             elif chr(key).isprintable():
                 buff += chr(key)
             self.win.erase()
-            line = (msg + buff)[-(self.w-1):]
+            line = (msg + buff)[-(self.w - 1) :]
             self.win.addstr(0, 0, line)
 
         self.win.clear()
