@@ -1,7 +1,11 @@
+import base64
 import curses
 import logging
 import math
 import os
+import random
+import shlex
+import struct
 import subprocess
 from datetime import datetime
 from functools import wraps
@@ -47,6 +51,37 @@ def num(value: str, default: Optional[int] = None) -> Optional[int]:
         return default
 
 
+def is_yes(resp):
+    if resp.strip().lower() == "y" or resp == "":
+        return True
+    return False
+
+
+def get_duration(file_path):
+    cmd = f"ffprobe -v error -i '{file_path}' -show_format"
+    stdout = subprocess.check_output(shlex.split(cmd)).decode().splitlines()
+    line = next((line for line in stdout if "duration" in line), None)
+    if line:
+        _, duration = line.split("=")
+        log.info("duration: %s", duration)
+        return int(float(duration))
+    return 0
+
+
+def get_video_resolution(file_path):
+    cmd = f"ffprobe -v error -show_entries stream=width,height -of default=noprint_wrappers=1 '{file_path}'"
+    lines = subprocess.check_output(shlex.split(cmd)).decode().splitlines()
+    info = {line.split("=")[0]: line.split("=")[1] for line in lines}
+    return info.get("width"), info.get("height")
+
+
+def get_waveform(file_path):
+    # mock for now
+    waveform = (random.randint(0, 255) for _ in range(100))
+    packed = struct.pack("100B", *waveform)
+    return base64.b64encode(packed).decode()
+
+
 def setup_log(level="DEBUG"):
     logging.basicConfig(
         level=level,
@@ -90,22 +125,30 @@ class suspend:
     def __init__(self, view):
         self.view = view
 
-    def call(self, *args, **kwargs):
-        subprocess.call(*args, **kwargs)
+    def call(self, cmd):
+        subprocess.call(cmd, shell=True)
 
-    def run(self, file_path):
+    def open_file(self, file_path):
         cmd = config.get_file_handler(file_path)
         if not cmd:
             return
-        subprocess.call(cmd, shell=True)
+        self.call(cmd)
 
     def __enter__(self):
         for view in (self.view.chats, self.view.msgs, self.view.status):
             view._refresh = view.win.noutrefresh
+        curses.echo()
+        curses.nocbreak()
+        self.view.stdscr.keypad(False)
+        curses.curs_set(1)
         curses.endwin()
         return self
 
     def __exit__(self, exc_type, exc_val, tb):
         for view in (self.view.chats, self.view.msgs, self.view.status):
             view._refresh = view.win.refresh
+        curses.noecho()
+        curses.cbreak()
+        self.view.stdscr.keypad(True)
+        curses.curs_set(0)
         curses.doupdate()

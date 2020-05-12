@@ -1,7 +1,9 @@
 import logging
 from collections import defaultdict
+from typing import Any, Dict, List, Optional, Set, Union
+
 from telegram.client import Telegram
-from typing import Any, Dict, List, Union, Set, Optional
+
 from tg.msg import MsgProxy
 
 log = logging.getLogger(__name__)
