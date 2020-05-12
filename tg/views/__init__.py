@@ -82,7 +82,7 @@ class StatusView:
         self.win.clear()
         if not msg:
             return
-        self.win.addstr(0, 0, msg[: self.w])
+        self.win.addstr(0, 0, msg[: self.w - 1])
         self._refresh()
 
     def get_input(self, msg="") -> Optional[str]:
@@ -129,26 +129,28 @@ class ChatView:
 
     def draw(self, current: int, chats: List[Dict[str, Any]]) -> None:
         self.win.erase()
-        # self.win.vline(0, self.w-1, curses.ACS_VLINE, self.h)
+        self.win.vline(0, self.w - 1, curses.ACS_VLINE, self.h)
         for i, chat in enumerate(chats):
-            date, title, unread, last_msg = (
+            date, title, unread_count, last_msg = (
                 get_date(chat),
                 chat["title"],
                 chat["unread_count"],
                 get_last_msg(chat),
             )
-            last_msg = " " + emoji_pattern.sub(r"?", last_msg)
-
+            # last_msg = " " + emoji_pattern.sub(r"?", last_msg)
+            # last_msg = emoji.demojize(last_msg)
+            last_msg = " " + last_msg.replace("\n", " ")
             msg_color = get_color(white, -1)
             unread_color = get_color(magenta, -1)
             attrs = [get_color(cyan, -1), get_color(blue, -1), msg_color]
+
             if i == current:
                 attrs = [attr | reverse for attr in attrs]
                 msg_color |= reverse
                 unread_color |= reverse
 
             offset = 0
-            for attr, elem in zip(attrs, [" {} ".format(date), title]):
+            for attr, elem in zip(attrs, ["{} ".format(date), title]):
                 if offset > self.w:
                     break
                 self.win.addstr(i, offset, elem[: self.w - offset - 1], attr)
@@ -158,16 +160,20 @@ class ChatView:
                 continue
 
             attr = msg_color
-            msg = last_msg[: self.w - offset - 1]
-
-            if len(msg) < self.w:
-                msg += " " * (self.w - offset - len(msg) - 1)
-
+            n = self.w - offset - 1
+            msg = last_msg[:n]
             self.win.addstr(i, offset, msg, attr)
 
+            unread = ""
+            if unread_count:
+                unread = f"{unread_count} "
+
+            if chat["notification_settings"]["mute_for"]:
+                unread = f"muted {unread}"
+
             if unread:
+                unread = " " + unread
                 attr = unread_color
-                unread = " " + str(unread) + " "
                 self.win.addstr(i, self.w - len(unread) - 1, unread, attr)
 
         self._refresh()
@@ -197,11 +203,11 @@ class MsgView:
             dt, user_id, msg = self._parse_msg(msg)
             user_id = self._get_user_by_id(user_id)
             msg = msg.replace("\n", " ")
-            # remove utf-8 characters that take > 1 bytes to print
+            # count wide character utf-8 symbols that take > 1 bytes to print
             # it causes invalid offset
-            msg = emoji_pattern.sub(r"?", msg)
+            wide_char_len = sum(map(len, emoji_pattern.findall(msg)))
             elements = (" {} ".format(dt), user_id, " " + msg)
-            total_len = sum(len(e) for e in elements)
+            total_len = sum(len(e) for e in elements) + wide_char_len
             needed_lines = (total_len // self.w) + 1
             line_num -= needed_lines
             if line_num <= 0:
@@ -266,7 +272,7 @@ def get_date(chat: Dict[str, Any]) -> str:
     dt = datetime.fromtimestamp(last_msg["date"])
     if datetime.today().date() == dt.date():
         return dt.strftime("%H:%M")
-    return dt.strftime("%d/%b/%y")
+    return dt.strftime("%d %b %y")
 
 
 def parse_content(content: Dict[str, Any]) -> str:
