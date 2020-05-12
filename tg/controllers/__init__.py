@@ -260,6 +260,21 @@ class Controller:
         if msg.file_id and msg.size <= config.max_download_size:
             self.download(msg.file_id, chat_id, msg["id"])
 
+        # do not notify, if muted
+        # TODO: optimize
+        chat = None
+        for i, chat in enumerate(self.model.chats.chats):
+            if chat_id == chat["id"]:
+                chat = chat
+                break
+
+        if (
+            chat
+            and chat["notification_settings"]["mute_for"]
+            or chat["notification_settings"]["use_default_mute_for"]
+        ):
+            return
+
         # notify
         user_id = msg["sender_user_id"]
         if msg["sender_user_id"] == self.model.get_me()["id"]:
