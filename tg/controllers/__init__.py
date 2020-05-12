@@ -23,6 +23,10 @@ from tg.views import View
 log = logging.getLogger(__name__)
 
 
+# start scrolling to next page when number of the msgs left is less than value
+MSGS_LEFT_SCROLL_THRESHOLD = 10
+
+
 class Controller:
     """
     # MVC
@@ -246,8 +250,17 @@ class Controller:
 
     def refresh_msgs(self) -> None:
         self.view.msgs.users = self.model.users
-        msgs = self.model.fetch_msgs(limit=self.view.msgs.h)
-        self.view.msgs.draw(self.model.get_current_chat_msg(), msgs)
+        current_msg_idx = self.model.get_current_chat_msg_idx()
+        if current_msg_idx is None:
+            return
+        page_size = self.view.msgs.h
+        msgs = self.model.fetch_msgs(
+            current_msg_idx, page_size, MSGS_LEFT_SCROLL_THRESHOLD
+        )
+        selected_msg = min(
+            current_msg_idx, page_size - MSGS_LEFT_SCROLL_THRESHOLD
+        )
+        self.view.msgs.draw(selected_msg, msgs)
 
     @handle_exception
     def update_new_msg(self, update):
@@ -265,7 +278,6 @@ class Controller:
         chat = None
         for chat in self.model.chats.chats:
             if chat_id == chat["id"]:
-                chat = chat
                 break
 
         if (

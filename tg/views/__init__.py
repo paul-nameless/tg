@@ -12,14 +12,7 @@ from tg.utils import num
 log = logging.getLogger(__name__)
 
 MAX_KEYBINDING_LENGTH = 5
-MULTICHAR_KEYBINDINGS = (
-    "gg",
-    "dd",
-    "sd",
-    "sp",
-    "sa",
-    "sv",
-)
+MULTICHAR_KEYBINDINGS = ("gg", "dd", "sd", "sp", "sa", "sv")
 
 
 class View:
@@ -195,22 +188,29 @@ class MsgView:
         self.win.resize(self.h, self.w)
         self.win.mvwin(0, self.x)
 
+    def _format_msg(self, msg: str, msg_item_line: List[str]) -> str:
+        msg = msg.replace("\n", " ")
+        # it causes invalid offset
+        wide_char_len = sum(map(len, emoji_pattern.findall(msg)))
+        total_len = sum(len(e) for e in msg_item_line) + wide_char_len
+        line_space_left = self.w - total_len
+        return (
+            msg[: line_space_left - 4] + "..."
+            if len(msg) > line_space_left
+            else msg
+        )
+
     def draw(self, current: int, msgs: Any) -> None:
         self.win.erase()
         line_num = self.h
 
         for i, msg in enumerate(msgs):
             dt, user_id, msg = self._parse_msg(msg)
-            user_id = self._get_user_by_id(user_id)
-            msg = msg.replace("\n", " ")
-            # count wide character utf-8 symbols that take > 1 bytes to print
-            # it causes invalid offset
-            wide_char_len = sum(map(len, emoji_pattern.findall(msg)))
-            elements = (" {} ".format(dt), user_id, " " + msg)
-            total_len = sum(len(e) for e in elements) + wide_char_len
-            needed_lines = (total_len // self.w) + 1
-            line_num -= needed_lines
-            if line_num <= 0:
+            user = self._get_user_by_id(user_id)
+            msg_item_line = [f" {dt} ", user]
+            msg_item_line.append(self._format_msg(msg, msg_item_line))
+            line_num -= 1
+            if line_num < 0:
                 break
 
             attrs = [
@@ -222,7 +222,7 @@ class MsgView:
                 attrs = [attr | reverse for attr in attrs]
 
             column = 0
-            for attr, elem in zip(attrs, elements):
+            for attr, elem in zip(attrs, msg_item_line):
                 if not elem:
                     continue
                 self.win.addstr(line_num, column, elem, attr)
