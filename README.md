@@ -24,11 +24,13 @@ More documentation and plans for this project at [wiki](https://github.com/paul-
   phone = [phone]
   enc_key = [random key for encrypting your database]
   notify_cmd = /usr/local/bin/terminal-notifier -title "{title}" -subtitle "{subtitle}" -message "{msg}" -appIcon "{icon_path}" -sound default
+  record_cmd = ffmpeg -f avfoundation -i ":0" '{file_path}'
   ```
   Where:
     - `app_id` and `api_hash` is keys from [telegram](https://core.telegram.org/api/obtaining_api_id)
     - `phone` your phone number (or login)
     - `notify_cmd` can be any executable
+    - `record_cmd` command to record audio (example for macOS)
 
 ## Usage
 
