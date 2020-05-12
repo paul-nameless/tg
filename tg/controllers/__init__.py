@@ -263,7 +263,7 @@ class Controller:
         # do not notify, if muted
         # TODO: optimize
         chat = None
-        for i, chat in enumerate(self.model.chats.chats):
+        for chat in self.model.chats.chats:
             if chat_id == chat["id"]:
                 chat = chat
                 break
