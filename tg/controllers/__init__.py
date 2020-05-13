@@ -23,8 +23,11 @@ from tg.views import View
 log = logging.getLogger(__name__)
 
 
-# start scrolling to next page when number of the msgs left is less than value
-MSGS_LEFT_SCROLL_THRESHOLD = 10
+# start scrolling to next page when number of the msgs left is less than value.
+# note, that setting high values could lead to situations when long msgs will
+# be removed from the display in order to achive scroll threshold. this could
+# cause blan areas on the msg display screen
+MSGS_LEFT_SCROLL_THRESHOLD = 2
 
 
 class Controller:
@@ -253,14 +256,12 @@ class Controller:
         current_msg_idx = self.model.get_current_chat_msg_idx()
         if current_msg_idx is None:
             return
-        page_size = self.view.msgs.h
         msgs = self.model.fetch_msgs(
-            current_msg_idx, page_size, MSGS_LEFT_SCROLL_THRESHOLD
+            current_position=current_msg_idx,
+            page_size=self.view.msgs.h,
+            msgs_left_scroll_threshold=MSGS_LEFT_SCROLL_THRESHOLD,
         )
-        selected_msg = min(
-            current_msg_idx, page_size - MSGS_LEFT_SCROLL_THRESHOLD
-        )
-        self.view.msgs.draw(selected_msg, msgs)
+        self.view.msgs.draw(current_msg_idx, msgs, MSGS_LEFT_SCROLL_THRESHOLD)
 
     @handle_exception
     def update_new_msg(self, update):

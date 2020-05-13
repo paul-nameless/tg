@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Dict, List, Optional, Set, Union, Tuple
 
 from telegram.client import Telegram
 
@@ -34,12 +34,13 @@ class Model:
         current_position: int = 0,
         page_size: int = 10,
         msgs_left_scroll_threshold: int = 10,
-    ) -> Any:
+    ) -> List[Tuple[int, Dict[str, Any]]]:
         chat_id = self.chats.id_by_index(self.current_chat)
         if chat_id is None:
             return []
-        msgs_left = page_size - current_position
+        msgs_left = page_size - 1 - current_position
         offset = max(msgs_left_scroll_threshold - msgs_left, 0)
+
         limit = offset + page_size
         return self.msgs.fetch_msgs(chat_id, offset=offset, limit=limit)
 
@@ -213,6 +214,7 @@ class MsgModel:
         if new_idx < len(self.msgs[chat_id]):
             self.current_msgs[chat_id] = new_idx
             return True
+
         return False
 
     def remove_message(self, chat_id, msg_id):
@@ -285,14 +287,18 @@ class MsgModel:
 
     def fetch_msgs(
         self, chat_id: int, offset: int = 0, limit: int = 10
-    ) -> Any:
+    ) -> List[Tuple[int, Dict[str, Any]]]:
         if offset + limit > len(self.msgs[chat_id]):
             messages = self._fetch_msgs_until_limit(
                 chat_id, offset, offset + limit
             )
             self.add_messages(chat_id, messages)
 
-        return self.msgs[chat_id][offset : offset + limit]
+        return [
+            (i, self.msgs[chat_id][i])
+            for i in range(offset, offset + limit)
+            if i < len(self.msgs[chat_id])
+        ]
 
     def send_message(self, chat_id: int, text: str) -> None:
         log.info("Sending msg")
