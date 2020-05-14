@@ -3,7 +3,7 @@ import logging
 import re
 from _curses import window
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Iterator
 
 from tg.colors import blue, cyan, get_color, magenta, reverse, white
 from tg.msg import MsgProxy
@@ -127,30 +127,33 @@ class ChatView:
         self.w = round(curses.COLS * p)
         self.win.resize(self.h, self.w)
 
+    def _msg_color(self, is_selected: bool = False) -> int:
+        return get_color(white, -1) | (reverse if is_selected else 0)
+
+    def _unread_color(self, is_selected: bool = False) -> int:
+        return get_color(magenta, -1) | (reverse if is_selected else 0)
+
+    def _msg_attribures(self, is_selected: bool = False) -> List[int]:
+        return map(
+            lambda x: x | (reverse if is_selected else 0),
+            [get_color(cyan, -1), get_color(blue, -1), self._msg_color(),],
+        )
+
     def draw(self, current: int, chats: List[Dict[str, Any]]) -> None:
         self.win.erase()
         self.win.vline(0, self.w - 1, curses.ACS_VLINE, self.h)
         for i, chat in enumerate(chats):
+            is_selected = i == current
             date, title, unread_count, last_msg = (
                 get_date(chat),
                 chat["title"],
                 chat["unread_count"],
                 get_last_msg(chat),
             )
-            # last_msg = " " + emoji_pattern.sub(r"?", last_msg)
-            # last_msg = emoji.demojize(last_msg)
-            last_msg = " " + last_msg.replace("\n", " ")
-            msg_color = get_color(white, -1)
-            unread_color = get_color(magenta, -1)
-            attrs = [get_color(cyan, -1), get_color(blue, -1), msg_color]
-
-            if i == current:
-                attrs = [attr | reverse for attr in attrs]
-                msg_color |= reverse
-                unread_color |= reverse
-
             offset = 0
-            for attr, elem in zip(attrs, ["{} ".format(date), title]):
+            for attr, elem in zip(
+                self._msg_attribures(is_selected), [f"{date} ", title]
+            ):
                 if offset > self.w:
                     break
                 self.win.addstr(i, offset, elem[: self.w - offset - 1], attr)
@@ -159,24 +162,30 @@ class ChatView:
             if offset >= self.w:
                 continue
 
-            attr = msg_color
-            n = self.w - offset - 1
-            msg = last_msg[:n]
-            self.win.addstr(i, offset, msg, attr)
+            last_msg = " " + last_msg.replace("\n", " ")
+            last_msg = last_msg[:self.w - offset - 1]
+            self.win.addstr(i, offset, last_msg, self._msg_color(is_selected))
 
-            unread = ""
-            if unread_count:
-                unread = f"{unread_count} "
-
-            if chat["notification_settings"]["mute_for"]:
-                unread = f"muted {unread}"
-
-            if unread:
-                unread = " " + unread
-                attr = unread_color
-                self.win.addstr(i, self.w - len(unread) - 1, unread, attr)
+            if left_label := self._get_chat_label(unread_count, chat):
+                self.win.addstr(
+                    i,
+                    self.w - len(left_label) - 1,
+                    left_label,
+                    self._unread_color(is_selected),
+                )
 
         self._refresh()
+
+    @staticmethod
+    def _get_chat_label(unread_count: int, chat: Dict[str, Any]) -> str:
+        label = ""
+        if unread_count:
+            label = f"{unread_count} "
+
+        if chat["notification_settings"]["mute_for"]:
+            label = f"muted {label}"
+
+        return f" {label}"
 
 
 class MsgView:
