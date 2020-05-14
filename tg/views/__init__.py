@@ -19,6 +19,7 @@ MULTICHAR_KEYBINDINGS = (
     "sp",
     "sa",
     "sv",
+    "bp",
 )
 
 
@@ -163,7 +164,10 @@ class ChatView:
                 continue
 
             last_msg = " " + last_msg.replace("\n", " ")
-            last_msg = last_msg[:self.w - offset - 1]
+            wide_char_len = sum(map(len, emoji_pattern.findall(last_msg)))
+            last_msg = last_msg[: self.w - offset - 1 - wide_char_len]
+
+            # log.info(f"4242, {i=}, {offset=} {len(last_msg)=}")
             self.win.addstr(i, offset, last_msg, self._msg_color(is_selected))
 
             if left_label := self._get_chat_label(unread_count, chat):

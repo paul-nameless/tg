@@ -22,6 +22,8 @@ from tg.views import View
 
 log = logging.getLogger(__name__)
 
+MSGS_LEFT_SCROLL_THRESHOLD = 10
+
 
 class Controller:
     """
@@ -193,6 +195,10 @@ class Controller:
             elif keys in ("h", "^D"):
                 return "BACK"
 
+            elif keys == "bp":
+                with suspend(self.view):
+                    breakpoint()
+
     def handle_chats(self) -> None:
         self.view.chats.resize(0.5)
         self.view.msgs.resize(0.5)
@@ -233,14 +239,23 @@ class Controller:
                 if self.model.first_chat():
                     self.refresh_chats()
 
+            elif keys == "bp":
+                with suspend(self.view):
+                    breakpoint()
+
     def refresh_chats(self) -> None:
         with self.lock:
             # using lock here, because refresh_chats is used from another
             # thread by tdlib python wrapper
-            self.view.chats.draw(
-                self.model.current_chat,
-                self.model.get_chats(limit=self.view.chats.h),
+            page_size = self.view.msgs.h
+            chats = self.model.get_chats(
+                self.model.current_chat, page_size, MSGS_LEFT_SCROLL_THRESHOLD
             )
+            selected_chat = min(
+                self.model.current_chat, page_size - MSGS_LEFT_SCROLL_THRESHOLD
+            )
+
+            self.view.chats.draw(selected_chat, chats)
             self.refresh_msgs()
             self.view.status.draw()
 

@@ -79,9 +79,17 @@ class Model:
         return self.msgs.prev_msg(chat_id, step)
 
     def get_chats(
-        self, offset: int = 0, limit: int = 10
-    ) -> List[Dict[str, Any]]:
-        return self.chats.fetch_chats(offset=offset, limit=limit)
+        self,
+        current_position: int = 0,
+        page_size: int = 10,
+        msgs_left_scroll_threshold: int = 10,
+    ):
+        chats_left = page_size - current_position
+        offset = max(msgs_left_scroll_threshold - chats_left, 0)
+        limit = offset + page_size
+        rv = self.chats.fetch_chats(offset=offset, limit=limit)
+        log.info(f"4242 {limit=} {offset=} {len(rv)=}in get chats")
+        return rv
 
     def send_message(self, text: str) -> bool:
         chat_id = self.chats.id_by_index(self.current_chat)
@@ -102,6 +110,7 @@ class ChatModel:
         self.tg = tg
         self.chats: List[Dict[str, Any]] = []
         self.chat_ids: List[int] = []
+        self.have_full_chat_list = False
 
     def id_by_index(self, index: int) -> Optional[int]:
         if index >= len(self.chats):
@@ -111,47 +120,44 @@ class ChatModel:
     def fetch_chats(
         self, offset: int = 0, limit: int = 10
     ) -> List[Dict[str, Any]]:
-        if offset + limit < len(self.chats):
-            # return data from cache
-            return self.chats[offset:limit]
+        if offset + limit > len(self.chats):
+            self._load_next_chats()
 
-        previous_chats_num = len(self.chat_ids)
-
-        self.fetch_chat_ids(
-            offset=len(self.chats), limit=len(self.chats) + limit
+        log.info(
+            f"4242 fetcl chat ids {len(self.chat_ids)=} {limit=} {offset=}"
         )
-        if len(self.chat_ids) == previous_chats_num:
-            return self.chats[offset:limit]
-
-        for chat_id in self.chat_ids:
-            chat = self.fetch_chat(chat_id)
-            self.chats.append(chat)
-
         return self.chats[offset:limit]
 
-    def fetch_chat_ids(self, offset: int = 0, limit: int = 10) -> List[int]:
+    def _load_next_chats(self):
+        if self.have_full_chat_list:
+            return None
+        offset_order = 2 ** 63 - 1
+        offset_chat_id = 0
         if len(self.chats):
-            result = self.tg.get_chats(
-                offset_chat_id=self.chats[-1]["id"], limit=limit
-            )
-        else:
-            result = self.tg.get_chats(
-                offset_order=2 ** 63 - 1, offset_chat_id=offset, limit=limit
-            )
+            offset_chat_id = self.chats[-1]["id"]
+            offset_order = self.chats[-1]["order"]
+        result = self.tg.get_chats(
+            offset_chat_id=offset_chat_id, offset_order=offset_order
+        )
 
         result.wait()
         if result.error:
             log.error(f"get chat ids error: {result.error_info}")
-            return []
+            return None
 
-        for chat_id in result.update["chat_ids"]:
-            self.chat_ids.append(chat_id)
+        chats = result.update["chat_ids"]
+        log.info(f"42422 {chats=}")
+        if not chats:
+            log.info(f"4242 returned no chats")
+            self.have_full_chat_list = True
+            return chats
 
-        # TODO:
-        # if len(self.chat_ids) >= offset + limit:
-        #     break
-
-        return self.chat_ids[offset:limit]
+        for chat_id in chats:
+            # TODO: fix this, we shouldn't have any duplicates
+            if chat_id not in self.chat_ids:
+                self.chat_ids.append(chat_id)
+                chat = self.fetch_chat(chat_id)
+                self.chats.append(chat)
 
     def fetch_chat(self, chat_id: int) -> Dict[str, Any]:
         result = self.tg.get_chat(chat_id)

@@ -88,7 +88,7 @@ def setup_log(level="DEBUG"):
         format="%(asctime)s %(levelname)s %(message)s",
         handlers=[
             logging.handlers.RotatingFileHandler(
-                "./tg.log", backupCount=1, maxBytes=1024 * 1024
+                "./tg.log", backupCount=1, maxBytes=1024 * 1024 * 10  # 10 MB
             ),
         ],
     )
