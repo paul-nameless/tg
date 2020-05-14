@@ -15,7 +15,7 @@ class Model:
         self.msgs = MsgModel(tg)
         self.users = UserModel(tg)
         self.current_chat = 0
-        self.downloads = {}
+        self.downloads: Dict[int, Tuple[int, int]] = {}
 
     def get_me(self):
         return self.users.get_me()

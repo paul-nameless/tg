@@ -203,6 +203,7 @@ class MsgView:
         message could be visible on the screen.
         """
         selected_item_idx = None
+        collected_items: List[Tuple[Tuple[str, ...], bool, int]] = []
         for ignore_before in range(len(msgs)):
             if selected_item_idx is not None:
                 break

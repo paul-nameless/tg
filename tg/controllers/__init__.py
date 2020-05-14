@@ -83,7 +83,7 @@ class Controller:
         if file_id:
             self.download(file_id, msg["chat_id"], msg["id"])
 
-    def download(self, file_id: int, chat_id, msg_id):
+    def download(self, file_id: int, chat_id: int, msg_id: int):
         log.info("Downloading file: file_id=%s", file_id)
         self.model.downloads[file_id] = (chat_id, msg_id)
         self.tg.download_file(file_id=file_id)
