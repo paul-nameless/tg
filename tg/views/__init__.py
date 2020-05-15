@@ -145,10 +145,11 @@ class ChatView:
         self.win.vline(0, self.w - 1, curses.ACS_VLINE, self.h)
         for i, chat in enumerate(chats):
             is_selected = i == current
-            date, title, unread_count, last_msg = (
+            date, title, unread_count, is_pinned, last_msg = (
                 get_date(chat),
                 chat["title"],
                 chat["unread_count"],
+                chat["is_pinned"],
                 get_last_msg(chat),
             )
             offset = 0
@@ -173,7 +174,9 @@ class ChatView:
 
             self.win.addstr(i, offset, last_msg, self._msg_color(is_selected))
 
-            if left_label := self._get_chat_label(unread_count, chat):
+            if left_label := self._get_chat_label(
+                unread_count, is_pinned, chat
+            ):
                 self.win.addstr(
                     i,
                     self.w - len(left_label) - 1,
@@ -184,10 +187,14 @@ class ChatView:
         self._refresh()
 
     @staticmethod
-    def _get_chat_label(unread_count: int, chat: Dict[str, Any]) -> str:
+    def _get_chat_label(
+        unread_count: int, is_pinned: bool, chat: Dict[str, Any]
+    ) -> str:
         label = ""
+        if is_pinned:
+            label += "pinned "
         if unread_count:
-            label = f"{unread_count} "
+            label += f"{unread_count} "
 
         if chat["notification_settings"]["mute_for"]:
             label = f"muted {label}"
