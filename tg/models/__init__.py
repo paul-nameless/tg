@@ -223,6 +223,16 @@ class MsgModel:
         msg_set.remove(msg_id)
         return True
 
+    def update_msg_content(
+        self, chat_id: int, msg_id: int, message_content: Dict[str, Any]
+    ) -> bool:
+        log.info(f"updating {msg_id=} {message_content=}")
+        for msg in self.msgs[chat_id]:
+            if msg["id"] != msg_id:
+                continue
+            msg["content"] = message_content
+        return True
+
     def add_message(self, chat_id: int, message: Dict[str, Any]) -> bool:
         msg_id = message["id"]
         msg_set = self.msg_ids[chat_id]

@@ -41,6 +41,7 @@ class Controller:
         self.tg = tg
         self.handlers = {
             "updateNewMessage": self.update_new_msg,
+            "updateMessageContent": self.update_msg_content,
             "updateChatIsPinned": self.update_chat_is_pinned,
             "updateChatIsMarkedAsUnread": self.update_chat_marked_as_unread,
             "updateChatReadInbox": self.update_chat_read_inbox,
@@ -272,6 +273,16 @@ class Controller:
         self.view.msgs.draw(self.model.get_current_chat_msg(), msgs)
 
     @handle_exception
+    def update_msg_content(self, update):
+        content = MsgProxy(update["new_content"])
+        chat_id = update["chat_id"]
+        message_id = update["message_id"]
+        self.model.msgs.update_msg_content(chat_id, message_id, content)
+        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        if current_chat_id == chat_id:
+            self.refresh_msgs()
+
+    @handle_exception
     def update_new_msg(self, update):
         msg = MsgProxy(update["message"])
         chat_id = msg["chat_id"]
@@ -282,6 +293,9 @@ class Controller:
         if msg.file_id and msg.size <= config.max_download_size:
             self.download(msg.file_id, chat_id, msg["id"])
 
+        self._notify_for_message(chat_id, msg)
+
+    def _notify_for_message(self, chat_id: int, msg: Dict[str, Any]):
         # do not notify, if muted
         # TODO: optimize
         chat = None
