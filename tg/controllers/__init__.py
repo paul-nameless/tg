@@ -42,6 +42,7 @@ class Controller:
         self.handlers = {
             "updateNewMessage": self.update_new_msg,
             "updateChatIsPinned": self.update_chat_is_pinned,
+            "updateChatReadInbox": self.update_chat_read_inbox,
             "updateChatTitle": self.update_chat_title,
             "updateChatLastMessage": self.update_chat_last_msg,
             "updateChatDraftMessage": self.update_chat_draft_msg,
@@ -328,7 +329,6 @@ class Controller:
         self.model.chats.update_chat(chat_id, title=title)
         self._refresh_current_chat(current_chat_id)
 
-
     @handle_exception
     def update_chat_is_pinned(self, update: Dict[str, Any]):
         log.info("Proccessing updateChatIsPinned")
@@ -340,8 +340,22 @@ class Controller:
         self._refresh_current_chat(current_chat_id)
 
     @handle_exception
+    def update_chat_read_inbox(self, update: Dict[str, Any]):
+        log.info("Proccessing updateChatReadInbox")
+        chat_id = update["chat_id"]
+        last_read_inbox_message_id = update["last_read_inbox_message_id"]
+        unread_count = update["unread_count"]
+        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        self.model.chats.update_chat(
+            chat_id,
+            last_read_inbox_message_id=last_read_inbox_message_id,
+            unread_count=unread_count,
+        )
+        self._refresh_current_chat(current_chat_id)
+
+    @handle_exception
     def update_chat_draft_msg(self, update: Dict[str, Any]):
-        log.info("Proccessing updateChatLastMessage")
+        log.info("Proccessing updateChatDraftMessage")
         chat_id = update["chat_id"]
         # FIXME: ignoring draft message itself for now because UI can't show it
         # draft_message = update["draft_message"]
