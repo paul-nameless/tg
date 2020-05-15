@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple, Iterator
 
 from tg.colors import blue, cyan, get_color, magenta, reverse, white
 from tg.msg import MsgProxy
-from tg.utils import num
+from tg.utils import num, truncate_to_len, emoji_pattern
 
 log = logging.getLogger(__name__)
 
@@ -157,15 +157,19 @@ class ChatView:
             ):
                 if offset > self.w:
                     break
-                self.win.addstr(i, offset, elem[: self.w - offset - 1], attr)
+                self.win.addstr(
+                    i,
+                    offset,
+                    truncate_to_len(elem, self.w - offset - 1),
+                    attr,
+                )
                 offset += len(elem)
 
             if offset >= self.w:
                 continue
 
             last_msg = " " + last_msg.replace("\n", " ")
-            wide_char_len = sum(map(len, emoji_pattern.findall(last_msg)))
-            last_msg = last_msg[: self.w - offset - 1 - wide_char_len]
+            last_msg = truncate_to_len(last_msg, self.w - offset - 1)
 
             self.win.addstr(i, offset, last_msg, self._msg_color(is_selected))
 
@@ -316,16 +320,3 @@ def get_download(local, size):
         percent = int(d * 100 / size)
         return f"{percent}%"
     return "no"
-
-
-emoji_pattern = re.compile(
-    "["
-    "\U0001F600-\U0001F64F"  # emoticons
-    "\U0001F300-\U0001F5FF"  # symbols & pictographs
-    "\U0001F680-\U0001F6FF"  # transport & map symbols
-    "\U0001F1E0-\U0001F1FF"  # flags (iOS)
-    "\U00002702-\U000027B0"
-    "\U000024C2-\U0001F251"
-    "]+",
-    flags=re.UNICODE,
-)
