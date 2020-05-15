@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import os
 import threading
 from datetime import datetime
@@ -43,6 +43,7 @@ class Controller:
             "updateNewMessage": self.update_new_msg,
             "updateChatIsPinned": self.update_chat_is_pinned,
             "updateChatLastMessage": self.update_chat_last_msg,
+            "updateChatDraftMessage": self.update_chat_draft_msg,
             "updateChatOrder": self.update_chat_order,
             "updateMessageSendSucceeded": self.update_msg_send_succeeded,
             "updateFile": self.update_file,
@@ -328,6 +329,17 @@ class Controller:
         self._refresh_current_chat(current_chat_id)
 
     @handle_exception
+    def update_chat_draft_msg(self, update: Dict[str, Any]):
+        log.info("Proccessing updateChatLastMessage")
+        chat_id = update["chat_id"]
+        # FIXME: ignoring draft message itself for now because UI can't show it
+        # draft_message = update["draft_message"]
+        order = update["order"]
+        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        self.model.chats.update_chat(chat_id, order=order)
+        self._refresh_current_chat(current_chat_id)
+
+    @handle_exception
     def update_chat_last_msg(self, update: Dict[str, Any]):
         log.info("Proccessing updateChatLastMessage")
         chat_id = update["chat_id"]
@@ -339,7 +351,9 @@ class Controller:
         )
         self._refresh_current_chat(current_chat_id)
 
-    def _refresh_current_chat(self, current_chat_id: int):
+    def _refresh_current_chat(self, current_chat_id: Optional[int]):
+        if current_chat_id is None:
+            return
         # TODO: we can create <index> for chats, it's faster than sqlite anyway
         # though need to make sure that creatinng index is atomic operation
         # requires locks for read, until index and chats will be the same
