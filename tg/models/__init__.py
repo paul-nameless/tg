@@ -87,9 +87,7 @@ class Model:
         chats_left = page_size - current_position
         offset = max(msgs_left_scroll_threshold - chats_left, 0)
         limit = offset + page_size
-        rv = self.chats.fetch_chats(offset=offset, limit=limit)
-        log.info(f"4242 {limit=} {offset=} {len(rv)=}in get chats")
-        return rv
+        return self.chats.fetch_chats(offset=offset, limit=limit)
 
     def send_message(self, text: str) -> bool:
         chat_id = self.chats.id_by_index(self.current_chat)
@@ -123,12 +121,13 @@ class ChatModel:
         if offset + limit > len(self.chats):
             self._load_next_chats()
 
-        log.info(
-            f"4242 fetcl chat ids {len(self.chat_ids)=} {limit=} {offset=}"
-        )
         return self.chats[offset:limit]
 
     def _load_next_chats(self):
+        """
+        based on
+        https://github.com/tdlib/td/issues/56#issuecomment-364221408
+        """
         if self.have_full_chat_list:
             return None
         offset_order = 2 ** 63 - 1
@@ -146,9 +145,7 @@ class ChatModel:
             return None
 
         chats = result.update["chat_ids"]
-        log.info(f"42422 {chats=}")
         if not chats:
-            log.info(f"4242 returned no chats")
             self.have_full_chat_list = True
             return chats
 
