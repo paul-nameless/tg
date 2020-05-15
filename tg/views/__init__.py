@@ -145,13 +145,13 @@ class ChatView:
         self.win.vline(0, self.w - 1, curses.ACS_VLINE, self.h)
         for i, chat in enumerate(chats):
             is_selected = i == current
-            date, title, unread_count, is_pinned, last_msg = (
-                get_date(chat),
-                chat["title"],
-                chat["unread_count"],
-                chat["is_pinned"],
-                get_last_msg(chat),
+            unread_count = (
+                chat["unread_count"] or 1 if chat["is_marked_as_unread"] else 0
             )
+            date = get_date(chat)
+            title = chat["title"]
+            is_pinned = chat["is_pinned"]
+            last_msg = get_last_msg(chat)
             offset = 0
             for attr, elem in zip(
                 self._msg_attribures(is_selected), [f"{date} ", title]

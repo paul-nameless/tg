@@ -42,6 +42,7 @@ class Controller:
         self.handlers = {
             "updateNewMessage": self.update_new_msg,
             "updateChatIsPinned": self.update_chat_is_pinned,
+            "updateChatIsMarkedAsUnread": self.update_chat_marked_as_unread,
             "updateChatReadInbox": self.update_chat_read_inbox,
             "updateChatTitle": self.update_chat_title,
             "updateChatLastMessage": self.update_chat_last_msg,
@@ -327,6 +328,17 @@ class Controller:
         title = update["title"]
         current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
         self.model.chats.update_chat(chat_id, title=title)
+        self._refresh_current_chat(current_chat_id)
+
+    @handle_exception
+    def update_chat_marked_as_unread(self, update: Dict[str, Any]):
+        log.info("Proccessing updateChatIsMarkedAsUnread")
+        chat_id = update["chat_id"]
+        is_marked_as_unread = update["is_marked_as_unread"]
+        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        self.model.chats.update_chat(
+            chat_id, is_marked_as_unread=is_marked_as_unread
+        )
         self._refresh_current_chat(current_chat_id)
 
     @handle_exception
