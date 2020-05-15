@@ -42,6 +42,7 @@ class Controller:
         self.handlers = {
             "updateNewMessage": self.update_new_msg,
             "updateChatIsPinned": self.update_chat_is_pinned,
+            "updateChatTitle": self.update_chat_title,
             "updateChatLastMessage": self.update_chat_last_msg,
             "updateChatDraftMessage": self.update_chat_draft_msg,
             "updateChatOrder": self.update_chat_order,
@@ -317,6 +318,16 @@ class Controller:
 
         self.model.chats.update_chat(chat_id, order=order)
         self._refresh_current_chat(current_chat_id)
+
+    @handle_exception
+    def update_chat_title(self, update: Dict[str, Any]):
+        log.info("Proccessing updateChatTitle")
+        chat_id = update["chat_id"]
+        title = update["title"]
+        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        self.model.chats.update_chat(chat_id, title=title)
+        self._refresh_current_chat(current_chat_id)
+
 
     @handle_exception
     def update_chat_is_pinned(self, update: Dict[str, Any]):
