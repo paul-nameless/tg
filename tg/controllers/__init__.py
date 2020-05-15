@@ -1,4 +1,5 @@
 import logging
+from typing import Dict, Any
 import os
 import threading
 from datetime import datetime
@@ -40,7 +41,9 @@ class Controller:
         self.tg = tg
         self.handlers = {
             "updateNewMessage": self.update_new_msg,
+            "updateChatIsPinned": self.update_chat_is_pinned,
             "updateChatLastMessage": self.update_chat_last_msg,
+            "updateChatOrder": self.update_chat_order,
             "updateMessageSendSucceeded": self.update_msg_send_succeeded,
             "updateFile": self.update_file,
         }
@@ -305,12 +308,38 @@ class Controller:
         notify(text, title=name)
 
     @handle_exception
-    def update_chat_last_msg(self, update):
+    def update_chat_order(self, update: Dict[str, Any]):
+        log.info("Proccessing updateChatOrder")
+        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        chat_id = update["chat_id"]
+        order = update["order"]
+
+        self.model.chats.update_chat(chat_id, order=order)
+        self._refresh_current_chat(current_chat_id)
+
+    @handle_exception
+    def update_chat_is_pinned(self, update: Dict[str, Any]):
+        log.info("Proccessing updateChatIsPinned")
+        chat_id = update["chat_id"]
+        is_pinned = update["is_pinned"]
+        order = update["order"]
+        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        self.model.chats.update_chat(chat_id, is_pinned=is_pinned, order=order)
+        self._refresh_current_chat(current_chat_id)
+
+    @handle_exception
+    def update_chat_last_msg(self, update: Dict[str, Any]):
         log.info("Proccessing updateChatLastMessage")
         chat_id = update["chat_id"]
         message = update["last_message"]
+        order = update["order"]
         current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
-        self.model.chats.update_last_message(chat_id, message)
+        self.model.chats.update_chat(
+            chat_id, last_message=message, order=order
+        )
+        self._refresh_current_chat(current_chat_id)
+
+    def _refresh_current_chat(self, current_chat_id: int):
         # TODO: we can create <index> for chats, it's faster than sqlite anyway
         # though need to make sure that creatinng index is atomic operation
         # requires locks for read, until index and chats will be the same
