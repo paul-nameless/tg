@@ -188,7 +188,7 @@ class ChatView:
                 )
 
             if left_label := self._get_chat_label(
-                    unread_count, is_pinned, chat
+                unread_count, is_pinned, chat
             ):
                 self.win.addstr(
                     i,
