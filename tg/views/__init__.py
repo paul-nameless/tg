@@ -178,15 +178,17 @@ class ChatView:
                 offset += len(elem)
 
             if offset >= self.w:
-                continue
+                break
 
             last_msg = " " + last_msg.replace("\n", " ")
             last_msg = truncate_to_len(last_msg, self.w - offset)
-
-            self.win.addstr(i, offset, last_msg, self._msg_color(is_selected))
+            if last_msg.strip():
+                self.win.addstr(
+                    i, offset, last_msg, self._msg_color(is_selected)
+                )
 
             if left_label := self._get_chat_label(
-                unread_count, is_pinned, chat
+                    unread_count, is_pinned, chat
             ):
                 self.win.addstr(
                     i,
@@ -213,7 +215,7 @@ class ChatView:
 
         label = " ".join(labels)
         if label:
-            return f" {label} "
+            return f" {label}"
         return label
 
 
