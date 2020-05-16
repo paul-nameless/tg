@@ -174,18 +174,19 @@ class ChatModel:
             return {}
         return result.update
 
-    def update_last_message(self, chat_id, message):
+    def update_chat(self, chat_id: int, **updates: Dict[str, Any]) -> bool:
         for i, c in enumerate(self.chats):
             if c["id"] != chat_id:
                 continue
-            self.chats[i]["last_message"] = message
+            self.chats[i].update(updates)
             self.chats = sorted(
                 self.chats,
-                key=lambda it: it["last_message"]["date"],
+                # recommended chat order, for more info see
+                # https://core.telegram.org/tdlib/getting-started#getting-the-lists-of-chats
+                key=lambda it: (it["order"], it["id"]),
                 reverse=True,
             )
-
-            log.info("Updated last message")
+            log.info(f"Updated chat with keys {list(updates)}")
             return True
         else:
             log.error(f"Can't find chat {chat_id} in existing chats")
@@ -230,6 +231,16 @@ class MsgModel:
             m for m in self.msgs[chat_id] if m["id"] != msg_id
         ]
         msg_set.remove(msg_id)
+        return True
+
+    def update_msg_content(
+        self, chat_id: int, msg_id: int, message_content: Dict[str, Any]
+    ) -> bool:
+        log.info(f"updating {msg_id=} {message_content=}")
+        for msg in self.msgs[chat_id]:
+            if msg["id"] != msg_id:
+                continue
+            msg["content"] = message_content
         return True
 
     def add_message(self, chat_id: int, message: Dict[str, Any]) -> bool:
