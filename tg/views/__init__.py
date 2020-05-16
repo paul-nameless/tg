@@ -144,7 +144,7 @@ class ChatView:
         attrs = (
             get_color(cyan, -1),
             get_color(blue, -1),
-            self._msg_color(is_selected)
+            self._msg_color(is_selected),
         )
         if is_selected:
             return tuple(attr | reverse for attr in attrs)
