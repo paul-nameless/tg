@@ -351,11 +351,8 @@ class Controller:
             if chat_id == chat["id"]:
                 break
 
-        if (
-            chat
-            and chat["notification_settings"]["mute_for"]
-            or chat["notification_settings"]["use_default_mute_for"]
-        ):
+        # TODO: handle cases when all chats muted on global level
+        if chat and chat["notification_settings"]["mute_for"]:
             return
 
         # notify
