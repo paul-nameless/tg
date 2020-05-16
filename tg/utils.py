@@ -1,4 +1,5 @@
 import base64
+import re
 import curses
 import logging
 import math
@@ -15,6 +16,17 @@ from tg import config
 
 log = logging.getLogger(__name__)
 
+emoji_pattern = re.compile(
+    "["
+    "\U0001F600-\U0001F64F"  # emoticons
+    "\U0001F300-\U0001F5FF"  # symbols & pictographs
+    "\U0001F680-\U0001F6FF"  # transport & map symbols
+    "\U0001F1E0-\U0001F1FF"  # flags (iOS)
+    "\U00002702-\U000027B0"
+    "\U000024C2-\U0001F251"
+    "]+",
+    flags=re.UNICODE,
+)
 units = {"B": 1, "KB": 10 ** 3, "MB": 10 ** 6, "GB": 10 ** 9, "TB": 10 ** 12}
 
 
@@ -88,7 +100,7 @@ def setup_log(level="DEBUG"):
         format="%(asctime)s %(levelname)s %(message)s",
         handlers=[
             logging.handlers.RotatingFileHandler(
-                "./tg.log", backupCount=1, maxBytes=1024 * 1024
+                "./tg.log", backupCount=1, maxBytes=1024 * 1024 * 10  # 10 MB
             ),
         ],
     )
@@ -119,6 +131,11 @@ def handle_exception(fun):
             log.exception("Error happened in %s handler", fun.__name__)
 
     return wrapper
+
+
+def truncate_to_len(s: str, target_len: int, encoding: str = "utf-8") -> str:
+    target_len -= sum(map(bool, map(emoji_pattern.findall, s[:target_len])))
+    return s[: max(1, target_len - 1)]
 
 
 class suspend:
