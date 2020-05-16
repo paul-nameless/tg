@@ -106,6 +106,45 @@ class TelegramApi(Telegram):
         }
         return self._send_data(data)
 
+    def toggle_chat_is_marked_as_unread(
+        self, chat_id: int, is_marked_as_unread: bool
+    ):
+        data = {
+            "@type": "toggleChatIsMarkedAsUnread",
+            "chat_id": chat_id,
+            "is_marked_as_unread": is_marked_as_unread,
+        }
+        return self._send_data(data)
+
+    def toggle_chat_is_pinned(self, chat_id: int, is_pinned: bool):
+        data = {
+            "@type": "toggleChatIsPinned",
+            "chat_id": chat_id,
+            "is_pinned": is_pinned,
+        }
+        return self._send_data(data)
+
+    def set_chat_nottification_settings(
+        self, chat_id: int, notification_settings: dict
+    ):
+        data = {
+            "@type": "setChatNotificationSettings",
+            "chat_id": chat_id,
+            "notification_settings": notification_settings,
+        }
+        return self._send_data(data)
+
+    def view_messages(
+        self, chat_id: int, message_ids: list, force_read: bool = True
+    ):
+        data = {
+            "@type": "viewMessages",
+            "chat_id": chat_id,
+            "message_ids": message_ids,
+            "force_read": force_read,
+        }
+        return self._send_data(data)
+
 
 def main():
     def signal_handler(sig, frame):
@@ -130,6 +169,7 @@ def main():
     )
     config.record_cmd = cfg.get("record_cmd")
     tg.login()
+
     wrapper(partial(run, tg))
 
 
