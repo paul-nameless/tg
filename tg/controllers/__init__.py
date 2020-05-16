@@ -1,4 +1,5 @@
 import logging
+from typing import Dict, Any, Optional
 import os
 import threading
 from datetime import datetime
@@ -47,7 +48,14 @@ class Controller:
         self.tg = tg
         self.handlers = {
             "updateNewMessage": self.update_new_msg,
+            "updateMessageContent": self.update_msg_content,
+            "updateChatIsPinned": self.update_chat_is_pinned,
+            "updateChatIsMarkedAsUnread": self.update_chat_marked_as_unread,
+            "updateChatReadInbox": self.update_chat_read_inbox,
+            "updateChatTitle": self.update_chat_title,
             "updateChatLastMessage": self.update_chat_last_msg,
+            "updateChatDraftMessage": self.update_chat_draft_msg,
+            "updateChatOrder": self.update_chat_order,
             "updateMessageSendSucceeded": self.update_msg_send_succeeded,
             "updateFile": self.update_file,
         }
@@ -279,6 +287,16 @@ class Controller:
         self.view.msgs.draw(current_msg_idx, msgs, MSGS_LEFT_SCROLL_THRESHOLD)
 
     @handle_exception
+    def update_msg_content(self, update):
+        content = MsgProxy(update["new_content"])
+        chat_id = update["chat_id"]
+        message_id = update["message_id"]
+        self.model.msgs.update_msg_content(chat_id, message_id, content)
+        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        if current_chat_id == chat_id:
+            self.refresh_msgs()
+
+    @handle_exception
     def update_new_msg(self, update):
         msg = MsgProxy(update["message"])
         chat_id = msg["chat_id"]
@@ -289,6 +307,9 @@ class Controller:
         if msg.file_id and msg.size <= config.max_download_size:
             self.download(msg.file_id, chat_id, msg["id"])
 
+        self._notify_for_message(chat_id, msg)
+
+    def _notify_for_message(self, chat_id: int, msg: Dict[str, Any]):
         # do not notify, if muted
         # TODO: optimize
         chat = None
@@ -318,12 +339,85 @@ class Controller:
         notify(text, title=name)
 
     @handle_exception
-    def update_chat_last_msg(self, update):
+    def update_chat_order(self, update: Dict[str, Any]):
+        log.info("Proccessing updateChatOrder")
+        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        chat_id = update["chat_id"]
+        order = update["order"]
+
+        self.model.chats.update_chat(chat_id, order=order)
+        self._refresh_current_chat(current_chat_id)
+
+    @handle_exception
+    def update_chat_title(self, update: Dict[str, Any]):
+        log.info("Proccessing updateChatTitle")
+        chat_id = update["chat_id"]
+        title = update["title"]
+        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        self.model.chats.update_chat(chat_id, title=title)
+        self._refresh_current_chat(current_chat_id)
+
+    @handle_exception
+    def update_chat_marked_as_unread(self, update: Dict[str, Any]):
+        log.info("Proccessing updateChatIsMarkedAsUnread")
+        chat_id = update["chat_id"]
+        is_marked_as_unread = update["is_marked_as_unread"]
+        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        self.model.chats.update_chat(
+            chat_id, is_marked_as_unread=is_marked_as_unread
+        )
+        self._refresh_current_chat(current_chat_id)
+
+    @handle_exception
+    def update_chat_is_pinned(self, update: Dict[str, Any]):
+        log.info("Proccessing updateChatIsPinned")
+        chat_id = update["chat_id"]
+        is_pinned = update["is_pinned"]
+        order = update["order"]
+        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        self.model.chats.update_chat(chat_id, is_pinned=is_pinned, order=order)
+        self._refresh_current_chat(current_chat_id)
+
+    @handle_exception
+    def update_chat_read_inbox(self, update: Dict[str, Any]):
+        log.info("Proccessing updateChatReadInbox")
+        chat_id = update["chat_id"]
+        last_read_inbox_message_id = update["last_read_inbox_message_id"]
+        unread_count = update["unread_count"]
+        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        self.model.chats.update_chat(
+            chat_id,
+            last_read_inbox_message_id=last_read_inbox_message_id,
+            unread_count=unread_count,
+        )
+        self._refresh_current_chat(current_chat_id)
+
+    @handle_exception
+    def update_chat_draft_msg(self, update: Dict[str, Any]):
+        log.info("Proccessing updateChatDraftMessage")
+        chat_id = update["chat_id"]
+        # FIXME: ignoring draft message itself for now because UI can't show it
+        # draft_message = update["draft_message"]
+        order = update["order"]
+        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        self.model.chats.update_chat(chat_id, order=order)
+        self._refresh_current_chat(current_chat_id)
+
+    @handle_exception
+    def update_chat_last_msg(self, update: Dict[str, Any]):
         log.info("Proccessing updateChatLastMessage")
         chat_id = update["chat_id"]
         message = update["last_message"]
+        order = update["order"]
         current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
-        self.model.chats.update_last_message(chat_id, message)
+        self.model.chats.update_chat(
+            chat_id, last_message=message, order=order
+        )
+        self._refresh_current_chat(current_chat_id)
+
+    def _refresh_current_chat(self, current_chat_id: Optional[int]):
+        if current_chat_id is None:
+            return
         # TODO: we can create <index> for chats, it's faster than sqlite anyway
         # though need to make sure that creatinng index is atomic operation
         # requires locks for read, until index and chats will be the same

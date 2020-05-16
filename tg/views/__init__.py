@@ -155,12 +155,14 @@ class ChatView:
         self.win.vline(0, self.w - 1, curses.ACS_VLINE, self.h)
         for i, chat in enumerate(chats):
             is_selected = i == current
-            date, title, unread_count, last_msg = (
-                get_date(chat),
-                chat["title"],
-                chat["unread_count"],
-                get_last_msg(chat),
-            )
+            unread_count = chat["unread_count"]
+            if chat["is_marked_as_unread"]:
+                unread_count = "unread"
+
+            date = get_date(chat)
+            title = chat["title"]
+            is_pinned = chat["is_pinned"]
+            last_msg = get_last_msg(chat)
             offset = 0
             for attr, elem in zip(
                 self._chat_attributes(is_selected), [f"{date} ", title]
@@ -183,8 +185,9 @@ class ChatView:
 
             self.win.addstr(i, offset, last_msg, self._msg_color(is_selected))
 
-            left_label = self._get_chat_label(unread_count, chat)
-            if left_label:
+            if left_label := self._get_chat_label(
+                unread_count, is_pinned, chat
+            ):
                 self.win.addstr(
                     i,
                     self.w - len(left_label) - 1,
@@ -195,17 +198,22 @@ class ChatView:
         self._refresh()
 
     @staticmethod
-    def _get_chat_label(unread_count: int, chat: Dict[str, Any]) -> str:
-        label = ""
-        if unread_count:
-            label = f" {unread_count} "
+    def _get_chat_label(
+        unread_count: int, is_pinned: bool, chat: Dict[str, Any]
+    ) -> str:
+        labels = []
+        if is_pinned:
+            labels.append("pinned")
 
         if chat["notification_settings"]["mute_for"]:
-            if label:
-                label = f" muted{label}"
-            else:
-                label = f" muted "
+            labels.append("muted")
 
+        if unread_count:
+            labels.append(str(unread_count))
+
+        label = ' '.join(labels)
+        if label:
+            return f" {label} "
         return label
 
 
