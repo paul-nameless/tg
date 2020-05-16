@@ -211,40 +211,87 @@ class MsgView:
         self.win.resize(self.h, self.w)
         self.win.mvwin(0, self.x)
 
-    def draw(self, current: int, msgs: Any) -> None:
-        self.win.erase()
-        line_num = self.h
-
-        for i, msg in enumerate(msgs):
-            dt, user_id, msg = self._parse_msg(msg)
-            user_id = self._get_user_by_id(user_id)
-            msg = msg.replace("\n", " ")
-            # count wide character utf-8 symbols that take > 1 bytes to print
-            # it causes invalid offset
-            wide_char_len = sum(map(len, emoji_pattern.findall(msg)))
-            elements = (" {} ".format(dt), user_id, " " + msg)
-            total_len = sum(len(e) for e in elements) + wide_char_len
-            needed_lines = (total_len // self.w) + 1
-            line_num -= needed_lines
-            if line_num <= 0:
+    def _collect_msgs_to_draw(
+        self,
+        current_msg_idx: int,
+        msgs: List[Tuple[int, Dict[str, Any]]],
+        min_msg_padding: int,
+    ) -> List[Tuple[Tuple[str, ...], bool, int]]:
+        """
+        Tries to collect list of messages that will satisfy `min_msg_padding`
+        theshold. Long messages could prevent other messages from displaying on
+        the screen. In order to prevent scenario when *selected* message moved
+        out from the visible area of the screen by some long messages, this
+        function will remove message one by one from the start until selected
+        message could be visible on the screen.
+        """
+        selected_item_idx = None
+        collected_items: List[Tuple[Tuple[str, ...], bool, int]] = []
+        for ignore_before in range(len(msgs)):
+            if selected_item_idx is not None:
                 break
+            collected_items = []
+            line_num = self.h
+            for msg_idx, msg_item in msgs[ignore_before:]:
+                is_selected_msg = current_msg_idx == msg_idx
+                dt, user_id_item, msg = self._parse_msg(msg_item)
+                user_id = self._get_user_by_id(user_id_item)
+                msg = msg.replace("\n", " ")
+                # count wide character utf-8 symbols that take > 1 bytes to
+                # print it causes invalid offset
+                wide_char_len = sum(map(len, emoji_pattern.findall(msg)))
+                elements = tuple(map(lambda x: f" {x}", (dt, user_id, msg)))
+                total_len = sum(len(e) for e in elements) + wide_char_len
 
-            attrs = [
-                get_color(cyan, -1),
-                get_color(blue, -1),
-                get_color(white, -1),
-            ]
-            if i == current:
-                attrs = [attr | reverse for attr in attrs]
+                needed_lines = (total_len // self.w) + 1
+                line_num -= needed_lines
+                if line_num <= 0:
+                    break
+                collected_items.append((elements, is_selected_msg, line_num))
+                if is_selected_msg:
+                    selected_item_idx = len(collected_items) - 1
+            if (
+                # ignore first and last msg
+                selected_item_idx not in (0, len(msgs) - 1, None)
+                and len(collected_items) - 1 - selected_item_idx
+                < min_msg_padding
+            ):
+                selected_item_idx = None
 
+        return collected_items
+
+    def draw(
+        self,
+        current_msg_idx: int,
+        msgs: List[Tuple[int, Dict[str, Any]]],
+        min_msg_padding: int,
+    ) -> None:
+        self.win.erase()
+        msgs_to_draw = self._collect_msgs_to_draw(
+            current_msg_idx, msgs, min_msg_padding
+        )
+
+        if not msgs_to_draw:
+            log.error("Can't collect message for drawing!")
+
+        for elements, selected, line_num in msgs_to_draw:
             column = 0
-            for attr, elem in zip(attrs, elements):
+            for attr, elem in zip(self._msg_attribures(selected), elements):
                 if not elem:
                     continue
                 self.win.addstr(line_num, column, elem, attr)
                 column += len(elem)
 
         self._refresh()
+
+    @staticmethod
+    def _msg_attribures(is_selected: bool) -> Iterator[int]:
+        attrs = [
+            get_color(cyan, -1),
+            get_color(blue, -1),
+            get_color(white, -1),
+        ]
+        return map(lambda x: x | reverse if is_selected else 0, attrs)
 
     def _get_user_by_id(self, user_id: int) -> str:
         if user_id == 0:

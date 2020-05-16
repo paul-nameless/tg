@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Dict, List, Optional, Set, Union, Tuple
 
 from telegram.client import Telegram
 
@@ -15,7 +15,7 @@ class Model:
         self.msgs = MsgModel(tg)
         self.users = UserModel(tg)
         self.current_chat = 0
-        self.downloads = {}
+        self.downloads: Dict[int, Tuple[int, int]] = {}
 
     def get_me(self):
         return self.users.get_me()
@@ -23,16 +23,25 @@ class Model:
     def get_user(self, user_id):
         return self.users.get_user(user_id)
 
-    def get_current_chat_msg(self) -> Optional[int]:
+    def get_current_chat_msg_idx(self) -> Optional[int]:
         chat_id = self.chats.id_by_index(self.current_chat)
         if chat_id is None:
             return None
         return self.msgs.current_msgs[chat_id]
 
-    def fetch_msgs(self, offset: int = 0, limit: int = 10) -> Any:
+    def fetch_msgs(
+        self,
+        current_position: int = 0,
+        page_size: int = 10,
+        msgs_left_scroll_threshold: int = 10,
+    ) -> List[Tuple[int, Dict[str, Any]]]:
         chat_id = self.chats.id_by_index(self.current_chat)
         if chat_id is None:
             return []
+        msgs_left = page_size - 1 - current_position
+        offset = max(msgs_left_scroll_threshold - msgs_left, 0)
+
+        limit = offset + page_size
         return self.msgs.fetch_msgs(chat_id, offset=offset, limit=limit)
 
     def current_msg(self):
@@ -208,6 +217,7 @@ class MsgModel:
         if new_idx < len(self.msgs[chat_id]):
             self.current_msgs[chat_id] = new_idx
             return True
+
         return False
 
     def remove_message(self, chat_id, msg_id):
@@ -280,12 +290,18 @@ class MsgModel:
 
     def fetch_msgs(
         self, chat_id: int, offset: int = 0, limit: int = 10
-    ) -> Any:
+    ) -> List[Tuple[int, Dict[str, Any]]]:
         if offset + limit > len(self.msgs[chat_id]):
-            messages = self._fetch_msgs_until_limit(chat_id, offset, limit)
+            messages = self._fetch_msgs_until_limit(
+                chat_id, offset, offset + limit
+            )
             self.add_messages(chat_id, messages)
 
-        return self.msgs[chat_id][offset:limit]
+        return [
+            (i, self.msgs[chat_id][i])
+            for i in range(offset, offset + limit)
+            if i < len(self.msgs[chat_id])
+        ]
 
     def send_message(self, chat_id: int, text: str) -> None:
         log.info("Sending msg")
