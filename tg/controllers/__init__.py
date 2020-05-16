@@ -23,6 +23,13 @@ from tg.views import View
 log = logging.getLogger(__name__)
 
 
+# start scrolling to next page when number of the msgs left is less than value.
+# note, that setting high values could lead to situations when long msgs will
+# be removed from the display in order to achive scroll threshold. this could
+# cause blan areas on the msg display screen
+MSGS_LEFT_SCROLL_THRESHOLD = 2
+
+
 class Controller:
     """
     # MVC
@@ -76,7 +83,7 @@ class Controller:
         if file_id:
             self.download(file_id, msg["chat_id"], msg["id"])
 
-    def download(self, file_id: int, chat_id, msg_id):
+    def download(self, file_id: int, chat_id: int, msg_id: int):
         log.info("Downloading file: file_id=%s", file_id)
         self.model.downloads[file_id] = (chat_id, msg_id)
         self.tg.download_file(file_id=file_id)
@@ -246,8 +253,15 @@ class Controller:
 
     def refresh_msgs(self) -> None:
         self.view.msgs.users = self.model.users
-        msgs = self.model.fetch_msgs(limit=self.view.msgs.h)
-        self.view.msgs.draw(self.model.get_current_chat_msg(), msgs)
+        current_msg_idx = self.model.get_current_chat_msg_idx()
+        if current_msg_idx is None:
+            return
+        msgs = self.model.fetch_msgs(
+            current_position=current_msg_idx,
+            page_size=self.view.msgs.h,
+            msgs_left_scroll_threshold=MSGS_LEFT_SCROLL_THRESHOLD,
+        )
+        self.view.msgs.draw(current_msg_idx, msgs, MSGS_LEFT_SCROLL_THRESHOLD)
 
     @handle_exception
     def update_new_msg(self, update):
@@ -265,7 +279,6 @@ class Controller:
         chat = None
         for chat in self.model.chats.chats:
             if chat_id == chat["id"]:
-                chat = chat
                 break
 
         if (
