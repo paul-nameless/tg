@@ -1,9 +1,9 @@
 import logging
-from typing import Dict, Any, Optional
 import os
 import threading
 from datetime import datetime
 from tempfile import NamedTemporaryFile
+from typing import Any, Dict, Optional
 
 from telegram.client import Telegram
 
@@ -47,17 +47,18 @@ class Controller:
         self.lock = threading.Lock()
         self.tg = tg
         self.handlers = {
-            "updateNewMessage": self.update_new_msg,
-            "updateMessageContent": self.update_msg_content,
-            "updateChatIsPinned": self.update_chat_is_pinned,
+            "updateChatDraftMessage": self.update_chat_draft_msg,
             "updateChatIsMarkedAsUnread": self.update_chat_marked_as_unread,
+            "updateChatIsPinned": self.update_chat_is_pinned,
+            "updateChatLastMessage": self.update_chat_last_msg,
+            "updateChatNotificationSettings": self.update_chat_notification_settings,
+            "updateChatOrder": self.update_chat_order,
             "updateChatReadInbox": self.update_chat_read_inbox,
             "updateChatTitle": self.update_chat_title,
-            "updateChatLastMessage": self.update_chat_last_msg,
-            "updateChatDraftMessage": self.update_chat_draft_msg,
-            "updateChatOrder": self.update_chat_order,
-            "updateMessageSendSucceeded": self.update_msg_send_succeeded,
             "updateFile": self.update_file,
+            "updateMessageContent": self.update_msg_content,
+            "updateMessageSendSucceeded": self.update_msg_send_succeeded,
+            "updateNewMessage": self.update_new_msg,
         }
 
     def send_file(self, send_file_fun, *args, **kwargs):
@@ -258,6 +259,39 @@ class Controller:
                 with suspend(self.view):
                     breakpoint()
 
+            elif keys == "u":
+                chat = self.model.chats.chats[self.model.current_chat]
+                chat_id = chat["id"]
+                toggle = not chat["is_marked_as_unread"]
+                self.tg.toggle_chat_is_marked_as_unread(chat_id, toggle)
+
+            elif keys == "p":
+                chat = self.model.chats.chats[self.model.current_chat]
+                chat_id = chat["id"]
+                toggle = not chat["is_pinned"]
+                self.tg.toggle_chat_is_pinned(chat_id, toggle)
+
+            elif keys == "r":
+                chat = self.model.chats.chats[self.model.current_chat]
+                chat_id = chat["id"]
+                msg_id = chat["last_message"]["id"]
+                self.tg.view_messages(chat_id, [msg_id])
+
+            elif keys == "m":
+                # TODO: if it's msg to yourself, do not change its
+                # notification setting, because we can't by documentation,
+                # instead write about it in status
+                chat = self.model.chats.chats[self.model.current_chat]
+                chat_id = chat["id"]
+                notification_settings = chat["notification_settings"]
+                if notification_settings["mute_for"]:
+                    notification_settings["mute_for"] = 0
+                else:
+                    notification_settings["mute_for"] = 2147483647
+                self.tg.set_chat_nottification_settings(
+                    chat_id, notification_settings
+                )
+
     def refresh_chats(self) -> None:
         with self.lock:
             # using lock here, because refresh_chats is used from another
@@ -425,6 +459,16 @@ class Controller:
             if chat["id"] == current_chat_id:
                 self.model.current_chat = i
                 break
+        self.refresh_chats()
+
+    @handle_exception
+    def update_chat_notification_settings(self, update):
+        log.info("Proccessing update_chat_notification_settings")
+        chat_id = update["chat_id"]
+        notification_settings = update["notification_settings"]
+        self.model.chats.update_chat(
+            chat_id, notification_settings=notification_settings
+        )
         self.refresh_chats()
 
     @handle_exception
