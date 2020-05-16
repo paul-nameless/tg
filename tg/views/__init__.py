@@ -1,13 +1,12 @@
 import curses
 import logging
-import re
 from _curses import window
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Iterator
+from typing import Any, Dict, List, Optional, Tuple
 
 from tg.colors import blue, cyan, get_color, magenta, reverse, white
 from tg.msg import MsgProxy
-from tg.utils import num, truncate_to_len, emoji_pattern
+from tg.utils import emoji_pattern, num, truncate_to_len
 
 log = logging.getLogger(__name__)
 
@@ -25,13 +24,14 @@ MULTICHAR_KEYBINDINGS = (
 
 class View:
     def __init__(self, stdscr: window) -> None:
-        curses.start_color()
         curses.noecho()
         curses.cbreak()
         stdscr.keypad(True)
         curses.curs_set(0)
         curses.start_color()
         curses.use_default_colors()
+        # init white color first to initialize colors correctly
+        get_color(white, -1)
 
         self.stdscr = stdscr
         self.chats = ChatView(stdscr)
@@ -129,32 +129,43 @@ class ChatView:
         self.win.resize(self.h, self.w)
 
     def _msg_color(self, is_selected: bool = False) -> int:
-        return get_color(white, -1) | (reverse if is_selected else 0)
+        color = get_color(white, -1)
+        if is_selected:
+            return color | reverse
+        return color
 
     def _unread_color(self, is_selected: bool = False) -> int:
-        return get_color(magenta, -1) | (reverse if is_selected else 0)
+        color = get_color(magenta, -1)
+        if is_selected:
+            return color | reverse
+        return color
 
-    def _msg_attribures(self, is_selected: bool = False) -> List[int]:
-        return map(
-            lambda x: x | (reverse if is_selected else 0),
-            [get_color(cyan, -1), get_color(blue, -1), self._msg_color(),],
+    def _chat_attributes(self, is_selected: bool = False) -> Tuple[int]:
+        attrs = (
+            get_color(cyan, -1),
+            get_color(blue, -1),
+            self._msg_color(is_selected),
         )
+        if is_selected:
+            return tuple(attr | reverse for attr in attrs)
+        return attrs
 
     def draw(self, current: int, chats: List[Dict[str, Any]]) -> None:
         self.win.erase()
         self.win.vline(0, self.w - 1, curses.ACS_VLINE, self.h)
         for i, chat in enumerate(chats):
             is_selected = i == current
-            unread_count = (
-                chat["unread_count"] or 1 if chat["is_marked_as_unread"] else 0
-            )
+            unread_count = chat["unread_count"]
+            if chat["is_marked_as_unread"]:
+                unread_count = "unread"
+
             date = get_date(chat)
             title = chat["title"]
             is_pinned = chat["is_pinned"]
             last_msg = get_last_msg(chat)
             offset = 0
             for attr, elem in zip(
-                self._msg_attribures(is_selected), [f"{date} ", title]
+                self._chat_attributes(is_selected), [f"{date} ", title]
             ):
                 if offset > self.w:
                     break
@@ -167,12 +178,14 @@ class ChatView:
                 offset += len(elem)
 
             if offset >= self.w:
-                continue
+                break
 
             last_msg = " " + last_msg.replace("\n", " ")
-            last_msg = truncate_to_len(last_msg, self.w - offset - 1)
-
-            self.win.addstr(i, offset, last_msg, self._msg_color(is_selected))
+            last_msg = truncate_to_len(last_msg, self.w - offset)
+            if last_msg.strip():
+                self.win.addstr(
+                    i, offset, last_msg, self._msg_color(is_selected)
+                )
 
             if left_label := self._get_chat_label(
                 unread_count, is_pinned, chat
@@ -190,16 +203,20 @@ class ChatView:
     def _get_chat_label(
         unread_count: int, is_pinned: bool, chat: Dict[str, Any]
     ) -> str:
-        label = ""
+        labels = []
         if is_pinned:
-            label += "pinned "
-        if unread_count:
-            label += f"{unread_count} "
+            labels.append("pinned")
 
         if chat["notification_settings"]["mute_for"]:
-            label = f"muted {label}"
+            labels.append("muted")
 
-        return f" {label}"
+        if unread_count:
+            labels.append(str(unread_count))
+
+        label = " ".join(labels)
+        if label:
+            return f" {label}"
+        return label
 
 
 class MsgView:
@@ -247,7 +264,8 @@ class MsgView:
                 # count wide character utf-8 symbols that take > 1 bytes to
                 # print it causes invalid offset
                 wide_char_len = sum(map(len, emoji_pattern.findall(msg)))
-                elements = tuple(map(lambda x: f" {x}", (dt, user_id, msg)))
+                elements = (f" {dt} ", user_id, " " + msg)
+                # elements = tuple(map(lambda x: f" {x}", (dt, user_id, msg)))
                 total_len = sum(len(e) for e in elements) + wide_char_len
 
                 needed_lines = (total_len // self.w) + 1
@@ -283,7 +301,7 @@ class MsgView:
 
         for elements, selected, line_num in msgs_to_draw:
             column = 0
-            for attr, elem in zip(self._msg_attribures(selected), elements):
+            for attr, elem in zip(self._msg_attributes(selected), elements):
                 if not elem:
                     continue
                 self.win.addstr(line_num, column, elem, attr)
@@ -291,14 +309,16 @@ class MsgView:
 
         self._refresh()
 
-    @staticmethod
-    def _msg_attribures(is_selected: bool) -> Iterator[int]:
-        attrs = [
+    def _msg_attributes(self, is_selected: bool) -> Tuple[int]:
+        attrs = (
             get_color(cyan, -1),
             get_color(blue, -1),
             get_color(white, -1),
-        ]
-        return map(lambda x: x | reverse if is_selected else 0, attrs)
+        )
+
+        if is_selected:
+            return (attr | reverse for attr in attrs)
+        return attrs
 
     def _get_user_by_id(self, user_id: int) -> str:
         if user_id == 0:
