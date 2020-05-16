@@ -211,7 +211,7 @@ class ChatView:
         if unread_count:
             labels.append(str(unread_count))
 
-        label = ' '.join(labels)
+        label = " ".join(labels)
         if label:
             return f" {label} "
         return label
