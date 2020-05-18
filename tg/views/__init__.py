@@ -1,10 +1,15 @@
 import curses
 import logging
+import subprocess
 from _curses import window
+from abc import ABCMeta, abstractmethod
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from threading import Lock
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
+from tg import config
 from tg.colors import blue, cyan, get_color, magenta, reverse, white
+from tg.models import UserModel
 from tg.msg import MsgProxy
 from tg.utils import emoji_pattern, num, truncate_to_len
 
@@ -20,6 +25,24 @@ MULTICHAR_KEYBINDINGS = (
     "sv",
     "bp",
 )
+
+
+class ViewComponent(metaclass=ABCMeta):
+    win: window
+    refresh_stoped: bool = False
+
+    @abstractmethod
+    def resize(self, p: float) -> None:
+        pass
+
+    @abstractmethod
+    def draw(self, *args, **kwargs) -> None:
+        pass
+
+    def refresh(self) -> None:
+        if self.refresh_stoped:
+            return
+        self.win.refresh()
 
 
 class View:
@@ -38,6 +61,18 @@ class View:
         self.msgs = MsgView(stdscr)
         self.status = StatusView(stdscr)
         self.max_read = 2048
+
+    @property
+    def views(self) -> Tuple[ViewComponent, ...]:
+        return self.chats, self.msgs, self.status
+
+    def stop_refresh(self):
+        for view in self.views:
+            view.refresh_stoped = True
+
+    def start_refresh(self):
+        for view in self.views:
+            view.refresh_stoped = False
 
     def get_keys(self, y: int, x: int) -> Tuple[int, str]:
         keys = repeat_factor = ""
@@ -64,16 +99,15 @@ class View:
         return num(repeat_factor, default=1), keys or "UNKNOWN"
 
 
-class StatusView:
+class StatusView(ViewComponent):
     def __init__(self, stdscr: window) -> None:
         self.h = 1
         self.w = curses.COLS
         self.y = curses.LINES - 1
         self.x = 0
         self.win = stdscr.subwin(self.h, self.w, self.y, self.x)
-        self._refresh = self.win.refresh
 
-    def resize(self):
+    def resize(self, _):
         self.w = curses.COLS
         self.y = curses.LINES - 1
         self.win.resize(self.h, self.w)
@@ -84,7 +118,7 @@ class StatusView:
         if not msg:
             return
         self.win.addstr(0, 0, msg[: self.w - 1])
-        self._refresh()
+        self.refresh()
 
     def get_input(self, msg="") -> Optional[str]:
         self.draw(msg)
@@ -116,12 +150,11 @@ class StatusView:
         return buff
 
 
-class ChatView:
+class ChatView(ViewComponent):
     def __init__(self, stdscr: window, p: float = 0.5) -> None:
         self.h = 0
         self.w = 0
         self.win = stdscr.subwin(self.h, self.w, 0, 0)
-        self._refresh = self.win.refresh
 
     def resize(self, p: float = 0.25) -> None:
         self.h = curses.LINES - 1
@@ -197,7 +230,7 @@ class ChatView:
                     self._unread_color(is_selected),
                 )
 
-        self._refresh()
+        self.refresh()
 
     @staticmethod
     def _get_chat_label(
@@ -219,14 +252,16 @@ class ChatView:
         return label
 
 
-class MsgView:
+class MsgView(ViewComponent):
+    # FIXME: view shouldn't work with model directly
+    users: UserModel
+
     def __init__(self, stdscr: window, p: float = 0.5) -> None:
         self.stdscr = stdscr
         self.h = 0
         self.w = 0
         self.x = 0
         self.win = self.stdscr.subwin(self.h, self.w, 0, self.x)
-        self._refresh = self.win.refresh
 
     def resize(self, p: float = 0.5) -> None:
         self.h = curses.LINES - 1
@@ -307,7 +342,7 @@ class MsgView:
                 self.win.addstr(line_num, column, elem, attr)
                 column += len(elem)
 
-        self._refresh()
+        self.refresh()
 
     def _msg_attributes(self, is_selected: bool) -> Tuple[int]:
         attrs = (
@@ -345,6 +380,38 @@ class MsgView:
             msg["sender_user_id"],
             "unknown msg type: " + str(msg["content"]),
         )
+
+
+class suspend:
+    def __init__(self, view: View):
+        self.view = view
+
+    def call(self, cmd: str):
+        subprocess.call(cmd, shell=True)
+
+    def open_file(self, file_path: str):
+        cmd = config.get_file_handler(file_path)
+        if not cmd:
+            log.warning(f"Can't find file handler for {file_path=}")
+            return
+        self.call(cmd)
+
+    def __enter__(self):
+        self.view.stop_refresh()
+        curses.echo()
+        curses.nocbreak()
+        self.view.stdscr.keypad(False)
+        curses.curs_set(1)
+        curses.endwin()
+        return self
+
+    def __exit__(self, exc_type, exc_val, tb):
+        self.view.start_refresh()
+        curses.noecho()
+        curses.cbreak()
+        self.view.stdscr.keypad(True)
+        curses.curs_set(0)
+        curses.doupdate()
 
 
 def get_last_msg(chat: Dict[str, Any]) -> str:

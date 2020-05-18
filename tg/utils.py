@@ -1,10 +1,10 @@
 import base64
-import re
 import curses
 import logging
 import math
 import os
 import random
+import re
 import shlex
 import struct
 import subprocess
@@ -136,36 +136,3 @@ def handle_exception(fun):
 def truncate_to_len(s: str, target_len: int, encoding: str = "utf-8") -> str:
     target_len -= sum(map(bool, map(emoji_pattern.findall, s[:target_len])))
     return s[: max(1, target_len - 1)]
-
-
-class suspend:
-    def __init__(self, view):
-        self.view = view
-
-    def call(self, cmd):
-        subprocess.call(cmd, shell=True)
-
-    def open_file(self, file_path):
-        cmd = config.get_file_handler(file_path)
-        if not cmd:
-            return
-        self.call(cmd)
-
-    def __enter__(self):
-        for view in (self.view.chats, self.view.msgs, self.view.status):
-            view._refresh = view.win.noutrefresh
-        curses.echo()
-        curses.nocbreak()
-        self.view.stdscr.keypad(False)
-        curses.curs_set(1)
-        curses.endwin()
-        return self
-
-    def __exit__(self, exc_type, exc_val, tb):
-        for view in (self.view.chats, self.view.msgs, self.view.status):
-            view._refresh = view.win.refresh
-        curses.noecho()
-        curses.cbreak()
-        self.view.stdscr.keypad(True)
-        curses.curs_set(0)
-        curses.doupdate()

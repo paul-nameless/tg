@@ -17,9 +17,8 @@ from tg.utils import (
     handle_exception,
     is_yes,
     notify,
-    suspend,
 )
-from tg.views import View
+from tg.views import View, suspend
 
 log = logging.getLogger(__name__)
 
