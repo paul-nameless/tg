@@ -35,6 +35,7 @@ class View:
         curses.cbreak()
         stdscr.keypad(True)
         curses.curs_set(0)
+
         curses.start_color()
         curses.use_default_colors()
         # init white color first to initialize colors correctly
@@ -46,15 +47,15 @@ class View:
         self.status = status_view
         self.max_read = 2048
 
-    def get_keys(self, y: int, x: int) -> Tuple[int, str]:
+    def get_keys(self) -> Tuple[int, str]:
         keys = repeat_factor = ""
 
         for _ in range(MAX_KEYBINDING_LENGTH):
-            ch = self.stdscr.getch(y, x)
+            ch = self.stdscr.getch()
             log.info("raw ch without unctrl: %s", ch)
             try:
                 key = curses.unctrl(ch).decode()
-            except UnicodeDecodeError:
+            except Exception:
                 log.warning("cant uncrtl: %s", ch)
                 break
             if key.isdigit():
@@ -77,14 +78,15 @@ class StatusView:
         self.w = curses.COLS
         self.y = curses.LINES - 1
         self.x = 0
+        self.stdscr = stdscr
         self.win = stdscr.subwin(self.h, self.w, self.y, self.x)
         self._refresh = self.win.refresh
 
-    def resize(self):
-        self.w = curses.COLS
-        self.y = curses.LINES - 1
+    def resize(self, rows: int, cols: int):
+        self.w = cols
+        self.y = rows - 1
         self.win.resize(self.h, self.w)
-        self.win.wmove(self.y, self.x)
+        self.win.mvwin(self.y, self.x)
 
     def draw(self, msg: Optional[str] = None) -> None:
         self.win.clear()
@@ -125,14 +127,15 @@ class StatusView:
 
 class ChatView:
     def __init__(self, stdscr: window, p: float = 0.5) -> None:
+        self.stdscr = stdscr
         self.h = 0
         self.w = 0
         self.win = stdscr.subwin(self.h, self.w, 0, 0)
         self._refresh = self.win.refresh
 
-    def resize(self, p: float = 0.25) -> None:
-        self.h = curses.LINES - 1
-        self.w = round(curses.COLS * p)
+    def resize(self, rows: int, cols: int, p: float = 0.25) -> None:
+        self.h = rows - 1
+        self.w = round(cols * p)
         self.win.resize(self.h, self.w)
 
     def _msg_color(self, is_selected: bool = False) -> int:
@@ -174,21 +177,16 @@ class ChatView:
             for attr, elem in zip(
                 self._chat_attributes(is_selected), [f"{date} ", title]
             ):
-                if offset > self.w:
-                    break
                 self.win.addstr(
                     i,
                     offset,
-                    truncate_to_len(elem, self.w - offset - 1),
+                    truncate_to_len(elem, max(0, self.w - offset - 1)),
                     attr,
                 )
                 offset += len(elem)
 
-            if offset >= self.w:
-                break
-
             last_msg = " " + last_msg.replace("\n", " ")
-            last_msg = truncate_to_len(last_msg, self.w - offset)
+            last_msg = truncate_to_len(last_msg, max(0, self.w - offset))
             if last_msg.strip():
                 self.win.addstr(
                     i, offset, last_msg, self._msg_color(is_selected)
@@ -238,10 +236,10 @@ class MsgView:
         self.win = self.stdscr.subwin(self.h, self.w, 0, self.x)
         self._refresh = self.win.refresh
 
-    def resize(self, p: float = 0.5) -> None:
-        self.h = curses.LINES - 1
-        self.w = round(curses.COLS * p)
-        self.x = curses.COLS - self.w
+    def resize(self, rows: int, cols: int, p: float = 0.5) -> None:
+        self.h = rows - 1
+        self.w = round(cols * p)
+        self.x = cols - self.w
         self.win.resize(self.h, self.w)
         self.win.mvwin(0, self.x)
 
