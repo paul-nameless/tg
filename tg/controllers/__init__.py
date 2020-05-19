@@ -7,7 +7,7 @@ from signal import SIGWINCH, signal
 from tempfile import NamedTemporaryFile
 from typing import Any, Dict, Optional
 
-from telegram.client import Telegram
+from telegram.client import Telegram  # type: ignore
 
 from tg import config
 from tg.models import Model
@@ -53,7 +53,7 @@ class Controller:
             "updateChatIsMarkedAsUnread": self.update_chat_marked_as_unread,
             "updateChatIsPinned": self.update_chat_is_pinned,
             "updateChatLastMessage": self.update_chat_last_msg,
-            "updateChatNotificationSettings": self.update_chat_notification_settings,
+            "updateChatNotificationSettings": self.update_chat_notification_settings, # noqa
             "updateChatOrder": self.update_chat_order,
             "updateChatReadInbox": self.update_chat_read_inbox,
             "updateChatTitle": self.update_chat_title,
@@ -340,7 +340,6 @@ class Controller:
             self.view.status.draw()
 
     def refresh_msgs(self) -> None:
-        self.view.msgs.users = self.model.users
         current_msg_idx = self.model.get_current_chat_msg_idx()
         if current_msg_idx is None:
             return

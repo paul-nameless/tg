@@ -1,10 +1,10 @@
 import base64
-import re
 import curses
 import logging
 import math
 import os
 import random
+import re
 import shlex
 import struct
 import subprocess
