@@ -125,3 +125,35 @@ class MsgProxy:
     def is_downloaded(self):
         doc = self.get_doc(self.msg)
         return doc["local"]["is_downloading_completed"]
+
+    @property
+    def is_listened(self):
+        if self.type != "voice":
+            return None
+        if self.msg["content"]["is_listened"]:
+            return "yes"
+        return "no"
+
+    @is_listened.setter
+    def is_listened(self, value):
+        if self.type != "voice":
+            return None
+        self.msg["content"]["is_listened"] = value
+
+    @property
+    def is_viewed(self):
+        if self.type != "recording":
+            return None
+        if self.msg["content"]["is_viewed"]:
+            return "yes"
+        return "no"
+
+    @is_viewed.setter
+    def is_viewed(self, value):
+        if self.type != "recording":
+            return None
+        self.msg["content"]["is_viewed"] = value
+
+    @property
+    def msg_id(self):
+        return self.msg["id"]

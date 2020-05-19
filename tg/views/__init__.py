@@ -375,9 +375,11 @@ def parse_content(content: Dict[str, Any]) -> str:
 
     fields = dict(
         name=msg.file_name,
-        duration=msg.duration,
-        size=msg.human_size,
         download=get_download(msg.local, msg.size),
+        size=msg.human_size,
+        duration=msg.duration,
+        listened=msg.is_listened,
+        viewed=msg.is_viewed,
     )
     info = ", ".join(f"{k}={v}" for k, v in fields.items() if v)
 

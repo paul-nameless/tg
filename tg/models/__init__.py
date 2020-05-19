@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set, Union, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from telegram.client import Telegram
 
@@ -241,7 +241,22 @@ class MsgModel:
             if msg["id"] != msg_id:
                 continue
             msg["content"] = message_content
-        return True
+            return True
+        return False
+
+    def update_msg_content_opened(self, chat_id: int, msg_id: int):
+        for msg in self.msgs[chat_id]:
+            if msg["id"] != msg_id:
+                continue
+            msg = MsgProxy(msg)
+            if msg.type == "voice":
+                msg.is_listened = True
+            elif msg.type == "recording":
+                msg.is_viewed = True
+            # TODO: start the TTL timer for self-destructing messages
+            # that is the last case to implement
+            # https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1update_message_content_opened.html
+            return
 
     def add_message(self, chat_id: int, message: Dict[str, Any]) -> bool:
         msg_id = message["id"]

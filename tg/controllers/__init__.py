@@ -61,6 +61,7 @@ class Controller:
             "updateMessageContent": self.update_msg_content,
             "updateMessageSendSucceeded": self.update_msg_send_succeeded,
             "updateNewMessage": self.update_new_msg,
+            "updateMessageContentOpened": self.update_message_content_opened,
         }
         self.chat_size = 0.5
         signal(SIGWINCH, self.resize_handler)
@@ -106,7 +107,6 @@ class Controller:
 
     def open_current_msg(self):
         msg = MsgProxy(self.model.current_msg())
-        log.info("Open msg: %s", msg.msg)
         if msg.is_text:
             text = msg["content"]["text"]["text"]
             with NamedTemporaryFile("w", suffix=".txt") as f:
@@ -118,8 +118,9 @@ class Controller:
 
         path = msg.local_path
         if path:
+            chat_id = self.model.chats.id_by_index(self.model.current_chat)
+            self.tg.open_message_content(chat_id, msg.msg_id)
             with suspend(self.view) as s:
-                log.info("Opening file: %s", path)
                 s.open_file(path)
 
     def write_long_msg(self):
@@ -529,3 +530,10 @@ class Controller:
                 if proxy.is_downloaded:
                     self.model.downloads.pop(file_id)
                 break
+
+    @handle_exception
+    def update_message_content_opened(self, update):
+        chat_id = update["chat_id"]
+        message_id = update["message_id"]
+        self.model.msgs.update_msg_content_opened(chat_id, message_id)
+        self.refresh_msgs()
