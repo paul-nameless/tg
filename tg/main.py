@@ -144,9 +144,7 @@ class TelegramApi(Telegram):
         }
         return self._send_data(data)
 
-    def open_message_content(
-        self, chat_id: int, message_id: int
-    ):
+    def open_message_content(self, chat_id: int, message_id: int):
         data = {
             "@type": "openMessageContent",
             "chat_id": chat_id,
