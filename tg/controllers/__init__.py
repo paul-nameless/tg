@@ -122,6 +122,20 @@ class Controller:
                 log.info("Opening file: %s", path)
                 s.open_file(path)
 
+    def write_long_msg(self):
+        file_path = "/tmp/tg-msg.txt"
+        with suspend(self.view) as s:
+            s.call(config.long_msg_cmd.format(file_path=file_path))
+        if not os.path.isfile(file_path):
+            return
+        with open(file_path) as f:
+            msg = f.read().strip()
+        os.remove(file_path)
+        if msg:
+            self.model.send_message(text=msg)
+            with self.lock:
+                self.view.status.draw("Message sent")
+
     def resize_handler(self, signum, frame):
         curses.endwin()
         self.view.stdscr.refresh()
@@ -217,9 +231,6 @@ class Controller:
                 # reply to this msg
                 # print to status line
                 pass
-            elif keys == "I":
-                # open vim or emacs to write long messages
-                pass
             elif keys in ("i", "a"):
                 # write new message
                 msg = self.view.status.get_input()
@@ -227,6 +238,9 @@ class Controller:
                     self.model.send_message(text=msg)
                     with self.lock:
                         self.view.status.draw(f"Sent: {msg}")
+
+            elif keys in ("I", "A"):
+                self.write_long_msg()
 
             elif keys in ("h", "^D"):
                 return "BACK"
