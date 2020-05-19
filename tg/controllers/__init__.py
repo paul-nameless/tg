@@ -206,7 +206,8 @@ class Controller:
                 msg = self.view.status.get_input()
                 if msg:
                     self.model.send_message(text=msg)
-                    self.view.status.draw(f"Sent: {msg}")
+                    with self.lock:
+                        self.view.status.draw(f"Sent: {msg}")
 
             elif keys in ("h", "^D"):
                 return "BACK"
