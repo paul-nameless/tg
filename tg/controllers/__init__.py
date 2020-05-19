@@ -121,7 +121,7 @@ class Controller:
     def write_long_msg(self):
         file_path = "/tmp/tg-msg.txt"
         with suspend(self.view) as s:
-            s.call(f"$EDITOR {file_path}")
+            s.call(f"$EDITOR {file_path} || vim {file_path}")
         if not os.path.isfile(file_path):
             return
         with open(file_path) as f:
