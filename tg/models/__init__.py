@@ -1,10 +1,8 @@
 import logging
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set, Union, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from telegram.client import Telegram
-
-from tg.msg import MsgProxy
 
 log = logging.getLogger(__name__)
 
@@ -220,6 +218,16 @@ class MsgModel:
             return True
 
         return False
+
+    def get_message(self, chat_id: int, msg_id: str) -> Dict:
+        msg_set = self.msg_ids[chat_id]
+        if msg_id not in msg_set:
+            # we are not storing any out of ordres old msgs
+            # just fetching then on demand
+            result = self.tg.get_message(chat_id, msg_id)
+            result.wait()
+            return result.update
+        return next(iter(m for m in self.msgs[chat_id] if m["id"] == msg_id))
 
     def remove_message(self, chat_id, msg_id):
         msg_set = self.msg_ids[chat_id]

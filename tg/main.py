@@ -11,15 +11,18 @@ from telegram.client import Telegram
 from tg import config, utils
 from tg.controllers import Controller
 from tg.models import Model
-from tg.views import View
+from tg.views import ChatView, MsgView, StatusView, View
 
 log = logging.getLogger(__name__)
 
 
 def run(tg: Telegram, stdscr: window) -> None:
     # run this function in thread?
-    view = View(stdscr)
     model = Model(tg)
+    status_view = StatusView(stdscr)
+    msg_view = MsgView(stdscr, model.msgs)
+    chat_view = ChatView(stdscr)
+    view = View(stdscr, chat_view, msg_view, status_view)
     controller = Controller(model, view, tg)
     for msg_type, handler in controller.handlers.items():
         tg.add_update_handler(msg_type, handler)

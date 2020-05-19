@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from tg.colors import blue, cyan, get_color, magenta, reverse, white
+from tg.models import MsgModel
 from tg.msg import MsgProxy
 from tg.utils import emoji_pattern, num, truncate_to_len
 
@@ -23,7 +24,13 @@ MULTICHAR_KEYBINDINGS = (
 
 
 class View:
-    def __init__(self, stdscr: window) -> None:
+    def __init__(
+        self,
+        stdscr: window,
+        chat_view: "ChatView",
+        msg_view: "MsgView",
+        status_view: "StatusView",
+    ) -> None:
         curses.noecho()
         curses.cbreak()
         stdscr.keypad(True)
@@ -34,9 +41,9 @@ class View:
         get_color(white, -1)
 
         self.stdscr = stdscr
-        self.chats = ChatView(stdscr)
-        self.msgs = MsgView(stdscr)
-        self.status = StatusView(stdscr)
+        self.chats = chat_view
+        self.msgs = msg_view
+        self.status = status_view
         self.max_read = 2048
 
     def get_keys(self, y: int, x: int) -> Tuple[int, str]:
@@ -140,7 +147,7 @@ class ChatView:
             return color | reverse
         return color
 
-    def _chat_attributes(self, is_selected: bool = False) -> Tuple[int]:
+    def _chat_attributes(self, is_selected: bool = False) -> Tuple[int, ...]:
         attrs = (
             get_color(cyan, -1),
             get_color(blue, -1),
@@ -220,7 +227,10 @@ class ChatView:
 
 
 class MsgView:
-    def __init__(self, stdscr: window, p: float = 0.5) -> None:
+    def __init__(
+        self, stdscr: window, msg_model: MsgModel, p: float = 0.5
+    ) -> None:
+        self.msg_model = msg_model
         self.stdscr = stdscr
         self.h = 0
         self.w = 0
@@ -234,6 +244,29 @@ class MsgView:
         self.x = curses.COLS - self.w
         self.win.resize(self.h, self.w)
         self.win.mvwin(0, self.x)
+
+    def _format_msg(
+        self, msg_proxy: MsgProxy, user_id_item: int
+    ) -> Tuple[str, bool]:
+        msg = self._parse_msg(msg_proxy)
+        reply_sender = None
+        reply_to = msg_proxy.reply_msg_id
+        if reply_to:
+            reply_msg = MsgProxy(
+                self.msg_model.get_message(msg_proxy.chat_id, reply_to)
+            )
+            reply_sender = self._get_user_by_id(reply_msg.sender_id)
+            reply_msg_content = self._parse_msg(reply_msg)
+
+        msg = msg.replace("\n", " ")
+        if reply_to and reply_msg_content:
+            reply_msg_content = reply_msg_content.replace("\n", " ")
+            if len(reply_msg_content) > 68:
+                # trimming old reply messages as it done in tg web & desktop
+                reply_msg_content = f"{reply_msg_content[:65]}..."
+            sender_text = f" {reply_sender}:" if reply_sender else ""
+            msg = f">{sender_text} {reply_msg_content}\n{msg}"
+        return msg, bool(reply_to)
 
     def _collect_msgs_to_draw(
         self,
@@ -258,17 +291,20 @@ class MsgView:
             line_num = self.h
             for msg_idx, msg_item in msgs[ignore_before:]:
                 is_selected_msg = current_msg_idx == msg_idx
-                dt, user_id_item, msg = self._parse_msg(msg_item)
+                msg_proxy = MsgProxy(msg_item)
+                dt = msg_proxy.date.strftime("%H:%M:%S")
+                user_id_item = msg_proxy.sender_id
+
+                msg, is_reply = self._format_msg(msg_proxy, user_id_item)
                 user_id = self._get_user_by_id(user_id_item)
-                msg = msg.replace("\n", " ")
+
                 # count wide character utf-8 symbols that take > 1 bytes to
                 # print it causes invalid offset
                 wide_char_len = sum(map(len, emoji_pattern.findall(msg)))
-                elements = (f" {dt} ", user_id, " " + msg)
-                # elements = tuple(map(lambda x: f" {x}", (dt, user_id, msg)))
+                elements = tuple(map(lambda x: f" {x}", (dt, user_id, msg)))
                 total_len = sum(len(e) for e in elements) + wide_char_len
 
-                needed_lines = (total_len // self.w) + 1
+                needed_lines = (total_len // self.w) + 1 + int(is_reply)
                 line_num -= needed_lines
                 if line_num <= 0:
                     break
@@ -334,17 +370,11 @@ class MsgView:
             return "@" + user["username"]
         return "Unknown?"
 
-    def _parse_msg(self, msg: Dict[str, Any]) -> Tuple[str, int, str]:
-        dt = datetime.fromtimestamp(msg["date"]).strftime("%H:%M:%S")
-        _type = msg["@type"]
-        if _type == "message":
-            return dt, msg["sender_user_id"], parse_content(msg["content"])
+    def _parse_msg(self, msg: MsgProxy) -> str:
+        if msg.is_message:
+            return parse_content(msg["content"])
         log.debug("Unknown message type: %s", msg)
-        return (
-            dt,
-            msg["sender_user_id"],
-            "unknown msg type: " + str(msg["content"]),
-        )
+        return "unknown msg type: " + str(msg["content"])
 
 
 def get_last_msg(chat: Dict[str, Any]) -> str:
@@ -370,7 +400,7 @@ def parse_content(content: Dict[str, Any]) -> str:
     if msg.is_text:
         return content["text"]["text"]
 
-    if not msg.type:
+    if not msg.content_type:
         # not implemented
         _type = content["@type"]
         return f"[{_type}]"
@@ -383,7 +413,7 @@ def parse_content(content: Dict[str, Any]) -> str:
     )
     info = ", ".join(f"{k}={v}" for k, v in fields.items() if v)
 
-    return f"[{msg.type}: {info}]"
+    return f"[{msg.content_type}: {info}]"
 
 
 def get_download(local, size):
