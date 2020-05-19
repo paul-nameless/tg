@@ -136,6 +136,10 @@ class MsgProxy:
         return self.msg["content"]["@type"] == "messageText"
 
     @property
+    def text_content(self) -> str:
+        return self.msg["content"]["text"]["text"]
+
+    @property
     def is_downloaded(self):
         doc = self.get_doc(self.msg)
         return doc["local"]["is_downloading_completed"]
@@ -145,8 +149,8 @@ class MsgProxy:
         return self.msg.get("reply_to_message_id")
 
     @property
-    def chat_id(self):
-        return self.msg.get("chat_id")
+    def chat_id(self) -> int:
+        return self.msg["chat_id"]
 
     @property
     def sender_id(self) -> int:
