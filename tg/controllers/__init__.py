@@ -1,7 +1,9 @@
+import curses
 import logging
 import os
 import threading
 from datetime import datetime
+from signal import SIGWINCH, signal
 from tempfile import NamedTemporaryFile
 from typing import Any, Dict, Optional
 
@@ -60,6 +62,8 @@ class Controller:
             "updateMessageSendSucceeded": self.update_msg_send_succeeded,
             "updateNewMessage": self.update_new_msg,
         }
+        self.chat_size = 0.5
+        signal(SIGWINCH, self.resize_handler)
 
     def send_file(self, send_file_fun, *args, **kwargs):
         file_path = self.view.status.get_input()
@@ -132,35 +136,50 @@ class Controller:
             with self.lock:
                 self.view.status.draw("Message sent")
 
+    def resize_handler(self, signum, frame):
+        curses.endwin()
+        self.view.stdscr.refresh()
+        self.resize()
+
+    def resize(self):
+        rows, cols = self.view.stdscr.getmaxyx()
+        # If we didn't clear the screen before doing this,
+        # the original window contents would remain on the screen
+        # and we would see the window text twice.
+        self.view.stdscr.erase()
+        self.view.stdscr.noutrefresh()
+
+        self.view.chats.resize(rows, cols, self.chat_size)
+        self.view.msgs.resize(rows, cols, 1 - self.chat_size)
+        self.view.status.resize(rows, cols)
+        self.render()
+
     def handle_msgs(self) -> str:
-        self.view.chats.resize(0.2)
-        self.view.msgs.resize(0.8)
-        self.refresh_chats()
+        self.chat_size = 0.2
+        self.resize()
 
         while True:
 
-            repeat_factor, keys = self.view.get_keys(
-                self.view.chats.h, self.view.chats.w
-            )
+            repeat_factor, keys = self.view.get_keys()
             log.info("Pressed keys: %s", keys)
             if keys == "q":
                 return "QUIT"
             elif keys == "]":
                 if self.model.next_chat():
-                    self.refresh_chats()
+                    self.render()
             elif keys == "[":
                 if self.model.prev_chat():
-                    self.refresh_chats()
+                    self.render()
             elif keys == "J":
                 if self.model.next_msg(10):
                     self.refresh_msgs()
             elif keys == "K":
                 if self.model.prev_msg(10):
                     self.refresh_msgs()
-            elif keys in ("j", "^P"):
+            elif keys in ("j", "^N"):
                 if self.model.next_msg(repeat_factor):
                     self.refresh_msgs()
-            elif keys in ("k", "^N"):
+            elif keys in ("k", "^P"):
                 if self.model.prev_msg(repeat_factor):
                     self.refresh_msgs()
             elif keys == "G":
@@ -231,14 +250,12 @@ class Controller:
                     breakpoint()
 
     def handle_chats(self) -> None:
-        self.view.chats.resize(0.5)
-        self.view.msgs.resize(0.5)
-        self.refresh_chats()
+        self.chat_size = 0.5
+        self.resize()
+
         while True:
 
-            repeat_factor, keys = self.view.get_keys(
-                self.view.chats.h, self.view.chats.w
-            )
+            repeat_factor, keys = self.view.get_keys()
             log.info("Pressed keys: %s", keys)
             if keys == "q":
                 return
@@ -246,29 +263,28 @@ class Controller:
                 rc = self.handle_msgs()
                 if rc == "QUIT":
                     return
-                self.view.chats.resize(0.5)
-                self.view.msgs.resize(0.5)
-                self.refresh_chats()
+                self.chat_size = 0.5
+                self.resize()
 
             elif keys in ("j", "^N"):
                 if self.model.next_chat(repeat_factor):
-                    self.refresh_chats()
+                    self.render()
 
             elif keys in ("k", "^P"):
                 if self.model.prev_chat(repeat_factor):
-                    self.refresh_chats()
+                    self.render()
 
             elif keys in ("J",):
                 if self.model.next_chat(10):
-                    self.refresh_chats()
+                    self.render()
 
             elif keys in ("K",):
                 if self.model.prev_chat(10):
-                    self.refresh_chats()
+                    self.render()
 
             elif keys == "gg":
                 if self.model.first_chat():
-                    self.refresh_chats()
+                    self.render()
 
             elif keys == "bp":
                 with suspend(self.view):
@@ -307,11 +323,11 @@ class Controller:
                     chat_id, notification_settings
                 )
 
-    def refresh_chats(self) -> None:
+    def render(self) -> None:
         with self.lock:
-            # using lock here, because refresh_chats is used from another
+            # using lock here, because render is used from another
             # thread by tdlib python wrapper
-            page_size = self.view.msgs.h
+            page_size = self.view.chats.h
             chats = self.model.get_chats(
                 self.model.current_chat, page_size, MSGS_LEFT_SCROLL_THRESHOLD
             )
@@ -471,7 +487,7 @@ class Controller:
             if chat["id"] == current_chat_id:
                 self.model.current_chat = i
                 break
-        self.refresh_chats()
+        self.render()
 
     @handle_exception
     def update_chat_notification_settings(self, update):
@@ -481,7 +497,7 @@ class Controller:
         self.model.chats.update_chat(
             chat_id, notification_settings=notification_settings
         )
-        self.refresh_chats()
+        self.render()
 
     @handle_exception
     def update_msg_send_succeeded(self, update):

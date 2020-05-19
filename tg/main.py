@@ -1,7 +1,6 @@
 import logging
 import logging.handlers
 import signal
-import sys
 import threading
 from curses import window, wrapper
 from functools import partial
