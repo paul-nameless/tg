@@ -323,8 +323,6 @@ class MsgModel:
             log.info(f"message has been sent: {result.update}")
 
     def delete_msg(self, chat_id: int) -> bool:
-        if chat_id is None:
-            return False
         selected_msg = self.current_msgs[chat_id]
         msg_item = self.msgs[chat_id].pop(selected_msg)
         self.current_msgs[chat_id] = min(

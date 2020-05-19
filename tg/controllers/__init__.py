@@ -53,7 +53,7 @@ class Controller:
             "updateChatIsMarkedAsUnread": self.update_chat_marked_as_unread,
             "updateChatIsPinned": self.update_chat_is_pinned,
             "updateChatLastMessage": self.update_chat_last_msg,
-            "updateChatNotificationSettings": self.update_chat_notification_settings, # noqa
+            "updateChatNotificationSettings": self.update_chat_notification_settings,  # noqa
             "updateChatOrder": self.update_chat_order,
             "updateChatReadInbox": self.update_chat_read_inbox,
             "updateChatTitle": self.update_chat_title,
