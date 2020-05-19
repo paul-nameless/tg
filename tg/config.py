@@ -7,6 +7,7 @@ DEFAULT_CONFIG = os.path.expanduser("~/.config/tg/tg.conf")
 DEFAULT_FILES = os.path.expanduser("~/.cache/tg/")
 max_download_size = "10MB"
 record_cmd = None
+long_msg_cmd = "vim -c 'startinsert' {file_path}"
 
 
 def get_cfg(config=DEFAULT_CONFIG):
