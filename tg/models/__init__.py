@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from telegram.client import Telegram
 
@@ -219,7 +219,7 @@ class MsgModel:
 
         return False
 
-    def get_message(self, chat_id: int, msg_id: str) -> Dict:
+    def get_message(self, chat_id: int, msg_id: int) -> Dict:
         msg_set = self.msg_ids[chat_id]
         if msg_id not in msg_set:
             # we are not storing any out of ordres old msgs
@@ -333,8 +333,6 @@ class MsgModel:
             log.info(f"message has been sent: {result.update}")
 
     def delete_msg(self, chat_id: int) -> bool:
-        if chat_id is None:
-            return False
         selected_msg = self.current_msgs[chat_id]
         msg_item = self.msgs[chat_id].pop(selected_msg)
         self.current_msgs[chat_id] = min(

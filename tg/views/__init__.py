@@ -1,11 +1,12 @@
 import curses
 import logging
-from _curses import window
+from _curses import window  # type: ignore
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 from tg.colors import blue, cyan, get_color, magenta, reverse, white
 from tg.models import MsgModel
+from tg.models import UserModel
 from tg.msg import MsgProxy
 from tg.utils import emoji_pattern, num, truncate_to_len
 
@@ -69,7 +70,7 @@ class View:
             ):
                 break
 
-        return num(repeat_factor, default=1), keys or "UNKNOWN"
+        return cast(int, num(repeat_factor, default=1)), keys or "UNKNOWN"
 
 
 class StatusView:
@@ -95,7 +96,7 @@ class StatusView:
         self.win.addstr(0, 0, msg[: self.w - 1])
         self._refresh()
 
-    def get_input(self, msg="") -> Optional[str]:
+    def get_input(self, msg="") -> str:
         self.draw(msg)
         curses.curs_set(1)
 
@@ -110,7 +111,7 @@ class StatusView:
                 if buff:
                     buff = buff[:-1]
             elif key == 7:  # ^G cancel
-                buff = None
+                buff = ""
                 break
             elif chr(key).isprintable():
                 buff += chr(key)
@@ -162,7 +163,8 @@ class ChatView:
 
     def draw(self, current: int, chats: List[Dict[str, Any]]) -> None:
         self.win.erase()
-        self.win.vline(0, self.w - 1, curses.ACS_VLINE, self.h)
+        line = curses.ACS_VLINE  # type: ignore
+        self.win.vline(0, self.w - 1, line, self.h)
         for i, chat in enumerate(chats):
             is_selected = i == current
             unread_count = chat["unread_count"]
@@ -226,9 +228,14 @@ class ChatView:
 
 class MsgView:
     def __init__(
-        self, stdscr: window, msg_model: MsgModel, p: float = 0.5
+        self,
+        stdscr: window,
+        msg_model: MsgModel,
+        users: UserModel,
+        p: float = 0.5,
     ) -> None:
         self.msg_model = msg_model
+        self.users = users
         self.stdscr = stdscr
         self.h = 0
         self.w = 0
@@ -280,7 +287,7 @@ class MsgView:
         function will remove message one by one from the start until selected
         message could be visible on the screen.
         """
-        selected_item_idx = None
+        selected_item_idx: Optional[int] = None
         collected_items: List[Tuple[Tuple[str, ...], bool, int]] = []
         for ignore_before in range(len(msgs)):
             if selected_item_idx is not None:
@@ -312,6 +319,7 @@ class MsgView:
             if (
                 # ignore first and last msg
                 selected_item_idx not in (0, len(msgs) - 1, None)
+                and selected_item_idx is not None
                 and len(collected_items) - 1 - selected_item_idx
                 < min_msg_padding
             ):
@@ -343,7 +351,7 @@ class MsgView:
 
         self._refresh()
 
-    def _msg_attributes(self, is_selected: bool) -> Tuple[int]:
+    def _msg_attributes(self, is_selected: bool) -> Tuple[int, ...]:
         attrs = (
             get_color(cyan, -1),
             get_color(blue, -1),
@@ -351,7 +359,7 @@ class MsgView:
         )
 
         if is_selected:
-            return (attr | reverse for attr in attrs)
+            return tuple(attr | reverse for attr in attrs)
         return attrs
 
     def _get_user_by_id(self, user_id: int) -> str:

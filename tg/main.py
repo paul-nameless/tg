@@ -2,7 +2,7 @@ import logging
 import logging.handlers
 import signal
 import threading
-from curses import window, wrapper
+from curses import window, wrapper  # type: ignore
 from functools import partial
 
 from telegram.client import Telegram
@@ -19,7 +19,7 @@ def run(tg: Telegram, stdscr: window) -> None:
     # run this function in thread?
     model = Model(tg)
     status_view = StatusView(stdscr)
-    msg_view = MsgView(stdscr, model.msgs)
+    msg_view = MsgView(stdscr, model.msgs, model.users)
     chat_view = ChatView(stdscr)
     view = View(stdscr, chat_view, msg_view, status_view)
     controller = Controller(model, view, tg)

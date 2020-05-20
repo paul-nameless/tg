@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7]
+        python-version: [3.8]
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -30,11 +30,15 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install black
+    - name: Install tools
       run: |
-        pip install black==19.10b0
+        pip install black==19.10b0 mypy==0.770
 
     - name: Check formatting with black
       run: |
-        black --check .
+        black --check tg
+
+    - name: Check types with mypy
+      run: |
+        mypy tg --warn-redundant-casts --warn-unused-ignores --no-warn-no-return --warn-unreachable --strict-equality --ignore-missing-imports
 
