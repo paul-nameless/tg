@@ -305,11 +305,22 @@ class MsgView:
 
                 # count wide character utf-8 symbols that take > 1 bytes to
                 # print it causes invalid offset
-                wide_char_len = sum(map(len, emoji_pattern.findall(msg)))
-                elements = (f" {dt} ", user_id, " " + msg)
-                total_len = sum(len(e) for e in elements) + wide_char_len
+                label_elements = [f" {dt} ", user_id]
+                msg_label_len = sum(len(e) for e in label_elements)
+                elements = *label_elements, f" {msg}"
 
-                needed_lines = (total_len // self.w) + 1 + int(is_reply)
+                needed_lines = 0
+                for i, msg_line in enumerate(msg.split("\n")):
+                    emojies_count = sum(
+                        map(len, emoji_pattern.findall(msg_line))
+                    )
+                    line_len = len(msg_line) + emojies_count
+                    # first line cotains msg lable, e.g user name, date
+                    if i == 0:
+                        line_len += msg_label_len
+
+                    needed_lines += (line_len // self.w) + 1
+
                 line_num -= needed_lines
                 if line_num <= 0:
                     break
