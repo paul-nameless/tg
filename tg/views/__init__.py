@@ -378,12 +378,18 @@ def parse_content(content: Dict[str, Any]) -> str:
         download=get_download(msg.local, msg.size),
         size=msg.human_size,
         duration=msg.duration,
-        listened=msg.is_listened,
-        viewed=msg.is_viewed,
+        listened=format_bool(msg.is_listened),
+        viewed=format_bool(msg.is_viewed),
     )
     info = ", ".join(f"{k}={v}" for k, v in fields.items() if v)
 
     return f"[{msg.type}: {info}]"
+
+
+def format_bool(value: Optional[bool]) -> str:
+    if value is None:
+        return None
+    return "yes" if value else "no"
 
 
 def get_download(local, size):
