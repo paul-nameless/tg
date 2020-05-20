@@ -250,28 +250,24 @@ class MsgView:
         self.win.resize(self.h, self.w)
         self.win.mvwin(0, self.x)
 
-    def _format_msg(
-        self, msg_proxy: MsgProxy, user_id_item: int
-    ) -> Tuple[str, bool]:
-        msg = self._parse_msg(msg_proxy)
-        reply_sender = None
-        reply_to = msg_proxy.reply_msg_id
-        if reply_to:
-            reply_msg = MsgProxy(
-                self.msg_model.get_message(msg_proxy.chat_id, reply_to)
-            )
-            reply_sender = self._get_user_by_id(reply_msg.sender_id)
-            reply_msg_content = self._parse_msg(reply_msg)
-
-        msg = msg.replace("\n", " ")
-        if reply_to and reply_msg_content:
+    def _format_reply_msg(self, chat_id: int, msg: str, reply_to: int) -> str:
+        reply_msg = MsgProxy(self.msg_model.get_message(chat_id, reply_to))
+        if reply_msg_content := self._parse_msg(reply_msg):
             reply_msg_content = reply_msg_content.replace("\n", " ")
             if len(reply_msg_content) > 68:
                 # trimming old reply messages as it done in tg web & desktop
                 reply_msg_content = f"{reply_msg_content[:65]}..."
-            sender_text = f" {reply_sender}:" if reply_sender else ""
-            msg = f">{sender_text} {reply_msg_content}\n{msg}"
-        return msg, bool(reply_to)
+            reply_sender = self._get_user_by_id(reply_msg.sender_id)
+            sender_name = f" {reply_sender}:" if reply_sender else ""
+            msg = f">{sender_name} {reply_msg_content}\n{msg}"
+        return msg
+
+    def _format_msg(self, msg_proxy: MsgProxy, user_id_item: int) -> str:
+        msg = self._parse_msg(msg_proxy)
+        msg = msg.replace("\n", " ")
+        if reply_to := msg_proxy.reply_msg_id:
+            msg = self._format_reply_msg(msg_proxy.chat_id, msg, reply_to)
+        return msg
 
     def _collect_msgs_to_draw(
         self,
@@ -300,13 +296,13 @@ class MsgView:
                 dt = msg_proxy.date.strftime("%H:%M:%S")
                 user_id_item = msg_proxy.sender_id
 
-                msg, is_reply = self._format_msg(msg_proxy, user_id_item)
+                msg = self._format_msg(msg_proxy, user_id_item)
                 user_id = self._get_user_by_id(user_id_item)
 
                 # count wide character utf-8 symbols that take > 1 bytes to
                 # print it causes invalid offset
-                label_elements = [f" {dt} ", user_id]
-                msg_label_len = sum(len(e) for e in label_elements)
+                label_elements = f" {dt} ", user_id
+                label_len = sum(len(e) for e in label_elements)
                 elements = *label_elements, f" {msg}"
 
                 needed_lines = 0
@@ -317,7 +313,7 @@ class MsgView:
                     line_len = len(msg_line) + emojies_count
                     # first line cotains msg lable, e.g user name, date
                     if i == 0:
-                        line_len += msg_label_len
+                        line_len += label_len
 
                     needed_lines += (line_len // self.w) + 1
 
