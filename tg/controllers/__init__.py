@@ -92,7 +92,7 @@ class Controller:
             log.exception("Error happened in main loop")
 
     def download_current_file(self):
-        msg = MsgProxy(self.model.current_msg())
+        msg = MsgProxy(self.model.current_msg)
         log.debug("Downloading msg: %s", msg.msg)
         file_id = msg.file_id
         if file_id:
@@ -105,12 +105,11 @@ class Controller:
         log.info("Downloaded: file_id=%s", file_id)
 
     def open_current_msg(self):
-        msg = MsgProxy(self.model.current_msg())
+        msg = MsgProxy(self.model.current_msg)
         log.info("Open msg: %s", msg.msg)
         if msg.is_text:
-            text = msg["content"]["text"]["text"]
             with NamedTemporaryFile("w", suffix=".txt") as f:
-                f.write(text)
+                f.write(msg.text_content)
                 f.flush()
                 with suspend(self.view) as s:
                     s.open_file(f.name)
@@ -122,19 +121,38 @@ class Controller:
                 log.info("Opening file: %s", path)
                 s.open_file(path)
 
-    def write_long_msg(self):
-        file_path = "/tmp/tg-msg.txt"
-        with suspend(self.view) as s:
-            s.call(config.long_msg_cmd.format(file_path=file_path))
-        if not os.path.isfile(file_path):
+    def edit_msg(self):
+        msg = MsgProxy(self.model.current_msg)
+        log.info("Editing msg: %s", msg.msg)
+        if not self.model.is_me(msg.sender_id):
+            log.warning("Can't edit other user message")
             return
-        with open(file_path) as f:
-            msg = f.read().strip()
-        os.remove(file_path)
-        if msg:
-            self.model.send_message(text=msg)
-            with self.lock:
-                self.view.status.draw("Message sent")
+        if not msg.is_text:
+            log.warning("Can't edit not text message")
+            return
+
+        with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(
+            self.view
+        ) as s:
+            f.write(msg.text_content)
+            f.flush()
+            s.call(f"{config.editor} {f.name}")
+            f.seek(0)
+            if msg := f.read().strip():
+                self.model.edit_message(text=msg)
+                with self.lock:
+                    self.view.status.draw("Message edited")
+
+    def write_long_msg(self):
+        with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(
+            self.view
+        ) as s:
+            s.call(config.long_msg_cmd.format(file_path=f.name))
+            f.seek(0)
+            if msg := f.read().strip():
+                self.model.send_message(text=msg)
+                with self.lock:
+                    self.view.status.draw("Message sent")
 
     def resize_handler(self, signum, frame):
         curses.endwin()
@@ -221,16 +239,19 @@ class Controller:
             elif keys == "/":
                 # search
                 pass
+
             elif keys == "gg":
                 # move to the top
                 pass
+
             elif keys == "e":
-                # edit msg
-                pass
+                self.edit_msg()
+
             elif keys == "r":
                 # reply to this msg
                 # print to status line
                 pass
+
             elif keys in ("i", "a"):
                 # write new message
                 msg = self.view.status.get_input()
@@ -386,7 +407,7 @@ class Controller:
             return
 
         # notify
-        if msg.sender_id == self.model.get_me()["id"]:
+        if self.model.is_me(msg["sender_user_id"]):
             return
         user = self.model.users.get_user(msg.sender_id)
         name = f"{user['first_name']} {user['last_name']}"

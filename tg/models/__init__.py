@@ -18,6 +18,9 @@ class Model:
     def get_me(self):
         return self.users.get_me()
 
+    def is_me(self, user_id: int) -> bool:
+        return self.get_me()["id"] == user_id
+
     def get_user(self, user_id):
         return self.users.get_user(user_id)
 
@@ -42,13 +45,18 @@ class Model:
         limit = offset + page_size
         return self.msgs.fetch_msgs(chat_id, offset=offset, limit=limit)
 
-    def current_msg(self):
+    @property
+    def current_msg(self) -> Dict[str, Any]:
         chat_id = self.chats.id_by_index(self.current_chat)
         if chat_id is None:
             return {}
         current_msg = self.msgs.current_msgs[chat_id]
         log.info("current-msg: %s", current_msg)
         return self.msgs.msgs[chat_id][current_msg]
+
+    @property
+    def current_msg_id(self) -> int:
+        return self.current_msg["id"]
 
     def jump_bottom(self):
         chat_id = self.chats.id_by_index(self.current_chat)
@@ -102,6 +110,11 @@ class Model:
             return False
         self.msgs.send_message(chat_id, text)
         return True
+
+    def edit_message(self, text: str) -> bool:
+        if chat_id := self.chats.id_by_index(self.current_chat):
+            return self.msgs.edit_message(chat_id, self.current_msg_id, text)
+        return False
 
     def delete_msg(self) -> bool:
         chat_id = self.chats.id_by_index(self.current_chat)
@@ -321,6 +334,18 @@ class MsgModel:
             for i in range(offset, offset + limit)
             if i < len(self.msgs[chat_id])
         ]
+
+    def edit_message(self, chat_id: int, message_id: int, text: str) -> bool:
+        log.info("Editing msg")
+        result = self.tg.edit_message(chat_id, message_id, text)
+
+        result.wait()
+        if result.error:
+            log.info(f"send message error: {result.error_info}")
+            return False
+        else:
+            log.info(f"message has been sent: {result.update}")
+            return True
 
     def send_message(self, chat_id: int, text: str) -> None:
         log.info("Sending msg")
