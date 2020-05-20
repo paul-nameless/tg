@@ -252,9 +252,11 @@ class MsgView:
         function will remove message one by one from the start until selected
         message could be visible on the screen.
         """
-        selected_item_idx = None
+        selected_item_idx: Optional[int] = None
         collected_items: List[Tuple[Tuple[str, ...], bool, int]] = []
         for ignore_before in range(len(msgs)):
+            if selected_item_idx is not None:
+                break
             collected_items = []
             line_num = self.h
             for msg_idx, msg_item in msgs[ignore_before:]:
