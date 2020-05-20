@@ -1,10 +1,8 @@
 import logging
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set, Union, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from telegram.client import Telegram
-
-from tg.msg import MsgProxy
 
 log = logging.getLogger(__name__)
 
@@ -325,8 +323,6 @@ class MsgModel:
             log.info(f"message has been sent: {result.update}")
 
     def delete_msg(self, chat_id: int) -> bool:
-        if chat_id is None:
-            return False
         selected_msg = self.current_msgs[chat_id]
         msg_item = self.msgs[chat_id].pop(selected_msg)
         self.current_msgs[chat_id] = min(

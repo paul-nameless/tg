@@ -340,7 +340,6 @@ class Controller:
             self.view.status.draw()
 
     def refresh_msgs(self) -> None:
-        self.view.msgs.users = self.model.users
         current_msg_idx = self.model.get_current_chat_msg_idx()
         if current_msg_idx is None:
             return
