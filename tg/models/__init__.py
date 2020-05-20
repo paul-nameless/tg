@@ -2,7 +2,7 @@ import logging
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from telegram.client import Telegram  # type: ignore
+from telegram.client import Telegram
 
 log = logging.getLogger(__name__)
 

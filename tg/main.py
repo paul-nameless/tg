@@ -5,7 +5,7 @@ import threading
 from curses import window, wrapper  # type: ignore
 from functools import partial
 
-from telegram.client import Telegram  # type: ignore
+from telegram.client import Telegram
 
 from tg import config, utils
 from tg.controllers import Controller
