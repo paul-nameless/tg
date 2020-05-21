@@ -278,7 +278,7 @@ class MsgView:
             flags.append("edited")
         if not flags:
             return ""
-        return " " + ", ".join(flags)
+        return ",".join(flags)
 
     def _format_reply_msg(self, chat_id: int, msg: str, reply_to: int) -> str:
         reply_msg = MsgProxy(self.msg_model.get_message(chat_id, reply_to))
@@ -329,14 +329,17 @@ class MsgView:
                 msg = self._format_msg(msg_proxy, user_id_item)
                 user_id = self._get_user_by_id(user_id_item)
                 flags = self._get_flags(msg_proxy)
-                # count wide character utf-8 symbols that take > 1 bytes to
-                # print it causes invalid offset
+                if user_id and flags:
+                    # if not channel add space between name and flags
+                    flags = " " + flags
                 label_elements = f" {dt} ", user_id, flags
                 label_len = sum(len(e) for e in label_elements)
                 elements = *label_elements, f" {msg}"
 
                 needed_lines = 0
                 for i, msg_line in enumerate(msg.split("\n")):
+                    # count wide character utf-8 symbols that take > 1 bytes to
+                    # print it causes invalid offset
                     emojies_count = sum(
                         map(len, emoji_pattern.findall(msg_line))
                     )
