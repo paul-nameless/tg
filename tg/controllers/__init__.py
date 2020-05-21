@@ -70,6 +70,7 @@ class Controller:
         if file_path and os.path.isfile(file_path):
             chat_id = self.model.chats.id_by_index(self.model.current_chat)
             send_file_fun(file_path, chat_id, *args, **kwargs)
+            self.present_info("File sent")
 
     def send_voice(self):
         file_path = f"/tmp/voice-{datetime.now()}.oga"
@@ -83,7 +84,7 @@ class Controller:
             duration = get_duration(file_path)
             waveform = get_waveform(file_path)
             self.tg.send_voice(file_path, chat_id, duration, waveform)
-            self.view.status.draw(f"Sent voice msg: {file_path}")
+            self.present_info(f"Sent voice msg: {file_path}")
 
     def run(self) -> None:
         try:
@@ -121,15 +122,24 @@ class Controller:
                 log.info("Opening file: %s", path)
                 s.open_file(path)
 
+    def present_error(self, msg: str):
+        return self.update_status("Error", msg)
+
+    def present_info(self, msg: str):
+        return self.update_status("Info", msg)
+
+    def update_status(self, level: str, msg: str):
+        with self.lock:
+            self.view.status.draw(f"{level}: {msg}")
+
+
     def edit_msg(self):
         msg = MsgProxy(self.model.current_msg)
         log.info("Editing msg: %s", msg.msg)
         if not self.model.is_me(msg.sender_id):
-            log.warning("Can't edit other user message")
-            return
+            return self.present_error("You can edit only your messages!")
         if not msg.is_text:
-            log.warning("Can't edit not text message")
-            return
+            return self.present_error("You can edit text messages only!")
 
         with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(
             self.view
@@ -140,8 +150,7 @@ class Controller:
             f.seek(0)
             if msg := f.read().strip():
                 self.model.edit_message(text=msg)
-                with self.lock:
-                    self.view.status.draw("Message edited")
+                self.present_info("Message edited")
 
     def write_long_msg(self):
         with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(
@@ -151,8 +160,7 @@ class Controller:
             f.seek(0)
             if msg := f.read().strip():
                 self.model.send_message(text=msg)
-                with self.lock:
-                    self.view.status.draw("Message sent")
+                self.present_info("Message sent")
 
     def resize_handler(self, signum, frame):
         curses.endwin()
@@ -206,8 +214,10 @@ class Controller:
             elif keys == "dd":
                 if self.model.delete_msg():
                     self.refresh_msgs()
+                    self.present_info("Message deleted")
             elif keys == "D":
                 self.download_current_file()
+                self.present_info("File downloaded")
 
             elif keys == "l":
                 self.open_current_msg()
@@ -254,11 +264,11 @@ class Controller:
 
             elif keys in ("i", "a"):
                 # write new message
-                msg = self.view.status.get_input()
-                if msg:
+                if msg := self.view.status.get_input():
                     self.model.send_message(text=msg)
-                    with self.lock:
-                        self.view.status.draw(f"Sent: {msg}")
+                    self.present_info("Message sent")
+                else:
+                    self.present_info("Message wasn't sent")
 
             elif keys in ("I", "A"):
                 self.write_long_msg()
