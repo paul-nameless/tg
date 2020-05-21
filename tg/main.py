@@ -51,7 +51,7 @@ def main():
     config.max_download_size = utils.parse_size(
         cfg.get("max_download_size", config.max_download_size)
     )
-    config.record_cmd = cfg.get("record_cmd")
+    config.record_cmd = cfg.get("record_cmd", config.record_cmd)
     config.long_msg_cmd = cfg.get("long_msg_cmd", config.long_msg_cmd)
     tg.login()
 
