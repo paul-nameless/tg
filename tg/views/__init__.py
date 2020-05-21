@@ -264,8 +264,7 @@ class MsgView:
     def _format_msg(self, msg_proxy: MsgProxy, user_id_item: int) -> str:
         msg = self._parse_msg(msg_proxy)
         msg = msg.replace("\n", " ")
-        reply_to = msg_proxy.reply_msg_id
-        if reply_to:
+        if reply_to := msg_proxy.reply_msg_id:
             msg = self._format_reply_msg(msg_proxy.chat_id, msg, reply_to)
         return msg
 
