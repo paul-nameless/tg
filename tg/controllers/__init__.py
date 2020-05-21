@@ -443,8 +443,7 @@ class Controller:
         last_read_outbox_message_id = update["last_read_outbox_message_id"]
         current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
         self.model.chats.update_chat(
-            chat_id,
-            last_read_outbox_message_id=last_read_outbox_message_id,
+            chat_id, last_read_outbox_message_id=last_read_outbox_message_id,
         )
         self._refresh_current_chat(current_chat_id)
 
