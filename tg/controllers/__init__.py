@@ -153,20 +153,20 @@ class Controller:
             f.write(msg.text_content)
             f.flush()
             s.call(f"{config.editor} {f.name}")
-            f.seek(0)
-            if msg := f.read().strip():
-                self.model.edit_message(text=msg)
-                self.present_info("Message edited")
+            with open(f.name) as f:
+                if msg := f.read().strip():
+                    self.model.edit_message(text=msg)
+                    self.present_info("Message edited")
 
     def write_long_msg(self):
         with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(
             self.view
         ) as s:
             s.call(config.long_msg_cmd.format(file_path=f.name))
-            f.seek(0)
-            if msg := f.read().strip():
-                self.model.send_message(text=msg)
-                self.present_info("Message sent")
+            with open(f.name) as f:
+                if msg := f.read().strip():
+                    self.model.send_message(text=msg)
+                    self.present_info("Message sent")
 
     def resize_handler(self, signum, frame):
         curses.endwin()
