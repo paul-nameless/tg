@@ -117,6 +117,18 @@ class TelegramApi(Telegram):
         }
         return self._send_data(data)
 
+    def edit_message(self, chat_id: int, message_id: int, msg: str):
+        data = {
+            "@type": "editMessageText",
+            "message_id": message_id,
+            "chat_id": chat_id,
+            "input_message_content": {
+                "@type": "inputMessageText",
+                "text": {"@type": "formattedText", "text": msg},
+            },
+        }
+        return self._send_data(data)
+
     def toggle_chat_is_marked_as_unread(
         self, chat_id: int, is_marked_as_unread: bool
     ) -> AsyncResult:

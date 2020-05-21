@@ -173,6 +173,10 @@ class MsgProxy:
         return self.msg["id"]
 
     @property
+    def can_be_edited(self) -> bool:
+        return self.msg["can_be_edited"]
+
+    @property
     def reply_msg_id(self) -> Optional[int]:
         return self.msg.get("reply_to_message_id")
 
