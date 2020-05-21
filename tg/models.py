@@ -86,7 +86,7 @@ class Model:
 
     def view_current_msg(self):
         chat_id = self.chats.id_by_index(self.current_chat)
-        msg = MsgProxy(self.current_msg())
+        msg = MsgProxy(self.current_msg)
         msg_id = msg["id"]
         self.tg.view_messages(chat_id, [msg_id])
 
