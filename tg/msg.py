@@ -1,4 +1,6 @@
 import logging
+from datetime import datetime
+from typing import Any, Dict
 
 from tg import utils
 
@@ -46,10 +48,10 @@ class MsgProxy:
                 return {}
         return doc
 
-    def __init__(self, msg):
+    def __init__(self, msg: Dict[str, Any]):
         self.msg = msg
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         return self.msg[key]
 
     def __setitem__(self, key, value):
@@ -57,6 +59,18 @@ class MsgProxy:
 
     @property
     def type(self):
+        return self.msg["@type"]
+
+    @property
+    def date(self) -> datetime:
+        return datetime.fromtimestamp(self.msg["date"])
+
+    @property
+    def is_message(self):
+        return self.type == "message"
+
+    @property
+    def content_type(self):
         return self.types.get(self.msg["content"]["@type"])
 
     @property
@@ -71,21 +85,21 @@ class MsgProxy:
 
     @property
     def duration(self):
-        if self.type not in ("audio", "voice", "video", "recording"):
+        if self.content_type not in ("audio", "voice", "video", "recording"):
             return None
         doc = self.get_doc(self.msg, deep=1)
         return utils.humanize_duration(doc["duration"])
 
     @property
     def file_name(self):
-        if self.type not in ("audio", "document", "video"):
+        if self.content_type not in ("audio", "document", "video"):
             return None
         doc = self.get_doc(self.msg, deep=1)
         return doc["file_name"]
 
     @property
     def file_id(self):
-        if self.type not in (
+        if self.content_type not in (
             "audio",
             "document",
             "photo",
@@ -122,6 +136,22 @@ class MsgProxy:
         return self.msg["content"]["@type"] == "messageText"
 
     @property
+    def text_content(self) -> str:
+        return self.msg["content"]["text"]["text"]
+
+    @property
     def is_downloaded(self):
         doc = self.get_doc(self.msg)
         return doc["local"]["is_downloading_completed"]
+
+    @property
+    def reply_msg_id(self):
+        return self.msg.get("reply_to_message_id")
+
+    @property
+    def chat_id(self) -> int:
+        return self.msg["chat_id"]
+
+    @property
+    def sender_id(self) -> int:
+        return self.msg["sender_user_id"]
