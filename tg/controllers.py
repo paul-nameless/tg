@@ -62,6 +62,7 @@ class Controller:
             "updateMessageSendSucceeded": self.update_msg_send_succeeded,
             "updateNewMessage": self.update_new_msg,
             "updateMessageContentOpened": self.update_message_content_opened,
+            "updateChatReadOutbox": self.update_chat_read_outbox,
         }
         self.chat_size = 0.5
         signal(SIGWINCH, self.resize_handler)
@@ -469,6 +470,17 @@ class Controller:
         order = update["order"]
         current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
         self.model.chats.update_chat(chat_id, is_pinned=is_pinned, order=order)
+        self._refresh_current_chat(current_chat_id)
+
+    @handle_exception
+    def update_chat_read_outbox(self, update: Dict[str, Any]):
+        log.info("Proccessing updateChatReadOutbox")
+        chat_id = update["chat_id"]
+        last_read_outbox_message_id = update["last_read_outbox_message_id"]
+        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        self.model.chats.update_chat(
+            chat_id, last_read_outbox_message_id=last_read_outbox_message_id,
+        )
         self._refresh_current_chat(current_chat_id)
 
     @handle_exception

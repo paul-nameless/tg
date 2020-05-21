@@ -19,7 +19,7 @@ def run(tg: Telegram, stdscr: window) -> None:
     # run this function in thread?
     model = Model(tg)
     status_view = StatusView(stdscr)
-    msg_view = MsgView(stdscr, model.msgs, model.users)
+    msg_view = MsgView(stdscr, model.msgs, model, model.users)
     chat_view = ChatView(stdscr)
     view = View(stdscr, chat_view, msg_view, status_view)
     controller = Controller(model, view, tg)
