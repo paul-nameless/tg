@@ -7,11 +7,10 @@ from signal import SIGWINCH, signal
 from tempfile import NamedTemporaryFile
 from typing import Any, Dict, Optional
 
-from telegram.client import Telegram
-
 from tg import config
 from tg.models import Model
 from tg.msg import MsgProxy
+from tg.tdlib import Tdlib
 from tg.utils import (
     get_duration,
     get_video_resolution,
@@ -43,7 +42,7 @@ class Controller:
     # View is terminal vindow
     """
 
-    def __init__(self, model: Model, view: View, tg: Telegram) -> None:
+    def __init__(self, model: Model, view: View, tg: Tdlib) -> None:
         self.model = model
         self.view = view
         self.lock = threading.Lock()

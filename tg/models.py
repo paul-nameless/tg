@@ -2,15 +2,14 @@ import logging
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from telegram.client import Telegram
-
 from tg.msg import MsgProxy
+from tg.tdlib import Tdlib
 
 log = logging.getLogger(__name__)
 
 
 class Model:
-    def __init__(self, tg: Telegram) -> None:
+    def __init__(self, tg: Tdlib) -> None:
         self.tg = tg
         self.chats = ChatModel(tg)
         self.msgs = MsgModel(tg)
@@ -139,7 +138,7 @@ class Model:
 
 
 class ChatModel:
-    def __init__(self, tg: Telegram) -> None:
+    def __init__(self, tg: Tdlib) -> None:
         self.tg = tg
         self.chats: List[Dict[str, Any]] = []
         self.chat_ids: List[int] = []
@@ -220,7 +219,7 @@ class ChatModel:
 
 
 class MsgModel:
-    def __init__(self, tg: Telegram) -> None:
+    def __init__(self, tg: Tdlib) -> None:
         self.tg = tg
         self.msgs: Dict[int, List[Dict]] = defaultdict(list)
         self.current_msgs: Dict[int, int] = defaultdict(int)
@@ -401,7 +400,7 @@ class MsgModel:
 
 
 class UserModel:
-    def __init__(self, tg: Telegram) -> None:
+    def __init__(self, tg: Tdlib) -> None:
         self.tg = tg
         self.me = None
         self.users: Dict[int, Dict] = {}
