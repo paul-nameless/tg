@@ -159,7 +159,6 @@ class Controller:
     def handle_msgs(self) -> str:
         self.chat_size = 0.2
         self.resize()
-        self.model.view_current_msg()
 
         while True:
 
