@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from tg import utils
 
@@ -58,8 +58,8 @@ class MsgProxy:
         self.msg[key] = value
 
     @property
-    def type(self):
-        return self.msg["@type"]
+    def type(self) -> Optional[str]:
+        return self.msg.get("@type")
 
     @property
     def date(self) -> datetime:
@@ -145,7 +145,35 @@ class MsgProxy:
         return doc["local"]["is_downloading_completed"]
 
     @property
-    def reply_msg_id(self):
+    def is_listened(self) -> Optional[bool]:
+        if self.type != "voice":
+            return None
+        return self.msg["content"]["is_listened"]
+
+    @is_listened.setter
+    def is_listened(self, value: bool):
+        if self.type != "voice":
+            return None
+        self.msg["content"]["is_listened"] = value
+
+    @property
+    def is_viewed(self) -> Optional[bool]:
+        if self.type != "recording":
+            return None
+        return self.msg["content"]["is_viewed"]
+
+    @is_viewed.setter
+    def is_viewed(self, value: bool):
+        if self.type != "recording":
+            return None
+        self.msg["content"]["is_viewed"] = value
+
+    @property
+    def msg_id(self) -> int:
+        return self.msg["id"]
+
+    @property
+    def reply_msg_id(self) -> Optional[int]:
         return self.msg.get("reply_to_message_id")
 
     @property

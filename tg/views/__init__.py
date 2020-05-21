@@ -5,8 +5,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, cast
 
 from tg.colors import blue, cyan, get_color, magenta, reverse, white
-from tg.models import MsgModel
-from tg.models import UserModel
+from tg.models import MsgModel, UserModel
 from tg.msg import MsgProxy
 from tg.utils import emoji_pattern, num, truncate_to_len
 
@@ -420,13 +419,21 @@ def parse_content(content: Dict[str, Any]) -> str:
 
     fields = dict(
         name=msg.file_name,
-        duration=msg.duration,
-        size=msg.human_size,
         download=get_download(msg.local, msg.size),
+        size=msg.human_size,
+        duration=msg.duration,
+        listened=format_bool(msg.is_listened),
+        viewed=format_bool(msg.is_viewed),
     )
     info = ", ".join(f"{k}={v}" for k, v in fields.items() if v)
 
     return f"[{msg.content_type}: {info}]"
+
+
+def format_bool(value: Optional[bool]) -> Optional[str]:
+    if value is None:
+        return None
+    return "yes" if value else "no"
 
 
 def get_download(local, size):
