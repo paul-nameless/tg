@@ -243,6 +243,10 @@ class MsgView:
         self.x = 0
         self.win = self.stdscr.subwin(self.h, self.w, 0, self.x)
         self._refresh = self.win.refresh
+        self.states = {
+            "messageSendingStateFailed": "failed",
+            "messageSendingStatePending": "pending",
+        }
 
     def resize(self, rows: int, cols: int, p: float = 0.5) -> None:
         self.h = rows - 1
@@ -254,26 +258,22 @@ class MsgView:
     def _get_flags(self, msg_proxy: MsgProxy):
         flags = []
         chat = self.model.chats.chats[self.model.current_chat]
-        my_id = self.users.get_me()["id"]
-        states = {
-            "messageSendingStateFailed": "failed",
-            "messageSendingStatePending": "pending",
-        }
+
         if (
-            msg_proxy.sender_id != my_id
+            not self.model.is_me(msg_proxy.sender_id)
             and msg_proxy.msg_id > chat["last_read_inbox_message_id"]
         ):
             flags.append("new")
         elif (
-            msg_proxy.sender_id == my_id
+            self.model.is_me(msg_proxy.sender_id)
             and msg_proxy.msg_id > chat["last_read_outbox_message_id"]
         ):
-            if chat["id"] != my_id:
+            if not self.model.is_me(chat["id"]):
                 flags.append("unseen")
         if state := msg_proxy.msg.get("sending_state"):
             log.info("state: %s", state)
             state_type = state["@type"]
-            flags.append(states.get(state_type, state_type))
+            flags.append(self.states.get(state_type, state_type))
         if msg_proxy.msg["edit_date"]:
             flags.append("edited")
         if not flags:
