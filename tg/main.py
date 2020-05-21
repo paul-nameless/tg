@@ -5,7 +5,7 @@ import threading
 from curses import window, wrapper  # type: ignore
 from functools import partial
 
-from telegram.client import Telegram
+from telegram.client import AsyncResult, Telegram
 
 from tg import config, utils
 from tg.controllers import Controller
@@ -48,7 +48,7 @@ class TelegramApi(Telegram):
         )
         result.wait()
 
-    def send_doc(self, file_path, chat_id):
+    def send_doc(self, file_path: str, chat_id: int) -> AsyncResult:
         data = {
             "@type": "sendMessage",
             "chat_id": chat_id,
@@ -59,7 +59,7 @@ class TelegramApi(Telegram):
         }
         return self._send_data(data)
 
-    def send_audio(self, file_path, chat_id):
+    def send_audio(self, file_path: str, chat_id: int) -> AsyncResult:
         data = {
             "@type": "sendMessage",
             "chat_id": chat_id,
@@ -70,7 +70,7 @@ class TelegramApi(Telegram):
         }
         return self._send_data(data)
 
-    def send_photo(self, file_path, chat_id):
+    def send_photo(self, file_path: str, chat_id: int) -> AsyncResult:
         data = {
             "@type": "sendMessage",
             "chat_id": chat_id,
@@ -81,7 +81,14 @@ class TelegramApi(Telegram):
         }
         return self._send_data(data)
 
-    def send_video(self, file_path, chat_id, width, height, duration):
+    def send_video(
+        self,
+        file_path: str,
+        chat_id: int,
+        width: int,
+        height: int,
+        duration: int,
+    ) -> AsyncResult:
         data = {
             "@type": "sendMessage",
             "chat_id": chat_id,
@@ -95,7 +102,9 @@ class TelegramApi(Telegram):
         }
         return self._send_data(data)
 
-    def send_voice(self, file_path, chat_id, duration, waveform):
+    def send_voice(
+        self, file_path: str, chat_id: int, duration: int, waveform: int
+    ):
         data = {
             "@type": "sendMessage",
             "chat_id": chat_id,
@@ -110,7 +119,7 @@ class TelegramApi(Telegram):
 
     def toggle_chat_is_marked_as_unread(
         self, chat_id: int, is_marked_as_unread: bool
-    ):
+    ) -> AsyncResult:
         data = {
             "@type": "toggleChatIsMarkedAsUnread",
             "chat_id": chat_id,
@@ -118,7 +127,9 @@ class TelegramApi(Telegram):
         }
         return self._send_data(data)
 
-    def toggle_chat_is_pinned(self, chat_id: int, is_pinned: bool):
+    def toggle_chat_is_pinned(
+        self, chat_id: int, is_pinned: bool
+    ) -> AsyncResult:
         data = {
             "@type": "toggleChatIsPinned",
             "chat_id": chat_id,
@@ -138,12 +149,22 @@ class TelegramApi(Telegram):
 
     def view_messages(
         self, chat_id: int, message_ids: list, force_read: bool = True
-    ):
+    ) -> AsyncResult:
         data = {
             "@type": "viewMessages",
             "chat_id": chat_id,
             "message_ids": message_ids,
             "force_read": force_read,
+        }
+        return self._send_data(data)
+
+    def open_message_content(
+        self, chat_id: int, message_id: int
+    ) -> AsyncResult:
+        data = {
+            "@type": "openMessageContent",
+            "chat_id": chat_id,
+            "message_id": message_id,
         }
         return self._send_data(data)
 
