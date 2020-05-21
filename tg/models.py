@@ -16,6 +16,8 @@ class Model:
         self.users = UserModel(tg)
         self.current_chat = 0
         self.downloads: Dict[int, Tuple[int, int]] = {}
+        self.selected: Dict[int, List[int]] = defaultdict(list)
+        self.yanked_msgs: Tuple[int, List[int]] = None
 
     def get_me(self):
         return self.users.get_me()

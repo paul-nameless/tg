@@ -259,6 +259,12 @@ class MsgView:
         flags = []
         chat = self.model.chats.chats[self.model.current_chat]
 
+        if msg_proxy.msg_id in self.model.selected[chat["id"]]:
+            flags.append("selected")
+
+        if msg_proxy.forward is not None:
+            flags.append("forwarded")
+
         if (
             not self.model.is_me(msg_proxy.sender_id)
             and msg_proxy.msg_id > chat["last_read_inbox_message_id"]
@@ -276,6 +282,7 @@ class MsgView:
             flags.append(self.states.get(state_type, state_type))
         if msg_proxy.msg["edit_date"]:
             flags.append("edited")
+
         if not flags:
             return ""
         return ",".join(flags)
