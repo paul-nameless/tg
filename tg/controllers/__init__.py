@@ -341,7 +341,6 @@ class Controller:
             self.view.status.draw()
 
     def refresh_msgs(self) -> None:
-        self.view.msgs.users = self.model.users
         current_msg_idx = self.model.get_current_chat_msg_idx()
         if current_msg_idx is None:
             return
@@ -353,29 +352,29 @@ class Controller:
         self.view.msgs.draw(current_msg_idx, msgs, MSGS_LEFT_SCROLL_THRESHOLD)
 
     @handle_exception
-    def update_msg_content(self, update):
-        content = MsgProxy(update["new_content"])
+    def update_msg_content(self, update: Dict[str, Any]):
         chat_id = update["chat_id"]
         message_id = update["message_id"]
-        self.model.msgs.update_msg_content(chat_id, message_id, content)
+        self.model.msgs.update_msg_content(
+            chat_id, message_id, update["new_content"]
+        )
         current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
         if current_chat_id == chat_id:
             self.refresh_msgs()
 
     @handle_exception
-    def update_new_msg(self, update):
+    def update_new_msg(self, update: Dict[str, Any]):
         msg = MsgProxy(update["message"])
-        chat_id = msg["chat_id"]
-        self.model.msgs.add_message(chat_id, msg)
+        self.model.msgs.add_message(msg.chat_id, msg.msg)
         current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
-        if current_chat_id == chat_id:
+        if current_chat_id == msg.chat_id:
             self.refresh_msgs()
         if msg.file_id and msg.size <= config.max_download_size:
-            self.download(msg.file_id, chat_id, msg["id"])
+            self.download(msg.file_id, msg.chat_id, msg["id"])
 
-        self._notify_for_message(chat_id, msg)
+        self._notify_for_message(msg.chat_id, msg)
 
-    def _notify_for_message(self, chat_id: int, msg: Dict[str, Any]):
+    def _notify_for_message(self, chat_id: int, msg: MsgProxy):
         # do not notify, if muted
         # TODO: optimize
         chat = None
@@ -388,17 +387,12 @@ class Controller:
             return
 
         # notify
-        user_id = msg["sender_user_id"]
-        if msg["sender_user_id"] == self.model.get_me()["id"]:
+        if msg.sender_id == self.model.get_me()["id"]:
             return
-        user = self.model.users.get_user(user_id)
-        name = "{} {}".format(user["first_name"], user["last_name"])
-        _type = msg["content"]["@type"]
+        user = self.model.users.get_user(msg.sender_id)
+        name = f"{user['first_name']} {user['last_name']}"
 
-        if _type == "messageText":
-            text = msg["content"]["text"]["text"]
-        else:
-            text = MsgProxy.types.get(_type, "")
+        text = msg.text_content if msg.is_text else msg.content_type
         notify(text, title=name)
 
     @handle_exception
