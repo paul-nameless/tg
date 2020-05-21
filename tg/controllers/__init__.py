@@ -532,7 +532,7 @@ class Controller:
                 break
 
     @handle_exception
-    def update_message_content_opened(self, update):
+    def update_message_content_opened(self, update: Dict[str, Any]):
         chat_id = update["chat_id"]
         message_id = update["message_id"]
         self.model.msgs.update_msg_content_opened(chat_id, message_id)

@@ -152,5 +152,5 @@ class MsgProxy:
         self.msg["content"]["is_viewed"] = value
 
     @property
-    def msg_id(self):
+    def msg_id(self) -> int:
         return self.msg["id"]

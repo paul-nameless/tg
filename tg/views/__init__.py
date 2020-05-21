@@ -386,7 +386,7 @@ def parse_content(content: Dict[str, Any]) -> str:
     return f"[{msg.type}: {info}]"
 
 
-def format_bool(value: Optional[bool]) -> str:
+def format_bool(value: Optional[bool]) -> Optional[str]:
     if value is None:
         return None
     return "yes" if value else "no"
