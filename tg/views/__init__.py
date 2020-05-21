@@ -4,8 +4,8 @@ from _curses import window  # type: ignore
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, cast
 
-from tg.colors import blue, cyan, get_color, magenta, reverse, white
-from tg.models import MsgModel, UserModel
+from tg.colors import blue, cyan, get_color, magenta, reverse, white, yellow
+from tg.models import Model, MsgModel, UserModel
 from tg.msg import MsgProxy
 from tg.utils import emoji_pattern, num, truncate_to_len
 
@@ -230,10 +230,12 @@ class MsgView:
         self,
         stdscr: window,
         msg_model: MsgModel,
+        model: Model,
         users: UserModel,
         p: float = 0.5,
     ) -> None:
         self.msg_model = msg_model
+        self.model = model
         self.users = users
         self.stdscr = stdscr
         self.h = 0
@@ -248,6 +250,35 @@ class MsgView:
         self.x = cols - self.w
         self.win.resize(self.h, self.w)
         self.win.mvwin(0, self.x)
+
+    def _get_flags(self, msg_proxy: MsgProxy):
+        flags = []
+        chat = self.model.chats.chats[self.model.current_chat]
+        my_id = self.users.get_me()["id"]
+        states = {
+            "messageSendingStateFailed": "failed",
+            "messageSendingStatePending": "pending",
+        }
+        if (
+            msg_proxy.sender_id != my_id
+            and msg_proxy.msg_id > chat["last_read_inbox_message_id"]
+        ):
+            flags.append("new")
+        elif (
+            msg_proxy.sender_id == my_id
+            and msg_proxy.msg_id > chat["last_read_outbox_message_id"]
+        ):
+            if chat["id"] != my_id:
+                flags.append("unseen")
+        if state := msg_proxy.msg.get("sending_state"):
+            log.info("state: %s", state)
+            state_type = state["@type"]
+            flags.append(states.get(state_type, state_type))
+        if msg_proxy.msg["edit_date"]:
+            flags.append("edited")
+        if not flags:
+            return ""
+        return " " + ", ".join(flags)
 
     def _format_reply_msg(self, chat_id: int, msg: str, reply_to: int) -> str:
         reply_msg = MsgProxy(self.msg_model.get_message(chat_id, reply_to))
@@ -297,10 +328,10 @@ class MsgView:
 
                 msg = self._format_msg(msg_proxy, user_id_item)
                 user_id = self._get_user_by_id(user_id_item)
-
+                flags = self._get_flags(msg_proxy)
                 # count wide character utf-8 symbols that take > 1 bytes to
                 # print it causes invalid offset
-                label_elements = f" {dt} ", user_id
+                label_elements = f" {dt} ", user_id, flags
                 label_len = sum(len(e) for e in label_elements)
                 elements = *label_elements, f" {msg}"
 
@@ -361,6 +392,7 @@ class MsgView:
         attrs = (
             get_color(cyan, -1),
             get_color(blue, -1),
+            get_color(yellow, -1),
             get_color(white, -1),
         )
 
