@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from telegram.client import Telegram
 
+from tg.msg import MsgProxy
+
 log = logging.getLogger(__name__)
 
 
@@ -253,10 +255,10 @@ class MsgModel:
         return False
 
     def update_msg_content_opened(self, chat_id: int, msg_id: int):
-        for msg in self.msgs[chat_id]:
-            if msg["id"] != msg_id:
+        for message in self.msgs[chat_id]:
+            if message["id"] != msg_id:
                 continue
-            msg = MsgProxy(msg)
+            msg = MsgProxy(message)
             if msg.type == "voice":
                 msg.is_listened = True
             elif msg.type == "recording":

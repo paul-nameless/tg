@@ -58,8 +58,8 @@ class MsgProxy:
         self.msg[key] = value
 
     @property
-    def type(self):
-        return self.msg["@type"]
+    def type(self) -> Optional[str]:
+        return self.msg.get("@type")
 
     @property
     def date(self) -> datetime:
@@ -172,7 +172,8 @@ class MsgProxy:
     def msg_id(self) -> int:
         return self.msg["id"]
 
-    def reply_msg_id(self) -> int:
+    @property
+    def reply_msg_id(self) -> Optional[int]:
         return self.msg.get("reply_to_message_id")
 
     @property

@@ -5,8 +5,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, cast
 
 from tg.colors import blue, cyan, get_color, magenta, reverse, white
-from tg.models import MsgModel
-from tg.models import UserModel
+from tg.models import MsgModel, UserModel
 from tg.msg import MsgProxy
 from tg.utils import emoji_pattern, num, truncate_to_len
 
@@ -265,7 +264,8 @@ class MsgView:
     def _format_msg(self, msg_proxy: MsgProxy, user_id_item: int) -> str:
         msg = self._parse_msg(msg_proxy)
         msg = msg.replace("\n", " ")
-        if reply_to := msg_proxy.reply_msg_id:
+        reply_to = msg_proxy.reply_msg_id
+        if reply_to:
             msg = self._format_reply_msg(msg_proxy.chat_id, msg, reply_to)
         return msg
 
