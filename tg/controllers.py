@@ -105,15 +105,19 @@ class Controller:
 
     def forward_msgs(self, _: int):
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
-        if not self.model.yanked_msgs:
+        if not chat_id:
             return
         from_chat_id, msg_ids = self.model.yanked_msgs
+        if from_chat_id is None:
+            return
         self.tg.forward_msgs(chat_id, from_chat_id, msg_ids)
         self.present_info(f"Forwarded {len(msg_ids)} messages")
 
     def copy_msgs(self, _: int):
         # can_be_forwarded
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        if not chat_id:
+            return
         msg_ids = self.model.selected[chat_id]
         if not msg_ids:
             self.present_error("No msgs selected")
@@ -124,6 +128,8 @@ class Controller:
 
     def select_msg(self, _: int):
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        if not chat_id:
+            return
         msg = MsgProxy(self.model.current_msg)
 
         if msg.msg_id in self.model.selected[chat_id]:
@@ -136,6 +142,8 @@ class Controller:
 
     def discard_selected_msgs(self, _: int):
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        if not chat_id:
+            return
         self.model.selected[chat_id] = []
         self.refresh_msgs()
 
