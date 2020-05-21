@@ -80,7 +80,11 @@ class Controller:
         resp = self.view.status.get_input(
             f"Do you want to send recording: {file_path}? [Y/n]"
         )
-        if is_yes(resp) and os.path.isfile(file_path):
+        if not is_yes(resp):
+            self.present_info("Voice message discarded")
+        elif not os.path.isfile(file_path):
+            self.present_info(f"Can't load recording file {file_path}")
+        else:
             chat_id = self.model.chats.id_by_index(self.model.current_chat)
             duration = get_duration(file_path)
             waveform = get_waveform(file_path)
@@ -140,6 +144,8 @@ class Controller:
             return self.present_error("You can edit only your messages!")
         if not msg.is_text:
             return self.present_error("You can edit text messages only!")
+        if not msg.can_be_edited:
+            return self.present_error("Meessage can't be edited!")
 
         with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(
             self.view
