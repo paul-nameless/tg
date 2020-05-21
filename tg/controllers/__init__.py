@@ -132,7 +132,6 @@ class Controller:
         with self.lock:
             self.view.status.draw(f"{level}: {msg}")
 
-
     def edit_msg(self):
         msg = MsgProxy(self.model.current_msg)
         log.info("Editing msg: %s", msg.msg)
