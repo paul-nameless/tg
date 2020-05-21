@@ -97,7 +97,6 @@ class Controller:
             "I": self.write_long_msg,
             "A": self.write_long_msg,
             "bp": self.breakpoint,
-
             " ": self.select_msg,
             "^[": self.discard_selected_msgs,  # esc
             "y": self.copy_msgs,
