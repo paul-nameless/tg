@@ -11,6 +11,7 @@ log = logging.getLogger(__name__)
 
 class Model:
     def __init__(self, tg: Telegram) -> None:
+        self.tg = tg
         self.chats = ChatModel(tg)
         self.msgs = MsgModel(tg)
         self.users = UserModel(tg)
@@ -83,17 +84,29 @@ class Model:
             return True
         return False
 
+    def view_current_msg(self):
+        chat_id = self.chats.id_by_index(self.current_chat)
+        msg = MsgProxy(self.current_msg())
+        msg_id = msg["id"]
+        self.tg.view_messages(chat_id, [msg_id])
+
     def next_msg(self, step: int = 1) -> bool:
         chat_id = self.chats.id_by_index(self.current_chat)
         if not chat_id:
             return False
-        return self.msgs.next_msg(chat_id, step)
+        is_next = self.msgs.next_msg(chat_id, step)
+        if is_next:
+            self.view_current_msg()
+        return is_next
 
     def prev_msg(self, step: int = 1) -> bool:
         chat_id = self.chats.id_by_index(self.current_chat)
         if not chat_id:
             return False
-        return self.msgs.prev_msg(chat_id, step)
+        is_prev = self.msgs.prev_msg(chat_id, step)
+        if is_prev:
+            self.view_current_msg()
+        return is_prev
 
     def get_chats(
         self,
