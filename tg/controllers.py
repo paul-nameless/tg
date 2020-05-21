@@ -3,9 +3,10 @@ import logging
 import os
 import threading
 from datetime import datetime
+from functools import partial
 from signal import SIGWINCH, signal
 from tempfile import NamedTemporaryFile
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 from tg import config
 from tg.models import Model
@@ -50,6 +51,152 @@ class Controller:
         self.chat_size = 0.5
         signal(SIGWINCH, self.resize_handler)
 
+        _key_handler_type = Callable[[Any], Any]
+
+        self.chat_bindings: Dict[str, _key_handler_type] = {
+            "q": lambda _: "QUIT",
+            "l": self.handle_msgs,
+            "j": self.next_chat,
+            "^N": self.next_chat,
+            "k": self.prev_chat,
+            "^P": self.prev_chat,
+            "J": lambda _: self.next_chat(10),
+            "K": lambda _: self.prev_chat(10),
+            "gg": self.first_chat,
+            "bp": self.breakpoint,
+            "u": self.toggle_unread,
+            "p": self.toggle_pin,
+            "m": self.toggle_mute,
+            "r": self.read_msgs,
+        }
+
+        self.msg_bindings: Dict[str, _key_handler_type] = {
+            "q": lambda _: "QUIT",
+            "h": lambda _: "BACK",
+            "^D": lambda _: "BACK",
+            "]": self.next_chat,
+            "[": self.prev_chat,
+            "J": lambda _: self.next_msg(10),
+            "K": lambda _: self.prev_msg(10),
+            "j": self.next_msg,
+            "^N": self.next_msg,
+            "k": self.prev_msg,
+            "^P": self.prev_msg,
+            "G": self.jump_bottom,
+            "dd": self.delete_msg,
+            "D": self.download_current_file,
+            "l": self.open_current_msg,
+            "sd": lambda _: self.send_file(self.tg.send_doc),
+            "sp": lambda _: self.send_file(self.tg.send_photo),
+            "sa": lambda _: self.send_file(self.tg.send_audio),
+            "sv": self.send_video,
+            "v": self.send_voice,
+            "e": self.edit_msg,
+            "i": self.write_short_msg,
+            "a": self.write_short_msg,
+            "I": self.write_long_msg,
+            "A": self.write_long_msg,
+            "bp": self.breakpoint,
+        }
+
+    def jump_bottom(self, _):
+        log.info("jump_bottom:")
+        if self.model.jump_bottom():
+            self.refresh_msgs()
+
+    def handle_msgs(self, _):
+        rc = self.handle(self.msg_bindings, 0.2)
+        if rc == "QUIT":
+            return rc
+        self.chat_size = 0.5
+        self.resize()
+
+    def next_chat(self, rf):
+        if self.model.next_chat(rf):
+            self.render()
+
+    def prev_chat(self, rf):
+        if self.model.prev_chat(rf):
+            self.render()
+
+    def first_chat(self, _):
+        if self.model.first_chat():
+            self.render()
+
+    def toggle_unread(self, _):
+        chat = self.model.chats.chats[self.model.current_chat]
+        chat_id = chat["id"]
+        toggle = not chat["is_marked_as_unread"]
+        self.tg.toggle_chat_is_marked_as_unread(chat_id, toggle)
+        self.render()
+
+    def read_msgs(self, _):
+        chat = self.model.chats.chats[self.model.current_chat]
+        chat_id = chat["id"]
+        msg_id = chat["last_message"]["id"]
+        self.tg.view_messages(chat_id, [msg_id])
+        self.render()
+
+    def toggle_mute(self, _):
+        # TODO: if it's msg to yourself, do not change its
+        # notification setting, because we can't by documentation,
+        # instead write about it in status
+        chat = self.model.chats.chats[self.model.current_chat]
+        chat_id = chat["id"]
+        if self.model.is_me(chat_id):
+            self.present_error("You can't mute Saved Messages")
+            return
+        notification_settings = chat["notification_settings"]
+        if notification_settings["mute_for"]:
+            notification_settings["mute_for"] = 0
+        else:
+            notification_settings["mute_for"] = 2147483647
+        self.tg.set_chat_nottification_settings(chat_id, notification_settings)
+        self.render()
+
+    def toggle_pin(self, _):
+        chat = self.model.chats.chats[self.model.current_chat]
+        chat_id = chat["id"]
+        toggle = not chat["is_pinned"]
+        self.tg.toggle_chat_is_pinned(chat_id, toggle)
+        self.render()
+
+    def next_msg(self, rf):
+        if self.model.next_msg(rf):
+            self.refresh_msgs()
+
+    def prev_msg(self, rf):
+        if self.model.prev_msg(rf):
+            self.refresh_msgs()
+
+    def breakpoint(self, _):
+        with suspend(self.view):
+            breakpoint()
+
+    def write_short_msg(self, _):
+        # write new message
+        if msg := self.view.status.get_input():
+            self.model.send_message(text=msg)
+            self.present_info("Message sent")
+        else:
+            self.present_info("Message wasn't sent")
+
+    def send_video(self, _):
+        file_path = self.view.status.get_input()
+        if not file_path or not os.path.isfile(file_path):
+            return
+        chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        if not chat_id:
+            return
+        width, height = get_video_resolution(file_path)
+        duration = get_duration(file_path)
+        self.tg.send_video(file_path, chat_id, width, height, duration)
+
+    def delete_msg(self, _):
+        if self.model.delete_msg():
+            self.refresh_msgs()
+            self.present_info("Message deleted")
+
     def send_file(self, send_file_fun, *args, **kwargs):
         file_path = self.view.status.get_input()
         if file_path and os.path.isfile(file_path):
@@ -57,7 +204,7 @@ class Controller:
             send_file_fun(file_path, chat_id, *args, **kwargs)
             self.present_info("File sent")
 
-    def send_voice(self):
+    def send_voice(self, _):
         file_path = f"/tmp/voice-{datetime.now()}.oga"
         with suspend(self.view) as s:
             s.call(config.record_cmd.format(file_path=file_path))
@@ -77,16 +224,19 @@ class Controller:
 
     def run(self) -> None:
         try:
-            self.handle_chats()
+            self.handle(self.chat_bindings, 0.5)
         except Exception:
             log.exception("Error happened in main loop")
 
-    def download_current_file(self):
+    def download_current_file(self, _):
         msg = MsgProxy(self.model.current_msg)
         log.debug("Downloading msg: %s", msg.msg)
         file_id = msg.file_id
-        if file_id:
-            self.download(file_id, msg["chat_id"], msg["id"])
+        if not file_id:
+            self.present_info("File can't be downloaded")
+            return
+        self.download(file_id, msg["chat_id"], msg["id"])
+        self.present_info("File started downloading")
 
     def download(self, file_id: int, chat_id: int, msg_id: int):
         log.info("Downloading file: file_id=%s", file_id)
@@ -94,7 +244,7 @@ class Controller:
         self.tg.download_file(file_id=file_id)
         log.info("Downloaded: file_id=%s", file_id)
 
-    def open_current_msg(self):
+    def open_current_msg(self, _):
         msg = MsgProxy(self.model.current_msg)
         if msg.is_text:
             with NamedTemporaryFile("w", suffix=".txt") as f:
@@ -105,11 +255,13 @@ class Controller:
             return
 
         path = msg.local_path
-        if path:
-            chat_id = self.model.chats.id_by_index(self.model.current_chat)
-            self.tg.open_message_content(chat_id, msg.msg_id)
-            with suspend(self.view) as s:
-                s.open_file(path)
+        if not path:
+            self.present_info("File should be downloaded first")
+            return
+        chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        self.tg.open_message_content(chat_id, msg.msg_id)
+        with suspend(self.view) as s:
+            s.open_file(path)
 
     def present_error(self, msg: str):
         return self.update_status("Error", msg)
@@ -121,7 +273,7 @@ class Controller:
         with self.lock:
             self.view.status.draw(f"{level}: {msg}")
 
-    def edit_msg(self):
+    def edit_msg(self, _):
         msg = MsgProxy(self.model.current_msg)
         log.info("Editing msg: %s", msg.msg)
         if not self.model.is_me(msg.sender_id):
@@ -142,7 +294,7 @@ class Controller:
                     self.model.edit_message(text=msg)
                     self.present_info("Message edited")
 
-    def write_long_msg(self):
+    def write_long_msg(self, _):
         with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(
             self.view
         ) as s:
@@ -170,180 +322,18 @@ class Controller:
         self.view.status.resize(rows, cols)
         self.render()
 
-    def handle_msgs(self) -> str:
-        self.chat_size = 0.2
+    def handle(self, key_bindings, size):
+        self.chat_size = size
         self.resize()
 
         while True:
-
             repeat_factor, keys = self.view.get_keys()
-            if keys == "q":
-                return "QUIT"
-            elif keys == "]":
-                if self.model.next_chat():
-                    self.render()
-            elif keys == "[":
-                if self.model.prev_chat():
-                    self.render()
-            elif keys == "J":
-                if self.model.next_msg(10):
-                    self.refresh_msgs()
-            elif keys == "K":
-                if self.model.prev_msg(10):
-                    self.refresh_msgs()
-            elif keys in ("j", "^N"):
-                if self.model.next_msg(repeat_factor):
-                    self.refresh_msgs()
-            elif keys in ("k", "^P"):
-                if self.model.prev_msg(repeat_factor):
-                    self.refresh_msgs()
-            elif keys == "G":
-                if self.model.jump_bottom():
-                    self.refresh_msgs()
-            elif keys == "dd":
-                if self.model.delete_msg():
-                    self.refresh_msgs()
-                    self.present_info("Message deleted")
-            elif keys == "D":
-                self.download_current_file()
-                self.present_info("File downloaded")
-
-            elif keys == "l":
-                self.open_current_msg()
-
-            elif keys == "sd":
-                self.send_file(self.tg.send_doc)
-
-            elif keys == "sp":
-                self.send_file(self.tg.send_photo)
-
-            elif keys == "sa":
-                self.send_file(self.tg.send_audio)
-
-            elif keys == "sv":
-                file_path = self.view.status.get_input()
-                if file_path and os.path.isfile(file_path):
-                    chat_id = self.model.chats.id_by_index(
-                        self.model.current_chat
-                    )
-                    if not chat_id:
-                        continue
-                    width, height = get_video_resolution(file_path)
-                    duration = get_duration(file_path)
-                    self.tg.send_video(
-                        file_path, chat_id, width, height, duration
-                    )
-
-            elif keys == "v":
-                self.send_voice()
-
-            elif keys == "/":
-                # search
-                pass
-
-            elif keys == "gg":
-                # move to the top
-                pass
-
-            elif keys == "e":
-                self.edit_msg()
-
-            elif keys == "r":
-                # reply to this msg
-                # print to status line
-                pass
-
-            elif keys in ("i", "a"):
-                # write new message
-                if msg := self.view.status.get_input():
-                    self.model.send_message(text=msg)
-                    self.present_info("Message sent")
-                else:
-                    self.present_info("Message wasn't sent")
-
-            elif keys in ("I", "A"):
-                self.write_long_msg()
-
-            elif keys in ("h", "^D"):
-                return "BACK"
-
-            elif keys == "bp":
-                with suspend(self.view):
-                    breakpoint()
-
-    def handle_chats(self) -> None:
-        self.chat_size = 0.5
-        self.resize()
-
-        while True:
-
-            repeat_factor, keys = self.view.get_keys()
-            log.info("Pressed keys: %s", keys)
-            if keys == "q":
-                return
-            elif keys in ("l", "^J"):
-                rc = self.handle_msgs()
-                if rc == "QUIT":
-                    return
-                self.chat_size = 0.5
-                self.resize()
-
-            elif keys in ("j", "^N"):
-                if self.model.next_chat(repeat_factor):
-                    self.render()
-
-            elif keys in ("k", "^P"):
-                if self.model.prev_chat(repeat_factor):
-                    self.render()
-
-            elif keys in ("J",):
-                if self.model.next_chat(10):
-                    self.render()
-
-            elif keys in ("K",):
-                if self.model.prev_chat(10):
-                    self.render()
-
-            elif keys == "gg":
-                if self.model.first_chat():
-                    self.render()
-
-            elif keys == "bp":
-                with suspend(self.view):
-                    breakpoint()
-
-            elif keys == "u":
-                chat = self.model.chats.chats[self.model.current_chat]
-                chat_id = chat["id"]
-                toggle = not chat["is_marked_as_unread"]
-                self.tg.toggle_chat_is_marked_as_unread(chat_id, toggle)
-
-            elif keys == "p":
-                chat = self.model.chats.chats[self.model.current_chat]
-                chat_id = chat["id"]
-                toggle = not chat["is_pinned"]
-                self.tg.toggle_chat_is_pinned(chat_id, toggle)
-
-            elif keys == "r":
-                chat = self.model.chats.chats[self.model.current_chat]
-                chat_id = chat["id"]
-                msg_id = chat["last_message"]["id"]
-                self.tg.view_messages(chat_id, [msg_id])
-
-            elif keys == "m":
-                # TODO: if it's msg to yourself, do not change its
-                # notification setting, because we can't by documentation,
-                # instead write about it in status
-                chat = self.model.chats.chats[self.model.current_chat]
-                chat_id = chat["id"]
-                notification_settings = chat["notification_settings"]
-                if notification_settings["mute_for"]:
-                    notification_settings["mute_for"] = 0
-                else:
-                    notification_settings["mute_for"] = 2147483647
-                self.tg.set_chat_nottification_settings(
-                    chat_id, notification_settings
-                )
+            handler = key_bindings.get(keys, lambda _: None)
+            res = handler(repeat_factor)
+            if res == "QUIT":
+                return res
+            elif res == "BACK":
+                return res
 
     def render(self) -> None:
         with self.lock:
