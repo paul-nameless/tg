@@ -109,7 +109,7 @@ class StatusView:
             elif key == 127:  # del
                 if buff:
                     buff = buff[:-1]
-            elif key == 7:  # ^G cancel
+            elif key in (7, 27):  # (^G, <esc>) cancel
                 buff = ""
                 break
             elif chr(key).isprintable():
