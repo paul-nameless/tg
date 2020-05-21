@@ -2,7 +2,6 @@ from telegram.client import AsyncResult, Telegram
 
 
 class Tdlib(Telegram):
-
     def download_file(
         self, file_id, priority=16, offset=0, limit=0, synchronous=False,
     ):

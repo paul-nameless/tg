@@ -47,22 +47,6 @@ class Controller:
         self.view = view
         self.lock = threading.Lock()
         self.tg = tg
-        self.handlers = {
-            "updateChatDraftMessage": self.update_chat_draft_msg,
-            "updateChatIsMarkedAsUnread": self.update_chat_marked_as_unread,
-            "updateChatIsPinned": self.update_chat_is_pinned,
-            "updateChatLastMessage": self.update_chat_last_msg,
-            "updateChatNotificationSettings": self.update_chat_notification_settings,
-            "updateChatOrder": self.update_chat_order,
-            "updateChatReadInbox": self.update_chat_read_inbox,
-            "updateChatTitle": self.update_chat_title,
-            "updateFile": self.update_file,
-            "updateMessageContent": self.update_msg_content,
-            "updateMessageSendSucceeded": self.update_msg_send_succeeded,
-            "updateNewMessage": self.update_new_msg,
-            "updateMessageContentOpened": self.update_message_content_opened,
-            "updateChatReadOutbox": self.update_chat_read_outbox,
-        }
         self.chat_size = 0.5
         signal(SIGWINCH, self.resize_handler)
 
@@ -193,7 +177,6 @@ class Controller:
         while True:
 
             repeat_factor, keys = self.view.get_keys()
-            log.info("Pressed keys: %s", keys)
             if keys == "q":
                 return "QUIT"
             elif keys == "]":
@@ -243,6 +226,8 @@ class Controller:
                     chat_id = self.model.chats.id_by_index(
                         self.model.current_chat
                     )
+                    if not chat_id:
+                        continue
                     width, height = get_video_resolution(file_path)
                     duration = get_duration(file_path)
                     self.tg.send_video(
@@ -387,29 +372,6 @@ class Controller:
         )
         self.view.msgs.draw(current_msg_idx, msgs, MSGS_LEFT_SCROLL_THRESHOLD)
 
-    @handle_exception
-    def update_msg_content(self, update: Dict[str, Any]):
-        chat_id = update["chat_id"]
-        message_id = update["message_id"]
-        self.model.msgs.update_msg_content(
-            chat_id, message_id, update["new_content"]
-        )
-        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
-        if current_chat_id == chat_id:
-            self.refresh_msgs()
-
-    @handle_exception
-    def update_new_msg(self, update: Dict[str, Any]):
-        msg = MsgProxy(update["message"])
-        self.model.msgs.add_message(msg.chat_id, msg.msg)
-        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
-        if current_chat_id == msg.chat_id:
-            self.refresh_msgs()
-        if msg.file_id and msg.size <= config.max_download_size:
-            self.download(msg.file_id, msg.chat_id, msg["id"])
-
-        self._notify_for_message(msg.chat_id, msg)
-
     def _notify_for_message(self, chat_id: int, msg: MsgProxy):
         # do not notify, if muted
         # TODO: optimize
@@ -431,94 +393,6 @@ class Controller:
         text = msg.text_content if msg.is_text else msg.content_type
         notify(text, title=name)
 
-    @handle_exception
-    def update_chat_order(self, update: Dict[str, Any]):
-        log.info("Proccessing updateChatOrder")
-        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
-        chat_id = update["chat_id"]
-        order = update["order"]
-
-        self.model.chats.update_chat(chat_id, order=order)
-        self._refresh_current_chat(current_chat_id)
-
-    @handle_exception
-    def update_chat_title(self, update: Dict[str, Any]):
-        log.info("Proccessing updateChatTitle")
-        chat_id = update["chat_id"]
-        title = update["title"]
-        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
-        self.model.chats.update_chat(chat_id, title=title)
-        self._refresh_current_chat(current_chat_id)
-
-    @handle_exception
-    def update_chat_marked_as_unread(self, update: Dict[str, Any]):
-        log.info("Proccessing updateChatIsMarkedAsUnread")
-        chat_id = update["chat_id"]
-        is_marked_as_unread = update["is_marked_as_unread"]
-        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
-        self.model.chats.update_chat(
-            chat_id, is_marked_as_unread=is_marked_as_unread
-        )
-        self._refresh_current_chat(current_chat_id)
-
-    @handle_exception
-    def update_chat_is_pinned(self, update: Dict[str, Any]):
-        log.info("Proccessing updateChatIsPinned")
-        chat_id = update["chat_id"]
-        is_pinned = update["is_pinned"]
-        order = update["order"]
-        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
-        self.model.chats.update_chat(chat_id, is_pinned=is_pinned, order=order)
-        self._refresh_current_chat(current_chat_id)
-
-    @handle_exception
-    def update_chat_read_outbox(self, update: Dict[str, Any]):
-        log.info("Proccessing updateChatReadOutbox")
-        chat_id = update["chat_id"]
-        last_read_outbox_message_id = update["last_read_outbox_message_id"]
-        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
-        self.model.chats.update_chat(
-            chat_id, last_read_outbox_message_id=last_read_outbox_message_id,
-        )
-        self._refresh_current_chat(current_chat_id)
-
-    @handle_exception
-    def update_chat_read_inbox(self, update: Dict[str, Any]):
-        log.info("Proccessing updateChatReadInbox")
-        chat_id = update["chat_id"]
-        last_read_inbox_message_id = update["last_read_inbox_message_id"]
-        unread_count = update["unread_count"]
-        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
-        self.model.chats.update_chat(
-            chat_id,
-            last_read_inbox_message_id=last_read_inbox_message_id,
-            unread_count=unread_count,
-        )
-        self._refresh_current_chat(current_chat_id)
-
-    @handle_exception
-    def update_chat_draft_msg(self, update: Dict[str, Any]):
-        log.info("Proccessing updateChatDraftMessage")
-        chat_id = update["chat_id"]
-        # FIXME: ignoring draft message itself for now because UI can't show it
-        # draft_message = update["draft_message"]
-        order = update["order"]
-        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
-        self.model.chats.update_chat(chat_id, order=order)
-        self._refresh_current_chat(current_chat_id)
-
-    @handle_exception
-    def update_chat_last_msg(self, update: Dict[str, Any]):
-        log.info("Proccessing updateChatLastMessage")
-        chat_id = update["chat_id"]
-        message = update["last_message"]
-        order = update["order"]
-        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
-        self.model.chats.update_chat(
-            chat_id, last_message=message, order=order
-        )
-        self._refresh_current_chat(current_chat_id)
-
     def _refresh_current_chat(self, current_chat_id: Optional[int]):
         if current_chat_id is None:
             return
@@ -530,51 +404,3 @@ class Controller:
                 self.model.current_chat = i
                 break
         self.render()
-
-    @handle_exception
-    def update_chat_notification_settings(self, update):
-        log.info("Proccessing update_chat_notification_settings")
-        chat_id = update["chat_id"]
-        notification_settings = update["notification_settings"]
-        self.model.chats.update_chat(
-            chat_id, notification_settings=notification_settings
-        )
-        self.render()
-
-    @handle_exception
-    def update_msg_send_succeeded(self, update):
-        chat_id = update["message"]["chat_id"]
-        msg_id = update["old_message_id"]
-        self.model.msgs.add_message(chat_id, update["message"])
-        self.model.msgs.remove_message(chat_id, msg_id)
-        current_chat_id = self.model.chats.id_by_index(self.model.current_chat)
-        if current_chat_id == chat_id:
-            self.refresh_msgs()
-
-    @handle_exception
-    def update_file(self, update):
-        log.info("update_file: %s", update)
-        file_id = update["file"]["id"]
-        local = update["file"]["local"]
-        chat_id, msg_id = self.model.downloads.get(file_id, (None, None))
-        if chat_id is None:
-            log.warning(
-                "Can't find information about file with file_id=%s", file_id
-            )
-            return
-        msgs = self.model.msgs.msgs[chat_id]
-        for msg in msgs:
-            if msg["id"] == msg_id:
-                proxy = MsgProxy(msg)
-                proxy.local = local
-                self.refresh_msgs()
-                if proxy.is_downloaded:
-                    self.model.downloads.pop(file_id)
-                break
-
-    @handle_exception
-    def update_message_content_opened(self, update: Dict[str, Any]):
-        chat_id = update["chat_id"]
-        message_id = update["message_id"]
-        self.model.msgs.update_msg_content_opened(chat_id, message_id)
-        self.refresh_msgs()

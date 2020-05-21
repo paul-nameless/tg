@@ -5,7 +5,7 @@ import threading
 from curses import window, wrapper  # type: ignore
 from functools import partial
 
-from tg import config, utils
+from tg import config, update_handlers, utils
 from tg.controllers import Controller
 from tg.models import Model
 from tg.tdlib import Tdlib
@@ -22,8 +22,8 @@ def run(tg: Tdlib, stdscr: window) -> None:
     chat_view = ChatView(stdscr)
     view = View(stdscr, chat_view, msg_view, status_view)
     controller = Controller(model, view, tg)
-    for msg_type, handler in controller.handlers.items():
-        tg.add_update_handler(msg_type, handler)
+    for msg_type, handler in update_handlers.handlers.items():
+        tg.add_update_handler(msg_type, partial(handler, controller))
 
     t = threading.Thread(target=controller.run,)
     t.start()
