@@ -57,7 +57,7 @@ def update_new_msg(controller: Controller, update: Dict[str, Any]):
     )
     if current_chat_id == msg.chat_id:
         controller.refresh_msgs()
-    if msg.file_id and msg.size <= config.max_download_size:
+    if msg.file_id and msg.size <= config.MAX_DOWNLOAD_SIZE:
         controller.download(msg.file_id, msg.chat_id, msg["id"])
 
     controller._notify_for_message(msg.chat_id, msg)

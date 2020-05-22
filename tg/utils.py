@@ -120,10 +120,7 @@ def setup_log(level="DEBUG"):
 
 
 def notify(
-    msg,
-    subtitle="",
-    title="tg",
-    cmd=config.NOTIFY_CMD,
+    msg, subtitle="", title="tg", cmd=config.NOTIFY_CMD,
 ):
     if not cmd:
         return

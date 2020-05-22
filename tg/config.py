@@ -7,16 +7,16 @@ import platform
 import runpy
 
 _os_name = platform.system()
-_darwin = 'Darwin'
-_linux = 'Linux'
+_darwin = "Darwin"
+_linux = "Linux"
 
 
 DEFAULT_CONFIG = os.path.expanduser("~/.config/tg/conf.py")
 DEFAULT_FILES = os.path.expanduser("~/.cache/tg/")
 LOG_LEVEL = "INFO"
 
-API_ID = '559815'
-API_HASH = 'fd121358f59d764c57c55871aa0807ca'
+API_ID = "559815"
+API_HASH = "fd121358f59d764c57c55871aa0807ca"
 
 PHONE = None
 ENC_KEY = None
@@ -26,17 +26,24 @@ TDLIB_VERBOSITY = 0
 
 MAX_DOWNLOAD_SIZE = "10MB"
 
-# TODO: check if darwin
+# TODO: check platform
 NOTIFY_CMD = "/usr/local/bin/terminal-notifier -title '{title}' -subtitle '{subtitle}' -message '{msg}' -appIcon '{icon_path}'"
-# TODO: check if darwin
+# TODO: check platform
 RECORD_CMD = "ffmpeg -f avfoundation -i ':0' -ar 22050 -b:a 32k '{file_path}'"
 
 # TODO: use mailcap instead of editor
 LONG_MSG_CMD = "vim -c 'startinsert' {file_path}"
 EDITOR = os.environ.get("EDITOR", "vi")
 
-# TODO: if os == darwin else open-xdb?
-DEFAULT_OPEN = "open '{file_path}'" if _os_name == _linux else "open '{file_path}'"
+if _os_name == _linux:
+    DEFAULT_OPEN = "xdg-open '{file_path}'"
+else:
+    DEFAULT_OPEN = "open '{file_path}'"
+
+if _os_name == _linux:
+    DEFAULT_COPY = "xclip -selection c"
+else:
+    DEFAULT_COPY = "pbcopy"
 
 
 if os.path.isfile(DEFAULT_CONFIG):

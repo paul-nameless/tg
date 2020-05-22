@@ -23,16 +23,11 @@ from tg.utils import (
 from tg.views import View
 
 log = logging.getLogger(__name__)
-
-MSGS_LEFT_SCROLL_THRESHOLD = 10
-
-
 # start scrolling to next page when number of the msgs left is less than value.
 # note, that setting high values could lead to situations when long msgs will
 # be removed from the display in order to achive scroll threshold. this could
 # cause blan areas on the msg display screen
 MSGS_LEFT_SCROLL_THRESHOLD = 2
-
 key_bind_handler_type = Callable[[Any], Any]
 
 
@@ -249,7 +244,7 @@ class Controller:
     def send_voice(self):
         file_path = f"/tmp/voice-{datetime.now()}.oga"
         with suspend(self.view) as s:
-            s.call(config.record_cmd.format(file_path=file_path))
+            s.call(config.RECORD_CMD.format(file_path=file_path))
         resp = self.view.status.get_input(
             f"Do you want to send recording: {file_path}? [Y/n]"
         )
@@ -331,7 +326,7 @@ class Controller:
         ) as s:
             f.write(msg.text_content)
             f.flush()
-            s.call(f"{config.editor} {f.name}")
+            s.call(f"{config.EDITOR} {f.name}")
             with open(f.name) as f:
                 if text := f.read().strip():
                     self.model.edit_message(text=text)
@@ -341,7 +336,7 @@ class Controller:
         with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(
             self.view
         ) as s:
-            s.call(config.long_msg_cmd.format(file_path=f.name))
+            s.call(config.LONG_MSG_CMD.format(file_path=f.name))
             with open(f.name) as f:
                 if msg := f.read().strip():
                     self.model.send_message(text=msg)
