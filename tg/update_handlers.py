@@ -2,7 +2,7 @@ import logging
 from functools import wraps
 from typing import Any, Callable, Dict, Optional
 
-from tg import config
+from tg import config, utils
 from tg.controllers import Controller
 from tg.msg import MsgProxy
 
@@ -11,6 +11,8 @@ log = logging.getLogger(__name__)
 _update_handler_type = Callable[[Controller, Dict[str, Any]], None]
 
 handlers: Dict[str, _update_handler_type] = {}
+
+max_download_size: int = utils.parse_size(config.MAX_DOWNLOAD_SIZE)
 
 
 def update_handler(update_type):
@@ -57,7 +59,7 @@ def update_new_msg(controller: Controller, update: Dict[str, Any]):
     )
     if current_chat_id == msg.chat_id:
         controller.refresh_msgs()
-    if msg.file_id and msg.size <= config.MAX_DOWNLOAD_SIZE:
+    if msg.file_id and msg.size <= max_download_size:
         controller.download(msg.file_id, msg.chat_id, msg["id"])
 
     controller._notify_for_message(msg.chat_id, msg)

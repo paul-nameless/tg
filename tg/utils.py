@@ -43,7 +43,7 @@ def get_file_handler(file_name, default=None):
     return handler
 
 
-def parse_size(size):
+def parse_size(size: str) -> int:
     if size[-2].isalpha():
         number, unit = size[:-2], size[-2:]
     else:
