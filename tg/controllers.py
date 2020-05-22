@@ -97,7 +97,6 @@ class Controller:
             "I": lambda _: self.write_long_msg(),
             "A": lambda _: self.write_long_msg(),
             "bp": lambda _: self.breakpoint(),
-
             " ": lambda _: self.toggle_select_msg(),
             "^[": lambda _: self.discard_selected_msgs(),  # esc
             "y": lambda _: self.copy_msgs(),

@@ -188,4 +188,4 @@ class MsgProxy:
 
     @property
     def forward(self) -> Optional[Dict[str, Any]]:
-        return self.msg.get('forward_info')
+        return self.msg.get("forward_info")
