@@ -190,6 +190,4 @@ class MsgProxy:
 
     @property
     def forward(self) -> Optional[Dict[str, Any]]:
-        if "forward_info" not in self.msg:
-            return None
-        return self.msg["forward_info"]
+        return self.msg.get('forward_info')

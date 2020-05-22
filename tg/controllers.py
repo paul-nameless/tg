@@ -97,6 +97,7 @@ class Controller:
         }
 
     def forward_msgs(self, _: int):
+        # TODO: check <can_be_forwarded> flag
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
         if not chat_id:
             return
@@ -107,7 +108,6 @@ class Controller:
         self.present_info(f"Forwarded {len(msg_ids)} messages")
 
     def copy_msgs(self):
-        # can_be_forwarded
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
         if not chat_id:
             return
