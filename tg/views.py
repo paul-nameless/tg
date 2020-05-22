@@ -83,7 +83,7 @@ class StatusView:
         self._refresh = self.win.refresh
 
     def resize(self, rows: int, cols: int):
-        self.w = cols
+        self.w = cols - 1
         self.y = rows - 1
         self.win.resize(self.h, self.w)
         self.win.mvwin(self.y, self.x)
@@ -92,7 +92,7 @@ class StatusView:
         self.win.clear()
         if not msg:
             return
-        self.win.addstr(0, 0, msg[: self.w - 1])
+        self.win.addstr(0, 0, msg[: self.w])
         self._refresh()
 
     def get_input(self, msg="") -> str:

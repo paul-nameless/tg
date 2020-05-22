@@ -148,6 +148,10 @@ def truncate_to_len(s: str, target_len: int, encoding: str = "utf-8") -> str:
     return s[: max(1, target_len - 1)]
 
 
+def copy_to_clipboard(text):
+    subprocess.run(config.COPY_CMD, universal_newlines=True, input=text)
+
+
 class suspend:
     def __init__(self, view):
         self.view = view

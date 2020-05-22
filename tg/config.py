@@ -28,7 +28,7 @@ MAX_DOWNLOAD_SIZE = "10MB"
 
 # TODO: check platform
 NOTIFY_CMD = "/usr/local/bin/terminal-notifier -title '{title}' -subtitle '{subtitle}' -message '{msg}' -appIcon '{icon_path}'"
-# TODO: check platform
+
 if _os_name == _linux:
     RECORD_CMD = "ffmpeg -f alsa -i default -ar 22050 -b:a 32k '{file_path}'"
 else:

@@ -12,6 +12,7 @@ from tg.models import Model
 from tg.msg import MsgProxy
 from tg.tdlib import Tdlib
 from tg.utils import (
+    copy_to_clipboard,
     get_duration,
     get_video_resolution,
     get_waveform,
@@ -23,11 +24,13 @@ from tg.utils import (
 from tg.views import View
 
 log = logging.getLogger(__name__)
+
 # start scrolling to next page when number of the msgs left is less than value.
 # note, that setting high values could lead to situations when long msgs will
 # be removed from the display in order to achive scroll threshold. this could
 # cause blan areas on the msg display screen
 MSGS_LEFT_SCROLL_THRESHOLD = 2
+
 key_bind_handler_type = Callable[[Any], Any]
 
 
@@ -42,7 +45,8 @@ class Controller:
     def __init__(self, model: Model, view: View, tg: Tdlib) -> None:
         self.model = model
         self.view = view
-        self.lock = threading.Lock()
+        self.render_lock = threading.Lock()
+        self.render_msgs_lock = threading.Lock()
         self.tg = tg
         self.chat_size = 0.5
 
@@ -91,7 +95,7 @@ class Controller:
             "sv": lambda _: self.send_video(),
             "v": lambda _: self.send_voice(),
             # manipulate msgs
-            "dd": lambda _: self.delete_msg(),
+            "dd": lambda _: self.delete_msgs(),
             "D": lambda _: self.download_current_file(),
             "l": lambda _: self.open_current_msg(),
             "^J": lambda _: self.open_current_msg(),  # enter
@@ -102,11 +106,24 @@ class Controller:
             "A": lambda _: self.write_long_msg(),
             "p": lambda _: self.forward_msgs(),
             "y": lambda _: self.copy_msgs(),
+            "c": lambda _: self.copy_msg_text(),
             # message selection
             " ": lambda _: self.toggle_select_msg(),  # space
             "^G": lambda _: self.discard_selected_msgs(),
             "^[": lambda _: self.discard_selected_msgs(),  # esc
         }
+
+    def copy_msg_text(self):
+        """Copies current msg text or path to file if it's file"""
+        msg = MsgProxy(self.model.current_msg)
+        if msg.file_id:
+            text = msg.local_path
+        elif msg.is_text:
+            text = msg.text_content
+        else:
+            return
+        copy_to_clipboard(text)
+        self.present_info("Copied msg")
 
     def forward_msgs(self):
         # TODO: check <can_be_forwarded> flag
@@ -118,6 +135,7 @@ class Controller:
             return
         self.tg.forward_msgs(chat_id, from_chat_id, msg_ids)
         self.present_info(f"Forwarded {len(msg_ids)} messages")
+        self.model.yanked_msgs = (0, [])
 
     def copy_msgs(self):
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
@@ -142,19 +160,19 @@ class Controller:
         else:
             self.model.selected[chat_id].append(msg.msg_id)
         self.model.next_msg()
-        self.refresh_msgs()
+        self.render_msgs()
 
     def discard_selected_msgs(self):
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
         if not chat_id:
             return
         self.model.selected[chat_id] = []
-        self.refresh_msgs()
+        self.render_msgs()
         self.present_info("Discarded selected messages")
 
     def jump_bottom(self):
         if self.model.jump_bottom():
-            self.refresh_msgs()
+            self.render_msgs()
 
     def next_chat(self, repeat_factor: int):
         if self.model.next_chat(repeat_factor):
@@ -208,11 +226,11 @@ class Controller:
 
     def next_msg(self, repeat_factor: int):
         if self.model.next_msg(repeat_factor):
-            self.refresh_msgs()
+            self.render_msgs()
 
     def prev_msg(self, repeat_factor: int):
         if self.model.prev_msg(repeat_factor):
-            self.refresh_msgs()
+            self.render_msgs()
 
     def breakpoint(self):
         with suspend(self.view):
@@ -237,10 +255,10 @@ class Controller:
         duration = get_duration(file_path)
         self.tg.send_video(file_path, chat_id, width, height, duration)
 
-    def delete_msg(self):
-        if self.model.delete_msg():
-            self.refresh_msgs()
-            self.present_info("Message deleted")
+    def delete_msgs(self):
+        self.model.delete_msgs()
+        self.discard_selected_msgs()
+        self.present_info("Message deleted")
 
     def send_file(self, send_file_fun, *args, **kwargs):
         file_path = self.view.status.get_input()
@@ -316,7 +334,7 @@ class Controller:
         return self.update_status("Info", msg)
 
     def update_status(self, level: str, msg: str):
-        with self.lock:
+        with self.render_lock:
             self.view.status.draw(f"{level}: {msg}")
 
     def edit_msg(self):
@@ -397,7 +415,7 @@ class Controller:
         self.render()
 
     def render(self) -> None:
-        with self.lock:
+        with self.render_lock:
             # using lock here, because render is used from another
             # thread by tdlib python wrapper
             page_size = self.view.chats.h
@@ -409,19 +427,22 @@ class Controller:
             )
 
             self.view.chats.draw(selected_chat, chats)
-            self.refresh_msgs()
+            self.render_msgs()
             self.view.status.draw()
 
-    def refresh_msgs(self) -> None:
-        current_msg_idx = self.model.get_current_chat_msg_idx()
-        if current_msg_idx is None:
-            return
-        msgs = self.model.fetch_msgs(
-            current_position=current_msg_idx,
-            page_size=self.view.msgs.h,
-            msgs_left_scroll_threshold=MSGS_LEFT_SCROLL_THRESHOLD,
-        )
-        self.view.msgs.draw(current_msg_idx, msgs, MSGS_LEFT_SCROLL_THRESHOLD)
+    def render_msgs(self) -> None:
+        with self.render_msgs_lock:
+            current_msg_idx = self.model.get_current_chat_msg_idx()
+            if current_msg_idx is None:
+                return
+            msgs = self.model.fetch_msgs(
+                current_position=current_msg_idx,
+                page_size=self.view.msgs.h,
+                msgs_left_scroll_threshold=MSGS_LEFT_SCROLL_THRESHOLD,
+            )
+            self.view.msgs.draw(
+                current_msg_idx, msgs, MSGS_LEFT_SCROLL_THRESHOLD
+            )
 
     def _notify_for_message(self, chat_id: int, msg: MsgProxy):
         # do not notify, if muted
