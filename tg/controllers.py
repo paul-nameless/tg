@@ -103,13 +103,6 @@ class Controller:
         if self.model.jump_bottom():
             self.refresh_msgs()
 
-    def handle_msgs(self, _: int):
-        rc = self.handle(self.msg_bindings, 0.2)
-        if rc == "QUIT":
-            return rc
-        self.chat_size = 0.5
-        self.resize()
-
     def next_chat(self, repeat_factor: int):
         if self.model.next_chat(repeat_factor):
             self.render()
@@ -226,12 +219,6 @@ class Controller:
         self.tg.send_voice(file_path, chat_id, duration, waveform)
         self.present_info(f"Sent voice msg: {file_path}")
 
-    def run(self) -> None:
-        try:
-            self.handle(self.chat_bindings, 0.5)
-        except Exception:
-            log.exception("Error happened in main loop")
-
     def download_current_file(self):
         msg = MsgProxy(self.model.current_msg)
         log.debug("Downloading msg: %s", msg.msg)
@@ -310,6 +297,34 @@ class Controller:
                     self.model.send_message(text=msg)
                     self.present_info("Message sent")
 
+    def run(self) -> None:
+        try:
+            self.handle(self.chat_bindings, 0.5)
+        except Exception:
+            log.exception("Error happened in main loop")
+
+    def handle_msgs(self, _: int):
+        rc = self.handle(self.msg_bindings, 0.2)
+        if rc == "QUIT":
+            return rc
+        self.chat_size = 0.5
+        self.resize()
+
+    def handle(
+        self, key_bindings: Dict[str, key_bind_handler_type], size: float
+    ):
+        self.chat_size = size
+        self.resize()
+
+        while True:
+            repeat_factor, keys = self.view.get_keys()
+            handler = key_bindings.get(keys, lambda _: None)
+            res = handler(repeat_factor)
+            if res == "QUIT":
+                return res
+            elif res == "BACK":
+                return res
+
     def resize_handler(self, signum, frame):
         curses.endwin()
         self.view.stdscr.refresh()
@@ -327,19 +342,6 @@ class Controller:
         self.view.msgs.resize(rows, cols, 1 - self.chat_size)
         self.view.status.resize(rows, cols)
         self.render()
-
-    def handle(self, key_bindings: Dict[str, key_bind_handler_type], size: float):
-        self.chat_size = size
-        self.resize()
-
-        while True:
-            repeat_factor, keys = self.view.get_keys()
-            handler = key_bindings.get(keys, lambda _: None)
-            res = handler(repeat_factor)
-            if res == "QUIT":
-                return res
-            elif res == "BACK":
-                return res
 
     def render(self) -> None:
         with self.lock:
