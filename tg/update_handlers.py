@@ -249,3 +249,18 @@ def update_delete_msgs(controller: Controller, update: Dict[str, Any]):
     for msg in to_remove:
         msgs.remove(msg)
     controller.render_msgs()
+
+
+@update_handler("updateConnectionState")
+def update_connection_state(controller: Controller, update: Dict[str, Any]):
+    log.info("state:: %s", update)
+    state = update["state"]["@type"]
+    states = {
+        "connectionStateWaitingForNetwork": "Waiting for network...",
+        "connectionStateConnectingToProxy": "Connecting to proxy...",
+        "connectionStateConnecting": "Connecting...",
+        "connectionStateUpdating": "Updating...",
+        "connectionStateReady": "Ready",
+    }
+    msg = states.get(state, "Unknown state")
+    controller.present_info(msg)
