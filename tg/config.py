@@ -29,7 +29,10 @@ MAX_DOWNLOAD_SIZE = "10MB"
 # TODO: check platform
 NOTIFY_CMD = "/usr/local/bin/terminal-notifier -title '{title}' -subtitle '{subtitle}' -message '{msg}' -appIcon '{icon_path}'"
 # TODO: check platform
-RECORD_CMD = "ffmpeg -f avfoundation -i ':0' -ar 22050 -b:a 32k '{file_path}'"
+if _os_name == _linux:
+    RECORD_CMD = "ffmpeg -f alsa -i default -ar 22050 -b:a 32k '{file_path}'"
+else:
+    RECORD_CMD = "ffmpeg -f avfoundation -i default -ar 22050 -b:a 32k '{file_path}'"
 
 # TODO: use mailcap instead of editor
 LONG_MSG_CMD = "vim -c 'startinsert' {file_path}"
