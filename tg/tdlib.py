@@ -1,3 +1,5 @@
+from typing import Any, Dict, List
+
 from telegram.client import AsyncResult, Telegram
 
 
@@ -147,5 +149,27 @@ class Tdlib(Telegram):
             "@type": "openMessageContent",
             "chat_id": chat_id,
             "message_id": message_id,
+        }
+        return self._send_data(data)
+
+    def forward_msgs(
+        self,
+        chat_id: int,
+        from_chat_id: int,
+        message_ids: List[int],
+        as_album: bool = False,
+        send_copy: bool = False,
+        remove_caption: bool = False,
+        options: Dict[str, Any] = {},
+    ) -> AsyncResult:
+        data = {
+            "@type": "forwardMessages",
+            "chat_id": chat_id,
+            "from_chat_id": from_chat_id,
+            "message_ids": message_ids,
+            "as_album": as_album,
+            "send_copy": send_copy,
+            "remove_caption": remove_caption,
+            "options": options,
         }
         return self._send_data(data)
