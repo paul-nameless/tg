@@ -34,7 +34,7 @@ MSGS_LEFT_SCROLL_THRESHOLD = 10
 # cause blan areas on the msg display screen
 MSGS_LEFT_SCROLL_THRESHOLD = 2
 
-key_bind_handler = Callable[[Any], Any]
+key_bind_handler_type = Callable[[Any], Any]
 
 
 class Controller:
@@ -53,7 +53,7 @@ class Controller:
         self.chat_size = 0.5
         signal(SIGWINCH, self.resize_handler)
 
-        self.chat_bindings: Dict[str, key_bind_handler] = {
+        self.chat_bindings: Dict[str, key_bind_handler_type] = {
             "q": lambda _: "QUIT",
             "l": self.handle_msgs,
             "j": self.next_chat,
@@ -70,7 +70,7 @@ class Controller:
             "r": lambda _: self.read_msgs,
         }
 
-        self.msg_bindings: Dict[str, key_bind_handler] = {
+        self.msg_bindings: Dict[str, key_bind_handler_type] = {
             "q": lambda _: "QUIT",
             "h": lambda _: "BACK",
             "^D": lambda _: "BACK",
@@ -328,7 +328,7 @@ class Controller:
         self.view.status.resize(rows, cols)
         self.render()
 
-    def handle(self, key_bindings: Dict[str, key_bind_handler], size: float):
+    def handle(self, key_bindings: Dict[str, key_bind_handler_type], size: float):
         self.chat_size = size
         self.resize()
 
