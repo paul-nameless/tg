@@ -285,7 +285,7 @@ class MsgView:
 
         if not flags:
             return ""
-        return ",".join(flags)
+        return " ".join(flags)
 
     def _format_reply_msg(self, chat_id: int, msg: str, reply_to: int) -> str:
         reply_msg = MsgProxy(self.msg_model.get_message(chat_id, reply_to))
