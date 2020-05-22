@@ -46,7 +46,6 @@ class Controller:
         self.model = model
         self.view = view
         self.render_lock = threading.Lock()
-        self.render_msgs_lock = threading.Lock()
         self.tg = tg
         self.chat_size = 0.5
 
@@ -431,18 +430,17 @@ class Controller:
             self.view.status.draw()
 
     def render_msgs(self) -> None:
-        with self.render_msgs_lock:
-            current_msg_idx = self.model.get_current_chat_msg_idx()
-            if current_msg_idx is None:
-                return
-            msgs = self.model.fetch_msgs(
-                current_position=current_msg_idx,
-                page_size=self.view.msgs.h,
-                msgs_left_scroll_threshold=MSGS_LEFT_SCROLL_THRESHOLD,
-            )
-            self.view.msgs.draw(
-                current_msg_idx, msgs, MSGS_LEFT_SCROLL_THRESHOLD
-            )
+        current_msg_idx = self.model.get_current_chat_msg_idx()
+        if current_msg_idx is None:
+            return
+        msgs = self.model.fetch_msgs(
+            current_position=current_msg_idx,
+            page_size=self.view.msgs.h,
+            msgs_left_scroll_threshold=MSGS_LEFT_SCROLL_THRESHOLD,
+        )
+        self.view.msgs.draw(
+            current_msg_idx, msgs, MSGS_LEFT_SCROLL_THRESHOLD
+        )
 
     def _notify_for_message(self, chat_id: int, msg: MsgProxy):
         # do not notify, if muted

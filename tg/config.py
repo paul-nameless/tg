@@ -46,9 +46,9 @@ else:
     DEFAULT_OPEN = "open '{file_path}'"
 
 if _os_name == _linux:
-    DEFAULT_COPY = "xclip -selection c"
+    COPY_CMD = "xclip -selection c"
 else:
-    DEFAULT_COPY = "pbcopy"
+    COPY_CMD = "pbcopy"
 
 
 if os.path.isfile(DEFAULT_CONFIG):
