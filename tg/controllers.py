@@ -4,7 +4,6 @@ import os
 import threading
 from datetime import datetime
 from functools import partial
-from signal import SIGWINCH, signal
 from tempfile import NamedTemporaryFile
 from typing import Any, Callable, Dict, Optional
 
@@ -51,7 +50,6 @@ class Controller:
         self.lock = threading.Lock()
         self.tg = tg
         self.chat_size = 0.5
-        signal(SIGWINCH, self.resize_handler)
 
         self.chat_bindings: Dict[str, key_bind_handler] = {
             "q": lambda _: "QUIT",
@@ -62,18 +60,20 @@ class Controller:
             "^P": self.prev_chat,
             "J": lambda _: self.next_chat(10),
             "K": lambda _: self.prev_chat(10),
-            "gg": lambda _: self.first_chat,
-            "bp": lambda _: self.breakpoint,
-            "u": lambda _: self.toggle_unread,
-            "p": lambda _: self.toggle_pin,
-            "m": lambda _: self.toggle_mute,
-            "r": lambda _: self.read_msgs,
+            "gg": lambda _: self.first_chat(),
+            "bp": lambda _: self.breakpoint(),
+            "u": lambda _: self.toggle_unread(),
+            "p": lambda _: self.toggle_pin(),
+            "m": lambda _: self.toggle_mute(),
+            "r": lambda _: self.read_msgs(),
         }
 
         self.msg_bindings: Dict[str, key_bind_handler] = {
             "q": lambda _: "QUIT",
             "h": lambda _: "BACK",
+            "bp": lambda _: self.breakpoint(),
             "^D": lambda _: "BACK",
+            # navigate msgs
             "]": self.next_chat,
             "[": self.prev_chat,
             "J": lambda _: self.next_msg(10),
@@ -82,18 +82,27 @@ class Controller:
             "^N": self.next_msg,
             "k": self.prev_msg,
             "^P": self.prev_msg,
-            "G": lambda _: self.jump_bottom,
-            "dd": lambda _: self.delete_msg,
-            "D": lambda _: self.download_current_file,
-            "l": lambda _: self.open_current_msg,
+            "G": lambda _: self.jump_bottom(),
+            # send files
             "sd": lambda _: self.send_file(self.tg.send_doc),
             "sp": lambda _: self.send_file(self.tg.send_photo),
             "sa": lambda _: self.send_file(self.tg.send_audio),
-
-            " ": lambda _: self.toggle_select_msg,
-            "^[": lambda _: self.discard_selected_msgs,  # esc
-            "y": lambda _: self.copy_msgs,
-            "p": lambda _: self.forward_msgs,
+            "sv": lambda _: self.send_video(),
+            "v": lambda _: self.send_voice(),
+            # manipulate msgs
+            "dd": lambda _: self.delete_msg(),
+            "D": lambda _: self.download_current_file(),
+            "l": lambda _: self.open_current_msg(),
+            "e": lambda _: self.edit_msg(),
+            "i": lambda _: self.write_short_msg(),
+            "a": lambda _: self.write_short_msg(),
+            "I": lambda _: self.write_long_msg(),
+            "A": lambda _: self.write_long_msg(),
+            "p": lambda _: self.forward_msgs(),
+            "y": lambda _: self.copy_msgs(),
+            # message selection
+            " ": lambda _: self.toggle_select_msg(),
+            "^[": lambda _: self.discard_selected_msgs(),  # esc
         }
 
     def forward_msgs(self, _: int):

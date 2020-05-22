@@ -1,7 +1,9 @@
 import base64
 import curses
 import logging
+import mailcap
 import math
+import mimetypes
 import os
 import random
 import re
@@ -28,6 +30,17 @@ emoji_pattern = re.compile(
     flags=re.UNICODE,
 )
 units = {"B": 1, "KB": 10 ** 3, "MB": 10 ** 6, "GB": 10 ** 9, "TB": 10 ** 12}
+
+
+def get_file_handler(file_name, default=None):
+    mtype, _ = mimetypes.guess_type(file_name)
+    if not mtype:
+        return default
+    caps = mailcap.getcaps()
+    handler, view = mailcap.findmatch(caps, mtype, filename=file_name)
+    if not handler:
+        return None
+    return handler
 
 
 def parse_size(size):
@@ -110,7 +123,7 @@ def notify(
     msg,
     subtitle="",
     title="tg",
-    cmd=config.get_cfg()["DEFAULT"].get("notify_cmd"),
+    cmd=config.NOTIFY_CMD,
 ):
     if not cmd:
         return
@@ -146,7 +159,7 @@ class suspend:
         subprocess.call(cmd, shell=True)
 
     def open_file(self, file_path):
-        cmd = config.get_file_handler(file_path)
+        cmd = get_file_handler(file_path)
         if not cmd:
             return
         self.call(cmd)

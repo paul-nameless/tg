@@ -14,14 +14,34 @@ from tg.views import ChatView, MsgView, StatusView, View
 log = logging.getLogger(__name__)
 
 
-def run(tg: Tdlib, stdscr: window) -> None:
-    # run this function in thread?
+def main(stdscr: window) -> None:
+    utils.setup_log(config.LOG_LEVEL)
+    tg = Tdlib(
+        api_id=config.API_ID,
+        api_hash=config.API_HASH,
+        phone=config.PHONE,
+        database_encryption_key=config.ENC_KEY,
+        files_directory=config.DEFAULT_FILES,
+        tdlib_verbosity=config.TDLIB_VERBOSITY,
+        library_path=config.TDLIB_PATH,
+    )
+    tg.login()
+
+    # handle ctrl+c, to avoid interrupting tg when subprocess is called
+    def interrupt_signal_handler(sig, frame):
+        # TODO: draw on status pane: to quite press <q>
+        log.info("Interrupt signal is handled and ignored on purpose")
+    signal.signal(signal.SIGINT, interrupt_signal_handler)
+
     model = Model(tg)
     status_view = StatusView(stdscr)
     msg_view = MsgView(stdscr, model.msgs, model, model.users)
     chat_view = ChatView(stdscr)
     view = View(stdscr, chat_view, msg_view, status_view)
     controller = Controller(model, view, tg)
+    # hanlde resize of terminal correctly
+    signal.signal(signal.SIGWINCH, controller.resize_handler)
+
     for msg_type, handler in update_handlers.handlers.items():
         tg.add_update_handler(msg_type, partial(handler, controller))
 
@@ -30,33 +50,5 @@ def run(tg: Tdlib, stdscr: window) -> None:
     t.join()
 
 
-def main():
-    def signal_handler(sig, frame):
-        log.info("You pressed Ctrl+C!")
-
-    signal.signal(signal.SIGINT, signal_handler)
-
-    cfg = config.get_cfg()["DEFAULT"]
-    utils.setup_log(cfg.get("level", "DEBUG"))
-    log.debug("#" * 64)
-    tg = Tdlib(
-        api_id=cfg["api_id"],
-        api_hash=cfg["api_hash"],
-        phone=cfg["phone"],
-        database_encryption_key=cfg["enc_key"],
-        files_directory=cfg.get("files", config.DEFAULT_FILES),
-        tdlib_verbosity=cfg.get("tdlib_verbosity", 0),
-        library_path=cfg.get("library_path"),
-    )
-    config.max_download_size = utils.parse_size(
-        cfg.get("max_download_size", config.max_download_size)
-    )
-    config.record_cmd = cfg.get("record_cmd", config.record_cmd)
-    config.long_msg_cmd = cfg.get("long_msg_cmd", config.long_msg_cmd)
-    tg.login()
-
-    wrapper(partial(run, tg))
-
-
 if __name__ == "__main__":
-    main()
+    wrapper(main())
