@@ -48,7 +48,7 @@ class Controller:
     def __init__(self, model: Model, view: View, tg: Tdlib) -> None:
         self.model = model
         self.view = view
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
         self.tg = tg
         self.chat_size = 0.5
         signal(SIGWINCH, self.resize_handler)
@@ -416,7 +416,8 @@ class Controller:
             page_size=self.view.msgs.h,
             msgs_left_scroll_threshold=MSGS_LEFT_SCROLL_THRESHOLD,
         )
-        self.view.msgs.draw(current_msg_idx, msgs, MSGS_LEFT_SCROLL_THRESHOLD)
+        with self.lock:
+            self.view.msgs.draw(current_msg_idx, msgs, MSGS_LEFT_SCROLL_THRESHOLD)
 
     def _notify_for_message(self, chat_id: int, msg: MsgProxy):
         # do not notify, if muted
