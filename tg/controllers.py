@@ -62,12 +62,12 @@ class Controller:
             "^P": self.prev_chat,
             "J": lambda _: self.next_chat(10),
             "K": lambda _: self.prev_chat(10),
-            "gg": self.first_chat,
-            "bp": self.breakpoint,
-            "u": self.toggle_unread,
-            "p": self.toggle_pin,
-            "m": self.toggle_mute,
-            "r": self.read_msgs,
+            "gg": lambda _: self.first_chat,
+            "bp": lambda _: self.breakpoint,
+            "u": lambda _: self.toggle_unread,
+            "p": lambda _: self.toggle_pin,
+            "m": lambda _: self.toggle_mute,
+            "r": lambda _: self.read_msgs,
         }
 
         self.msg_bindings: Dict[str, key_bind_handler] = {
@@ -82,25 +82,24 @@ class Controller:
             "^N": self.next_msg,
             "k": self.prev_msg,
             "^P": self.prev_msg,
-            "G": self.jump_bottom,
-            "dd": self.delete_msg,
-            "D": self.download_current_file,
-            "l": self.open_current_msg,
+            "G": lambda _: self.jump_bottom,
+            "dd": lambda _: self.delete_msg,
+            "D": lambda _: self.download_current_file,
+            "l": lambda _: self.open_current_msg,
             "sd": lambda _: self.send_file(self.tg.send_doc),
             "sp": lambda _: self.send_file(self.tg.send_photo),
             "sa": lambda _: self.send_file(self.tg.send_audio),
-            "sv": self.send_video,
-            "v": self.send_voice,
-            "e": self.edit_msg,
-            "i": self.write_short_msg,
-            "a": self.write_short_msg,
-            "I": self.write_long_msg,
-            "A": self.write_long_msg,
-            "bp": self.breakpoint,
+            "sv": lambda _: self.send_video,
+            "v": lambda _: self.send_voice,
+            "e": lambda _: self.edit_msg,
+            "i": lambda _: self.write_short_msg,
+            "a": lambda _: self.write_short_msg,
+            "I": lambda _: self.write_long_msg,
+            "A": lambda _: self.write_long_msg,
+            "bp": lambda _: self.breakpoint,
         }
 
-    def jump_bottom(self, _: int):
-        log.info("jump_bottom:")
+    def jump_bottom(self):
         if self.model.jump_bottom():
             self.refresh_msgs()
 
@@ -111,33 +110,33 @@ class Controller:
         self.chat_size = 0.5
         self.resize()
 
-    def next_chat(self, rf: int):
-        if self.model.next_chat(rf):
+    def next_chat(self, repeat_factor: int):
+        if self.model.next_chat(repeat_factor):
             self.render()
 
-    def prev_chat(self, rf: int):
-        if self.model.prev_chat(rf):
+    def prev_chat(self, repeat_factor: int):
+        if self.model.prev_chat(repeat_factor):
             self.render()
 
-    def first_chat(self, _: int):
+    def first_chat(self):
         if self.model.first_chat():
             self.render()
 
-    def toggle_unread(self, _: int):
+    def toggle_unread(self):
         chat = self.model.chats.chats[self.model.current_chat]
         chat_id = chat["id"]
         toggle = not chat["is_marked_as_unread"]
         self.tg.toggle_chat_is_marked_as_unread(chat_id, toggle)
         self.render()
 
-    def read_msgs(self, _: int):
+    def read_msgs(self):
         chat = self.model.chats.chats[self.model.current_chat]
         chat_id = chat["id"]
         msg_id = chat["last_message"]["id"]
         self.tg.view_messages(chat_id, [msg_id])
         self.render()
 
-    def toggle_mute(self, _: int):
+    def toggle_mute(self):
         # TODO: if it's msg to yourself, do not change its
         # notification setting, because we can't by documentation,
         # instead write about it in status
@@ -154,26 +153,26 @@ class Controller:
         self.tg.set_chat_nottification_settings(chat_id, notification_settings)
         self.render()
 
-    def toggle_pin(self, _: int):
+    def toggle_pin(self):
         chat = self.model.chats.chats[self.model.current_chat]
         chat_id = chat["id"]
         toggle = not chat["is_pinned"]
         self.tg.toggle_chat_is_pinned(chat_id, toggle)
         self.render()
 
-    def next_msg(self, rf: int):
-        if self.model.next_msg(rf):
+    def next_msg(self, repeat_factor: int):
+        if self.model.next_msg(repeat_factor):
             self.refresh_msgs()
 
-    def prev_msg(self, rf: int):
-        if self.model.prev_msg(rf):
+    def prev_msg(self, repeat_factor: int):
+        if self.model.prev_msg(repeat_factor):
             self.refresh_msgs()
 
-    def breakpoint(self, _: int):
+    def breakpoint(self):
         with suspend(self.view):
             breakpoint()
 
-    def write_short_msg(self, _: int):
+    def write_short_msg(self):
         # write new message
         if msg := self.view.status.get_input():
             self.model.send_message(text=msg)
@@ -181,7 +180,7 @@ class Controller:
         else:
             self.present_info("Message wasn't sent")
 
-    def send_video(self, _: int):
+    def send_video(self):
         file_path = self.view.status.get_input()
         if not file_path or not os.path.isfile(file_path):
             return
@@ -192,7 +191,7 @@ class Controller:
         duration = get_duration(file_path)
         self.tg.send_video(file_path, chat_id, width, height, duration)
 
-    def delete_msg(self, _: int):
+    def delete_msg(self):
         if self.model.delete_msg():
             self.refresh_msgs()
             self.present_info("Message deleted")
@@ -204,7 +203,7 @@ class Controller:
             send_file_fun(file_path, chat_id, *args, **kwargs)
             self.present_info("File sent")
 
-    def send_voice(self, _: int):
+    def send_voice(self):
         file_path = f"/tmp/voice-{datetime.now()}.oga"
         with suspend(self.view) as s:
             s.call(config.record_cmd.format(file_path=file_path))
@@ -233,7 +232,7 @@ class Controller:
         except Exception:
             log.exception("Error happened in main loop")
 
-    def download_current_file(self, _: int):
+    def download_current_file(self):
         msg = MsgProxy(self.model.current_msg)
         log.debug("Downloading msg: %s", msg.msg)
         file_id = msg.file_id
@@ -249,7 +248,7 @@ class Controller:
         self.tg.download_file(file_id=file_id)
         log.info("Downloaded: file_id=%s", file_id)
 
-    def open_current_msg(self, _: int):
+    def open_current_msg(self):
         msg = MsgProxy(self.model.current_msg)
         if msg.is_text:
             with NamedTemporaryFile("w", suffix=".txt") as f:
@@ -280,7 +279,7 @@ class Controller:
         with self.lock:
             self.view.status.draw(f"{level}: {msg}")
 
-    def edit_msg(self, _: int):
+    def edit_msg(self):
         msg = MsgProxy(self.model.current_msg)
         log.info("Editing msg: %s", msg.msg)
         if not self.model.is_me(msg.sender_id):
@@ -301,7 +300,7 @@ class Controller:
                     self.model.edit_message(text=text)
                     self.present_info("Message edited")
 
-    def write_long_msg(self, _: int):
+    def write_long_msg(self):
         with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(
             self.view
         ) as s:
