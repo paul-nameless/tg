@@ -105,13 +105,13 @@ class Controller:
             "^[": lambda _: self.discard_selected_msgs(),  # esc
         }
 
-    def forward_msgs(self, _: int):
+    def forward_msgs(self):
         # TODO: check <can_be_forwarded> flag
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
         if not chat_id:
             return
         from_chat_id, msg_ids = self.model.yanked_msgs
-        if from_chat_id is None:
+        if not msg_ids:
             return
         self.tg.forward_msgs(chat_id, from_chat_id, msg_ids)
         self.present_info(f"Forwarded {len(msg_ids)} messages")
@@ -140,7 +140,6 @@ class Controller:
             self.model.selected[chat_id].append(msg.msg_id)
         self.model.next_msg()
         self.refresh_msgs()
-        self.present_info("Removed selections")
 
     def discard_selected_msgs(self):
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
@@ -148,6 +147,7 @@ class Controller:
             return
         self.model.selected[chat_id] = []
         self.refresh_msgs()
+        self.present_info("Discarded selected messages")
 
     def jump_bottom(self):
         if self.model.jump_bottom():
