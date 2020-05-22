@@ -49,9 +49,13 @@ class Controller:
         self.chat_bindings: Dict[str, key_bind_handler_type] = {
             "q": lambda _: "QUIT",
             "l": self.handle_msgs,
+            "^J": self.handle_msgs,  # enter
+            "^E": self.handle_msgs,  # arrow right
             "j": self.next_chat,
+            "^B": self.next_chat,  # arrow down
             "^N": self.next_chat,
             "k": self.prev_chat,
+            "^C": self.prev_chat,  # arrow up
             "^P": self.prev_chat,
             "J": lambda _: self.next_chat(10),
             "K": lambda _: self.prev_chat(10),
@@ -67,15 +71,17 @@ class Controller:
             "q": lambda _: "QUIT",
             "h": lambda _: "BACK",
             "bp": lambda _: self.breakpoint(),
-            "^D": lambda _: "BACK",
+            "^D": lambda _: "BACK",  # arrow left
             # navigate msgs
             "]": self.next_chat,
             "[": self.prev_chat,
             "J": lambda _: self.next_msg(10),
             "K": lambda _: self.prev_msg(10),
             "j": self.next_msg,
+            "^B": self.next_msg,  # arrow down
             "^N": self.next_msg,
             "k": self.prev_msg,
+            "^C": self.prev_msg,  # arrow left
             "^P": self.prev_msg,
             "G": lambda _: self.jump_bottom(),
             # send files
@@ -88,6 +94,7 @@ class Controller:
             "dd": lambda _: self.delete_msg(),
             "D": lambda _: self.download_current_file(),
             "l": lambda _: self.open_current_msg(),
+            "^J": lambda _: self.open_current_msg(),  # enter
             "e": lambda _: self.edit_msg(),
             "i": lambda _: self.write_short_msg(),
             "a": lambda _: self.write_short_msg(),
@@ -96,7 +103,8 @@ class Controller:
             "p": lambda _: self.forward_msgs(),
             "y": lambda _: self.copy_msgs(),
             # message selection
-            " ": lambda _: self.toggle_select_msg(),
+            " ": lambda _: self.toggle_select_msg(),  # space
+            "^G": lambda _: self.discard_selected_msgs(),
             "^[": lambda _: self.discard_selected_msgs(),  # esc
         }
 
