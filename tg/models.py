@@ -284,9 +284,9 @@ class MsgModel:
             if message["id"] != msg_id:
                 continue
             msg = MsgProxy(message)
-            if msg.type == "voice":
+            if msg.content_type == "voice":
                 msg.is_listened = True
-            elif msg.type == "recording":
+            elif msg.content_type == "recording":
                 msg.is_viewed = True
             # TODO: start the TTL timer for self-destructing messages
             # that is the last case to implement

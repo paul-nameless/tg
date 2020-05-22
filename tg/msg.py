@@ -114,7 +114,7 @@ class MsgProxy:
 
     @property
     def local_path(self):
-        if self.msg["content"]["@type"] not in self.types:
+        if self.msg["content"]["@type"] is None:
             return None
         doc = self.get_doc(self.msg)
         return doc["local"]["path"]
@@ -126,7 +126,7 @@ class MsgProxy:
 
     @local.setter
     def local(self, value):
-        if self.msg["content"]["@type"] not in self.types:
+        if self.msg["content"]["@type"] is None:
             return None
         doc = self.get_doc(self.msg)
         doc["local"] = value
@@ -146,27 +146,25 @@ class MsgProxy:
 
     @property
     def is_listened(self) -> Optional[bool]:
-        if self.type != "voice":
+        if self.content_type != "voice":
             return None
         return self.msg["content"]["is_listened"]
 
     @is_listened.setter
     def is_listened(self, value: bool):
-        if self.type != "voice":
-            return None
-        self.msg["content"]["is_listened"] = value
+        if self.content_type == "voice":
+            self.msg["content"]["is_listened"] = value
 
     @property
     def is_viewed(self) -> Optional[bool]:
-        if self.type != "recording":
+        if self.content_type != "recording":
             return None
         return self.msg["content"]["is_viewed"]
 
     @is_viewed.setter
     def is_viewed(self, value: bool):
-        if self.type != "recording":
-            return None
-        self.msg["content"]["is_viewed"] = value
+        if self.content_type == "recording":
+            self.msg["content"]["is_viewed"] = value
 
     @property
     def msg_id(self) -> int:
