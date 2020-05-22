@@ -6,7 +6,7 @@ import os
 DEFAULT_CONFIG = os.path.expanduser("~/.config/tg/tg.conf")
 DEFAULT_FILES = os.path.expanduser("~/.cache/tg/")
 max_download_size = "10MB"
-record_cmd = None
+record_cmd = "ffmpeg -f avfoundation -i ':0' -ar 22050 -b:a 32k '{file_path}'"
 long_msg_cmd = "vim -c 'startinsert' {file_path}"
 editor = os.environ.get("EDITOR", "vi")
 
