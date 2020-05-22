@@ -34,7 +34,7 @@ MSGS_LEFT_SCROLL_THRESHOLD = 10
 # cause blan areas on the msg display screen
 MSGS_LEFT_SCROLL_THRESHOLD = 2
 
-key_bind_handler = Callable[[Any], Any]
+key_bind_handler_type = Callable[[Any], Any]
 
 
 class Controller:
@@ -53,7 +53,7 @@ class Controller:
         self.chat_size = 0.5
         signal(SIGWINCH, self.resize_handler)
 
-        self.chat_bindings: Dict[str, key_bind_handler] = {
+        self.chat_bindings: Dict[str, key_bind_handler_type] = {
             "q": lambda _: "QUIT",
             "l": self.handle_msgs,
             "j": self.next_chat,
@@ -62,15 +62,15 @@ class Controller:
             "^P": self.prev_chat,
             "J": lambda _: self.next_chat(10),
             "K": lambda _: self.prev_chat(10),
-            "gg": lambda _: self.first_chat,
-            "bp": lambda _: self.breakpoint,
-            "u": lambda _: self.toggle_unread,
-            "p": lambda _: self.toggle_pin,
-            "m": lambda _: self.toggle_mute,
-            "r": lambda _: self.read_msgs,
+            "gg": lambda _: self.first_chat(),
+            "bp": lambda _: self.breakpoint(),
+            "u": lambda _: self.toggle_unread(),
+            "p": lambda _: self.toggle_pin(),
+            "m": lambda _: self.toggle_mute(),
+            "r": lambda _: self.read_msgs(),
         }
 
-        self.msg_bindings: Dict[str, key_bind_handler] = {
+        self.msg_bindings: Dict[str, key_bind_handler_type] = {
             "q": lambda _: "QUIT",
             "h": lambda _: "BACK",
             "^D": lambda _: "BACK",
@@ -82,18 +82,26 @@ class Controller:
             "^N": self.next_msg,
             "k": self.prev_msg,
             "^P": self.prev_msg,
-            "G": lambda _: self.jump_bottom,
-            "dd": lambda _: self.delete_msg,
-            "D": lambda _: self.download_current_file,
-            "l": lambda _: self.open_current_msg,
+            "G": lambda _: self.jump_bottom(),
+            "dd": lambda _: self.delete_msg(),
+            "D": lambda _: self.download_current_file(),
+            "l": lambda _: self.open_current_msg(),
             "sd": lambda _: self.send_file(self.tg.send_doc),
             "sp": lambda _: self.send_file(self.tg.send_photo),
             "sa": lambda _: self.send_file(self.tg.send_audio),
+            "sv": lambda _: self.send_video(),
+            "v": lambda _: self.send_voice(),
+            "e": lambda _: self.edit_msg(),
+            "i": lambda _: self.write_short_msg(),
+            "a": lambda _: self.write_short_msg(),
+            "I": lambda _: self.write_long_msg(),
+            "A": lambda _: self.write_long_msg(),
+            "bp": lambda _: self.breakpoint(),
 
-            " ": lambda _: self.toggle_select_msg,
-            "^[": lambda _: self.discard_selected_msgs,  # esc
-            "y": lambda _: self.copy_msgs,
-            "p": lambda _: self.forward_msgs,
+            " ": lambda _: self.toggle_select_msg(),
+            "^[": lambda _: self.discard_selected_msgs(),  # esc
+            "y": lambda _: self.copy_msgs(),
+            "p": lambda _: self.forward_msgs(),
         }
 
     def forward_msgs(self, _: int):
@@ -143,13 +151,6 @@ class Controller:
     def jump_bottom(self):
         if self.model.jump_bottom():
             self.refresh_msgs()
-
-    def handle_msgs(self, _: int):
-        rc = self.handle(self.msg_bindings, 0.2)
-        if rc == "QUIT":
-            return rc
-        self.chat_size = 0.5
-        self.resize()
 
     def next_chat(self, repeat_factor: int):
         if self.model.next_chat(repeat_factor):
@@ -267,12 +268,6 @@ class Controller:
         self.tg.send_voice(file_path, chat_id, duration, waveform)
         self.present_info(f"Sent voice msg: {file_path}")
 
-    def run(self) -> None:
-        try:
-            self.handle(self.chat_bindings, 0.5)
-        except Exception:
-            log.exception("Error happened in main loop")
-
     def download_current_file(self):
         msg = MsgProxy(self.model.current_msg)
         log.debug("Downloading msg: %s", msg.msg)
@@ -351,6 +346,34 @@ class Controller:
                     self.model.send_message(text=msg)
                     self.present_info("Message sent")
 
+    def run(self) -> None:
+        try:
+            self.handle(self.chat_bindings, 0.5)
+        except Exception:
+            log.exception("Error happened in main loop")
+
+    def handle_msgs(self, _: int):
+        rc = self.handle(self.msg_bindings, 0.2)
+        if rc == "QUIT":
+            return rc
+        self.chat_size = 0.5
+        self.resize()
+
+    def handle(
+        self, key_bindings: Dict[str, key_bind_handler_type], size: float
+    ):
+        self.chat_size = size
+        self.resize()
+
+        while True:
+            repeat_factor, keys = self.view.get_keys()
+            handler = key_bindings.get(keys, lambda _: None)
+            res = handler(repeat_factor)
+            if res == "QUIT":
+                return res
+            elif res == "BACK":
+                return res
+
     def resize_handler(self, signum, frame):
         curses.endwin()
         self.view.stdscr.refresh()
@@ -368,19 +391,6 @@ class Controller:
         self.view.msgs.resize(rows, cols, 1 - self.chat_size)
         self.view.status.resize(rows, cols)
         self.render()
-
-    def handle(self, key_bindings: Dict[str, key_bind_handler], size: float):
-        self.chat_size = size
-        self.resize()
-
-        while True:
-            repeat_factor, keys = self.view.get_keys()
-            handler = key_bindings.get(keys, lambda _: None)
-            res = handler(repeat_factor)
-            if res == "QUIT":
-                return res
-            elif res == "BACK":
-                return res
 
     def render(self) -> None:
         with self.lock:
