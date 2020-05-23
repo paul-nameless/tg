@@ -241,13 +241,8 @@ def update_message_content_opened(
 def update_delete_msgs(controller: Controller, update: Dict[str, Any]):
     chat_id = update["chat_id"]
     msg_ids = update["message_ids"]
-    msgs = controller.model.msgs.msgs[chat_id]
-    to_remove = []
-    for msg in msgs:
-        if msg["id"] in msg_ids:
-            to_remove.append(msg)
-    for msg in to_remove:
-        msgs.remove(msg)
+    for msg_id in msg_ids:
+        controller.model.msgs.remove_message(chat_id, msg_id)
     controller.render_msgs()
 
 
