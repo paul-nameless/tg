@@ -440,9 +440,7 @@ class Controller:
             page_size=self.view.msgs.h,
             msgs_left_scroll_threshold=MSGS_LEFT_SCROLL_THRESHOLD,
         )
-        self.view.msgs.draw(
-            current_msg_idx, msgs, MSGS_LEFT_SCROLL_THRESHOLD
-        )
+        self.view.msgs.draw(current_msg_idx, msgs, MSGS_LEFT_SCROLL_THRESHOLD)
 
     def _notify_for_message(self, chat_id: int, msg: MsgProxy):
         # do not notify, if muted
