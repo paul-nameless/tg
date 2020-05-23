@@ -45,7 +45,8 @@ class Controller:
     def __init__(self, model: Model, view: View, tg: Tdlib) -> None:
         self.model = model
         self.view = view
-        self.render_lock = threading.Lock()
+        self.render_lock = threading.RLock()
+        self.render_status_lock = threading.RLock()
         self.tg = tg
         self.chat_size = 0.5
 
@@ -333,7 +334,7 @@ class Controller:
         return self.update_status("Info", msg)
 
     def update_status(self, level: str, msg: str):
-        with self.render_lock:
+        with self.render_status_lock:
             self.view.status.draw(f"{level}: {msg}")
 
     def edit_msg(self):
@@ -427,7 +428,8 @@ class Controller:
 
             self.view.chats.draw(selected_chat, chats)
             self.render_msgs()
-            self.view.status.draw()
+            with self.render_status_lock:
+                self.view.status.draw()
 
     def render_msgs(self) -> None:
         current_msg_idx = self.model.get_current_chat_msg_idx()
