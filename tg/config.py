@@ -35,7 +35,7 @@ if _os_name == _linux:
     )
 else:
     VOICE_RECORD_CMD = (
-        "ffmpeg -f avfoundation -i default -ar 22050 -b:a 32k '{file_path}'"
+        "ffmpeg -f avfoundation -i ':0' -ar 22050 -b:a 32k '{file_path}'"
     )
 
 # TODO: use mailcap instead of editor
