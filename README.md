@@ -1,10 +1,30 @@
 # tg
 
-Console telegram client.
+Terminal telegram client.
 
-(!) currently in development
+(!) usable but still in development
 
-More documentation and plans for this project at [wiki](https://github.com/paul-nameless/tg/wiki)
+
+## Features
+
+- [X] view mediafiles: photo, video, voice/video notes, documents
+- [X] ability to send pictures, documents, audio, video
+- [X] reply, edit, forward, delete, send messages
+- [X] stickers
+- [X] notifications
+- [X] record and send voice msgs
+- [X] auto download files
+- [X] toggle chats: pin/unpin, mark as read/unread, mute/unmute
+- [X] Message history
+
+TODO:
+
+- [ ] secret chats
+- [ ] list contacts
+- [ ] search
+- [ ] show users and their status in current chat
+- [ ] create new chat
+- [ ] bots (bot keyboard)
 
 
 ## Requirements
@@ -16,28 +36,111 @@ More documentation and plans for this project at [wiki](https://github.com/paul-
   ```
 - `python3.8`
 - `pip3 install python-telegram`
-- config file at `~/.config/tg/tg.conf`
-  ```ini
-  [DEFAULT]
-  api_id = [api id]
-  api_hash = [api hash]
-  phone = [phone]
-  enc_key = [random key for encrypting your database]
-  notify_cmd = /usr/local/bin/terminal-notifier -title "{title}" -subtitle "{subtitle}" -message "{msg}" -appIcon "{icon_path}" -sound default
-  record_cmd = ffmpeg -f avfoundation -i ":0" '{file_path}'
+- config file at `~/.config/tg/conf.py`
+  ```python
+  phone = "[your phone number]"
+  enc_key = "[telegram db encryption key]"
   ```
-  Where:
-    - `app_id` and `api_hash` is keys from [telegram](https://core.telegram.org/api/obtaining_api_id)
-    - `phone` your phone number (or login)
-    - `notify_cmd` can be any executable
-    - `record_cmd` command to record audio (example for macOS)
+- terminal-notifier or other program for notifications
+- ffmpeg - to record voice msgs
+
 
 ## Usage
 
-Clone repository and run it
+Clone repository and run it:
 
 ```sh
 git clone git@github.com:paul-nameless/tg.git
 cd tg
 PYTHONPATH=. python3 tg/main.py
 ```
+
+
+## Configuration
+
+Config file should be stored at `~/.config/tg/conf.py`. This is simple python file.
+
+### Simple config:
+
+```python
+phone = "[your phone number]"
+enc_key = "[telegram db encryption key]"
+```
+
+### Advanced configuration:
+
+```python
+import os
+
+# You can write anything you want here, file will be executed at start time
+# You can keep you sensitive information in password managers or gpg
+# encrypted files for example
+def get_pass(key):
+    # retrieves key from password store
+    return os.popen("pass show {} | head -n 1".format(key)).read().strip()
+
+
+phone = get_pass("i/telegram-phone")
+enc_key = get_pass("i/telegram-enc-key")
+
+# log level for debugging
+log_level = "DEBUG"
+
+# If you have problems with tdlib shipped with the client, you can install and
+# use your own
+tdlib_path = "/usr/local/Cellar/tdlib/1.6.0/lib/libtdjson.dylib"
+
+# you can use any other notification cmd, it is simple python file which
+# can format title, msg, subtitle and icon_path paramters
+# In these exapmle, kitty terminal is used and when notification is pressed
+# it will focus on the tab of running tg
+notify_cmd = '/usr/local/bin/terminal-notifier -title "{title}" -subtitle "{subtitle}" -message "{msg}" -appIcon "{icon_path}" -sound default -execute \'/Applications/kitty.app/Contents/MacOS/kitty @ --to unix:/tmp/kitty focus-tab --no-response -m title:tg\''
+
+# you can customize to use your own voice recording cmd
+voice_record_cmd = "ffmpeg -f avfoundation -i ':0' -ar 22050 -b:a 32k '{file_path}'"
+```
+
+
+## Keybindings
+
+vi like keybindings are used in the project. Can be used commands like `4j` - 4 lines down.
+
+For navigation arrow keys also can be used.
+
+### Chats:
+
+- `j,k`: move up/down
+- `J,K`: move 10 chats up/down
+- `l`: open msgs of the chat
+- `m`: mute/unmute current chat
+- `p`: pin/unpin current chat
+- `u`: mark read/unread
+- `r`: read current chat
+
+## Msgs:
+
+- `j,k`: move up/down
+- `J,K`: move 10 msgs up/down
+- `G`: move to the last msg (at the bottom)
+- `l`: if video, pics or audio then open app specified in mailcap file, for example:
+  ```
+  # Images
+  image/png; icat %s && read
+  audio/*; mpv %s
+  ```
+  if text, open in less (to view multiline msgs)
+- `e`: edit current msg
+- `<space>`: space can be used to select multiple msgs for deletion or forwarding
+- `y`: yank (copy) selected msgs with <space> to internal buffer
+- `p`: forward (paste) yanked (copied) msgs to current chat
+- `dd`: delete msg for everybody (multiple messages will be deleted if selected)
+- `i or a`: insert mode, type new message
+- `I or A`: open vim to write long msg and send
+- `v`: record and send voice message
+- `sv`: send video
+- `sa`: send audio
+- `sp`: send picture
+- `sd`: send document
+- `c`: copy current msg text or path to file if this is document, photo or video
+- `]`: next chat
+- `[`: prev chat
