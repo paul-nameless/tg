@@ -269,7 +269,7 @@ class Controller:
     def send_voice(self):
         file_path = f"/tmp/voice-{datetime.now()}.oga"
         with suspend(self.view) as s:
-            s.call(config.RECORD_CMD.format(file_path=file_path))
+            s.call(config.VOICE_RECORD_CMD.format(file_path=file_path))
         resp = self.view.status.get_input(
             f"Do you want to send recording: {file_path}? [Y/n]"
         )

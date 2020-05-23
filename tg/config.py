@@ -30,9 +30,11 @@ MAX_DOWNLOAD_SIZE = "10MB"
 NOTIFY_CMD = "/usr/local/bin/terminal-notifier -title '{title}' -subtitle '{subtitle}' -message '{msg}' -appIcon '{icon_path}'"
 
 if _os_name == _linux:
-    RECORD_CMD = "ffmpeg -f alsa -i default -ar 22050 -b:a 32k '{file_path}'"
+    VOICE_RECORD_CMD = (
+        "ffmpeg -f alsa -i default -ar 22050 -b:a 32k '{file_path}'"
+    )
 else:
-    RECORD_CMD = (
+    VOICE_RECORD_CMD = (
         "ffmpeg -f avfoundation -i default -ar 22050 -b:a 32k '{file_path}'"
     )
 
@@ -52,7 +54,8 @@ else:
 
 
 if os.path.isfile(DEFAULT_CONFIG):
-    env_config_params = runpy.run_path(DEFAULT_CONFIG)
-    for param, value in env_config_params.items():
-        if param.isupper():
-            globals()[param] = value
+    config_params = runpy.run_path(DEFAULT_CONFIG)
+    for param, value in config_params.items():
+        var = param.upper()
+        if var in globals():
+            globals()[var] = value
