@@ -96,6 +96,7 @@ class Controller:
             "a": lambda _: self.write_short_msg(),
             "I": lambda _: self.write_long_msg(),
             "A": lambda _: self.write_long_msg(),
+            "r": lambda _: self.reply_message(),
             "bp": lambda _: self.breakpoint(),
             " ": lambda _: self.toggle_select_msg(),
             "^[": lambda _: self.discard_selected_msgs(),  # esc
@@ -212,6 +213,14 @@ class Controller:
     def breakpoint(self):
         with suspend(self.view):
             breakpoint()
+
+    def reply_message(self):
+        # write new message
+        if msg := self.view.status.get_input():
+            self.model.reply_message(text=msg)
+            self.present_info("Message reply sent")
+        else:
+            self.present_info("Message reply wasn't sent")
 
     def write_short_msg(self):
         # write new message
