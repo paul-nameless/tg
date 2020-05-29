@@ -140,11 +140,20 @@ class Model:
             return self.msgs.edit_message(chat_id, self.current_msg_id, text)
         return False
 
-    def delete_msg(self) -> bool:
+    def delete_msgs(self) -> bool:
         chat_id = self.chats.id_by_index(self.current_chat)
-        if chat_id:
-            return self.msgs.delete_msg(chat_id)
-        return False
+        if not chat_id:
+            return False
+        msg_ids = self.selected[chat_id]
+        if msg_ids:
+            message_ids = msg_ids
+        else:
+            selected_msg = self.msgs.current_msgs[chat_id]
+            msg = self.msgs.msgs[chat_id][selected_msg]
+            message_ids = [msg["id"]]
+
+        log.info(f"Deleting msg from the chat {chat_id}: {message_ids}")
+        self.tg.delete_messages(chat_id, message_ids, revoke=True)
 
 
 class ChatModel:
@@ -395,18 +404,6 @@ class MsgModel:
             log.info(f"send message error: {result.error_info}")
         else:
             log.info(f"message has been sent: {result.update}")
-
-    def delete_msg(self, chat_id: int) -> bool:
-        selected_msg = self.current_msgs[chat_id]
-        msg_item = self.msgs[chat_id].pop(selected_msg)
-        self.current_msgs[chat_id] = min(
-            selected_msg, len(self.msgs[chat_id]) - 1
-        )
-        log.info(f"Deleting msg from the chat {chat_id}: {msg_item}")
-        message_ids = [msg_item["id"]]
-        r = self.tg.delete_messages(chat_id, message_ids, revoke=True)
-        r.wait()
-        return True
 
 
 class UserModel:

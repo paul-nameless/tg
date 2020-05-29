@@ -1,6 +1,6 @@
 import logging
 from functools import wraps
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict
 
 from tg import config, utils
 from tg.controllers import Controller
@@ -47,7 +47,7 @@ def update_msg_content(controller: Controller, update: Dict[str, Any]):
         controller.model.current_chat
     )
     if current_chat_id == chat_id:
-        controller.refresh_msgs()
+        controller.render_msgs()
 
 
 @update_handler("updateNewMessage")
@@ -58,7 +58,7 @@ def update_new_msg(controller: Controller, update: Dict[str, Any]):
         controller.model.current_chat
     )
     if current_chat_id == msg.chat_id:
-        controller.refresh_msgs()
+        controller.render_msgs()
     if msg.file_id and msg.size <= max_download_size:
         controller.download(msg.file_id, msg.chat_id, msg["id"])
 
@@ -202,7 +202,7 @@ def update_msg_send_succeeded(controller: Controller, update):
         controller.model.current_chat
     )
     if current_chat_id == chat_id:
-        controller.refresh_msgs()
+        controller.render_msgs()
 
 
 @update_handler("updateFile")
@@ -221,7 +221,7 @@ def update_file(controller: Controller, update):
         if msg["id"] == msg_id:
             proxy = MsgProxy(msg)
             proxy.local = local
-            controller.refresh_msgs()
+            controller.render_msgs()
             if proxy.is_downloaded:
                 controller.model.downloads.pop(file_id)
             break
@@ -234,4 +234,28 @@ def update_message_content_opened(
     chat_id = update["chat_id"]
     message_id = update["message_id"]
     controller.model.msgs.update_msg_content_opened(chat_id, message_id)
-    controller.refresh_msgs()
+    controller.render_msgs()
+
+
+@update_handler("updateDeleteMessages")
+def update_delete_msgs(controller: Controller, update: Dict[str, Any]):
+    chat_id = update["chat_id"]
+    msg_ids = update["message_ids"]
+    for msg_id in msg_ids:
+        controller.model.msgs.remove_message(chat_id, msg_id)
+    controller.render_msgs()
+
+
+@update_handler("updateConnectionState")
+def update_connection_state(controller: Controller, update: Dict[str, Any]):
+    log.info("state:: %s", update)
+    state = update["state"]["@type"]
+    states = {
+        "connectionStateWaitingForNetwork": "Waiting for network...",
+        "connectionStateConnectingToProxy": "Connecting to proxy...",
+        "connectionStateConnecting": "Connecting...",
+        "connectionStateUpdating": "Updating...",
+        "connectionStateReady": "Ready",
+    }
+    msg = states.get(state, "Unknown state")
+    controller.present_info(msg)

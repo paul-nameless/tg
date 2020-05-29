@@ -32,14 +32,14 @@ emoji_pattern = re.compile(
 units = {"B": 1, "KB": 10 ** 3, "MB": 10 ** 6, "GB": 10 ** 9, "TB": 10 ** 12}
 
 
-def get_file_handler(file_name, default=None):
-    mtype, _ = mimetypes.guess_type(file_name)
+def get_file_handler(file_path, default=None):
+    mtype, _ = mimetypes.guess_type(file_path)
     if not mtype:
         return default
     caps = mailcap.getcaps()
-    handler, view = mailcap.findmatch(caps, mtype, filename=file_name)
+    handler, view = mailcap.findmatch(caps, mtype, filename=file_path)
     if not handler:
-        return None
+        return config.DEFAULT_OPEN.format(file_path=file_path)
     return handler
 
 
@@ -146,6 +146,10 @@ def handle_exception(fun):
 def truncate_to_len(s: str, target_len: int, encoding: str = "utf-8") -> str:
     target_len -= sum(map(bool, map(emoji_pattern.findall, s[:target_len])))
     return s[: max(1, target_len - 1)]
+
+
+def copy_to_clipboard(text):
+    subprocess.run(config.COPY_CMD, universal_newlines=True, input=text)
 
 
 class suspend:

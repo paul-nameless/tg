@@ -28,14 +28,14 @@ MAX_DOWNLOAD_SIZE = "10MB"
 
 # TODO: check platform
 NOTIFY_CMD = "/usr/local/bin/terminal-notifier -title '{title}' -subtitle '{subtitle}' -message '{msg}' -appIcon '{icon_path}'"
-# TODO: check platform
+
 if _os_name == _linux:
     VOICE_RECORD_CMD = (
         "ffmpeg -f alsa -i default -ar 22050 -b:a 32k '{file_path}'"
     )
 else:
     VOICE_RECORD_CMD = (
-        "ffmpeg -f avfoundation -i default -ar 22050 -b:a 32k '{file_path}'"
+        "ffmpeg -f avfoundation -i ':0' -ar 22050 -b:a 32k '{file_path}'"
     )
 
 # TODO: use mailcap instead of editor
@@ -48,9 +48,9 @@ else:
     DEFAULT_OPEN = "open '{file_path}'"
 
 if _os_name == _linux:
-    DEFAULT_COPY = "xclip -selection c"
+    COPY_CMD = "xclip -selection c"
 else:
-    DEFAULT_COPY = "pbcopy"
+    COPY_CMD = "pbcopy"
 
 
 if os.path.isfile(DEFAULT_CONFIG):
