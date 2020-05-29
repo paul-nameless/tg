@@ -56,6 +56,5 @@ else:
 if os.path.isfile(DEFAULT_CONFIG):
     config_params = runpy.run_path(DEFAULT_CONFIG)
     for param, value in config_params.items():
-        var = param.upper()
-        if var in globals():
-            globals()[var] = value
+        if param.isupper():
+            globals()[param] = value
