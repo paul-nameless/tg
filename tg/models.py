@@ -120,6 +120,14 @@ class Model:
         limit = offset + page_size
         return self.chats.fetch_chats(offset=offset, limit=limit)
 
+    def reply_message(self, text: str) -> bool:
+        chat_id = self.chats.id_by_index(self.current_chat)
+        if chat_id is None:
+            return False
+        reply_to_msg = self.current_msg_id
+        self.tg.reply_message(chat_id, reply_to_msg, text)
+        return True
+
     def send_message(self, text: str) -> bool:
         chat_id = self.chats.id_by_index(self.current_chat)
         if chat_id is None:

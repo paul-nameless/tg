@@ -39,7 +39,7 @@ else:
     )
 
 # TODO: use mailcap instead of editor
-LONG_MSG_CMD = "vim -c 'startinsert' {file_path}"
+LONG_MSG_CMD = "vim + -c 'startinsert' {file_path}"
 EDITOR = os.environ.get("EDITOR", "vi")
 
 if _os_name == _linux:
@@ -56,6 +56,5 @@ else:
 if os.path.isfile(DEFAULT_CONFIG):
     config_params = runpy.run_path(DEFAULT_CONFIG)
     for param, value in config_params.items():
-        var = param.upper()
-        if var in globals():
-            globals()[var] = value
+        if param.isupper():
+            globals()[param] = value
