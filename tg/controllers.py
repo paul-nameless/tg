@@ -4,7 +4,6 @@ import os
 import threading
 from datetime import datetime
 from functools import partial
-from signal import SIGWINCH, signal
 from tempfile import NamedTemporaryFile
 from typing import Any, Callable, Dict, Optional
 
@@ -25,15 +24,12 @@ from tg.views import View
 
 log = logging.getLogger(__name__)
 
-MSGS_LEFT_SCROLL_THRESHOLD = 10
-REPLY_MSG_PREFIX = "# >"
-
 # start scrolling to next page when number of the msgs left is less than value.
 # note, that setting high values could lead to situations when long msgs will
 # be removed from the display in order to achive scroll threshold. this could
 # cause blan areas on the msg display screen
 MSGS_LEFT_SCROLL_THRESHOLD = 2
-
+REPLY_MSG_PREFIX = "# >"
 key_bind_handler_type = Callable[[Any], Any]
 
 
@@ -51,7 +47,6 @@ class Controller:
         self.lock = threading.Lock()
         self.tg = tg
         self.chat_size = 0.5
-        signal(SIGWINCH, self.resize_handler)
 
         self.chat_bindings: Dict[str, key_bind_handler_type] = {
             "q": lambda _: "QUIT",
@@ -73,7 +68,9 @@ class Controller:
         self.msg_bindings: Dict[str, key_bind_handler_type] = {
             "q": lambda _: "QUIT",
             "h": lambda _: "BACK",
+            "bp": lambda _: self.breakpoint(),
             "^D": lambda _: "BACK",
+            # navigate msgs
             "]": self.next_chat,
             "[": self.prev_chat,
             "J": lambda _: self.next_msg(10),
@@ -83,26 +80,28 @@ class Controller:
             "k": self.prev_msg,
             "^P": self.prev_msg,
             "G": lambda _: self.jump_bottom(),
-            "dd": lambda _: self.delete_msg(),
-            "D": lambda _: self.download_current_file(),
-            "l": lambda _: self.open_current_msg(),
+            # send files
             "sd": lambda _: self.send_file(self.tg.send_doc),
             "sp": lambda _: self.send_file(self.tg.send_photo),
             "sa": lambda _: self.send_file(self.tg.send_audio),
             "sv": lambda _: self.send_video(),
             "v": lambda _: self.send_voice(),
+            # manipulate msgs
+            "dd": lambda _: self.delete_msg(),
+            "D": lambda _: self.download_current_file(),
+            "l": lambda _: self.open_current_msg(),
             "e": lambda _: self.edit_msg(),
             "i": lambda _: self.write_short_msg(),
             "a": lambda _: self.write_short_msg(),
             "I": lambda _: self.write_long_msg(),
             "A": lambda _: self.write_long_msg(),
+            "p": lambda _: self.forward_msgs(),
+            "y": lambda _: self.copy_msgs(),
             "r": lambda _: self.reply_message(),
             "R": lambda _: self.reply_with_long_message(),
-            "bp": lambda _: self.breakpoint(),
+            # message selection
             " ": lambda _: self.toggle_select_msg(),
             "^[": lambda _: self.discard_selected_msgs(),  # esc
-            "y": lambda _: self.copy_msgs(),
-            "p": lambda _: self.forward_msgs(),
         }
 
     def forward_msgs(self):
@@ -230,7 +229,7 @@ class Controller:
         ) as s:
             f.write(insert_replied_msg(msg))
             f.seek(0)
-            s.call(config.long_msg_cmd.format(file_path=f.name))
+            s.call(config.LONG_MSG_CMD.format(file_path=f.name))
             with open(f.name) as f:
                 if msg := strip_replied_msg(f.read().strip()):
                     self.model.reply_message(text=msg)
@@ -272,7 +271,7 @@ class Controller:
     def send_voice(self):
         file_path = f"/tmp/voice-{datetime.now()}.oga"
         with suspend(self.view) as s:
-            s.call(config.record_cmd.format(file_path=file_path))
+            s.call(config.VOICE_RECORD_CMD.format(file_path=file_path))
         resp = self.view.status.get_input(
             f"Do you want to send recording: {file_path}? [Y/n]"
         )
@@ -354,7 +353,7 @@ class Controller:
         ) as s:
             f.write(msg.text_content)
             f.flush()
-            s.call(f"{config.editor} {f.name}")
+            s.call(f"{config.EDITOR} {f.name}")
             with open(f.name) as f:
                 if text := f.read().strip():
                     self.model.edit_message(text=text)
@@ -364,7 +363,7 @@ class Controller:
         with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(
             self.view
         ) as s:
-            s.call(config.long_msg_cmd.format(file_path=f.name))
+            s.call(config.LONG_MSG_CMD.format(file_path=f.name))
             with open(f.name) as f:
                 if msg := f.read().strip():
                     self.model.send_message(text=msg)
