@@ -30,6 +30,7 @@ TODO:
 ## Requirements
 
 - [tdlib](https://tdlib.github.io/td/build.html?language=Python)
+
   For macOS:
   ```sh
   brew install tdlib
@@ -38,11 +39,11 @@ TODO:
 - `pip3 install python-telegram`
 - config file at `~/.config/tg/conf.py`
   ```python
-  phone = "[your phone number]"
-  enc_key = "[telegram db encryption key]"
+  PHONE = "[your phone number]"
+  ENC_KEY = "[telegram db encryption key]"
   ```
-- terminal-notifier or other program for notifications
-- ffmpeg - to record voice msgs
+- `terminal-notifier` or other program for notifications
+- `ffmpeg` to record voice msgs and upload videos correctly
 
 
 ## Usage
