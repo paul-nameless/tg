@@ -20,6 +20,21 @@ class Tdlib(Telegram):
         )
         result.wait()
 
+    def reply_message(
+        self, chat_id: int, reply_to_message_id: int, text: str
+    ) -> AsyncResult:
+        data = {
+            "@type": "sendMessage",
+            "chat_id": chat_id,
+            "reply_to_message_id": reply_to_message_id,
+            "input_message_content": {
+                "@type": "inputMessageText",
+                "text": {"@type": "formattedText", "text": text},
+            },
+        }
+
+        return self._send_data(data)
+
     def send_doc(self, file_path: str, chat_id: int) -> AsyncResult:
         data = {
             "@type": "sendMessage",

@@ -23,11 +23,13 @@ from tg.utils import (
 from tg.views import View
 
 log = logging.getLogger(__name__)
+
 # start scrolling to next page when number of the msgs left is less than value.
 # note, that setting high values could lead to situations when long msgs will
 # be removed from the display in order to achive scroll threshold. this could
 # cause blan areas on the msg display screen
 MSGS_LEFT_SCROLL_THRESHOLD = 2
+REPLY_MSG_PREFIX = "# >"
 key_bind_handler_type = Callable[[Any], Any]
 
 
@@ -95,6 +97,8 @@ class Controller:
             "A": lambda _: self.write_long_msg(),
             "p": lambda _: self.forward_msgs(),
             "y": lambda _: self.copy_msgs(),
+            "r": lambda _: self.reply_message(),
+            "R": lambda _: self.reply_with_long_message(),
             # message selection
             " ": lambda _: self.toggle_select_msg(),
             "^[": lambda _: self.discard_selected_msgs(),  # esc
@@ -209,6 +213,29 @@ class Controller:
     def breakpoint(self):
         with suspend(self.view):
             breakpoint()
+
+    def reply_message(self):
+        # write new message
+        if msg := self.view.status.get_input():
+            self.model.reply_message(text=msg)
+            self.present_info("Message reply sent")
+        else:
+            self.present_info("Message reply wasn't sent")
+
+    def reply_with_long_message(self):
+        msg = MsgProxy(self.model.current_msg)
+        with NamedTemporaryFile("w+", suffix=".txt") as f, suspend(
+            self.view
+        ) as s:
+            f.write(insert_replied_msg(msg))
+            f.seek(0)
+            s.call(config.LONG_MSG_CMD.format(file_path=f.name))
+            with open(f.name) as f:
+                if msg := strip_replied_msg(f.read().strip()):
+                    self.model.reply_message(text=msg)
+                    self.present_info("Message sent")
+                else:
+                    self.present_info("Message wasn't sent")
 
     def write_short_msg(self):
         # write new message
@@ -447,3 +474,22 @@ class Controller:
                 self.model.current_chat = i
                 break
         self.render()
+
+
+def insert_replied_msg(msg: MsgProxy) -> str:
+    text = msg.text_content if msg.is_text else msg.content_type
+    return (
+        "\n".join([f"{REPLY_MSG_PREFIX} {line}" for line in text.split("\n")])
+        # adding line with whitespace so text editor could start editing from last line
+        + "\n "
+    )
+
+
+def strip_replied_msg(msg: str) -> str:
+    return "\n".join(
+        [
+            line
+            for line in msg.split("\n")
+            if not line.startswith(REPLY_MSG_PREFIX)
+        ]
+    )

@@ -39,7 +39,7 @@ else:
     )
 
 # TODO: use mailcap instead of editor
-LONG_MSG_CMD = "vim -c 'startinsert' {file_path}"
+LONG_MSG_CMD = "vim + -c 'startinsert' {file_path}"
 EDITOR = os.environ.get("EDITOR", "vi")
 
 if _os_name == _linux:
