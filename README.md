@@ -63,8 +63,8 @@ Config file should be stored at `~/.config/tg/conf.py`. This is simple python fi
 ### Simple config:
 
 ```python
-phone = "[your phone number]"
-enc_key = "[telegram db encryption key]"
+PHONE = "[your phone number]"
+ENC_KEY = "[telegram db encryption key]"
 ```
 
 ### Advanced configuration:
@@ -80,24 +80,24 @@ def get_pass(key):
     return os.popen("pass show {} | head -n 1".format(key)).read().strip()
 
 
-phone = get_pass("i/telegram-phone")
-enc_key = get_pass("i/telegram-enc-key")
+PHONE = get_pass("i/telegram-phone")
+ENC_KEY = get_pass("i/telegram-enc-key")
 
 # log level for debugging
-log_level = "DEBUG"
+LOG_LEVEL = "DEBUG"
 
 # If you have problems with tdlib shipped with the client, you can install and
 # use your own
-tdlib_path = "/usr/local/Cellar/tdlib/1.6.0/lib/libtdjson.dylib"
+TDLIB_PATH = "/usr/local/Cellar/tdlib/1.6.0/lib/libtdjson.dylib"
 
 # you can use any other notification cmd, it is simple python file which
 # can format title, msg, subtitle and icon_path paramters
 # In these exapmle, kitty terminal is used and when notification is pressed
 # it will focus on the tab of running tg
-notify_cmd = '/usr/local/bin/terminal-notifier -title "{title}" -subtitle "{subtitle}" -message "{msg}" -appIcon "{icon_path}" -sound default -execute \'/Applications/kitty.app/Contents/MacOS/kitty @ --to unix:/tmp/kitty focus-tab --no-response -m title:tg\''
+NOTIFY_CMD = '/usr/local/bin/terminal-notifier -title "{title}" -subtitle "{subtitle}" -message "{msg}" -appIcon "{icon_path}" -sound default -execute \'/Applications/kitty.app/Contents/MacOS/kitty @ --to unix:/tmp/kitty focus-tab --no-response -m title:tg\''
 
 # you can customize to use your own voice recording cmd
-voice_record_cmd = "ffmpeg -f avfoundation -i ':0' -ar 22050 -b:a 32k '{file_path}'"
+VOICE_RECORD_CMD = "ffmpeg -f avfoundation -i ':0' -ar 22050 -b:a 32k '{file_path}'"
 ```
 
 
@@ -137,6 +137,7 @@ For navigation arrow keys also can be used.
 - `i or a`: insert mode, type new message
 - `I or A`: open vim to write long msg and send
 - `v`: record and send voice message
+- `r,R`: reply to a current msg
 - `sv`: send video
 - `sa`: send audio
 - `sp`: send picture
