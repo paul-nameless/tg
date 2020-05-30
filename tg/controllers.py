@@ -240,13 +240,17 @@ class Controller:
 
     def reply_message(self):
         # write new message
+        chat_id = self.model.current_chat_id
+        reply_to_msg = self.model.current_msg_id
         if msg := self.view.status.get_input():
-            self.model.reply_message(text=msg)
+            self.tg.reply_message(chat_id, reply_to_msg, msg)
             self.present_info("Message reply sent")
         else:
             self.present_info("Message reply wasn't sent")
 
     def reply_with_long_message(self):
+        chat_id = self.model.current_chat_id
+        reply_to_msg = self.model.current_msg_id
         msg = MsgProxy(self.model.current_msg)
         with NamedTemporaryFile("w+", suffix=".txt") as f, suspend(
             self.view
@@ -256,7 +260,7 @@ class Controller:
             s.call(config.LONG_MSG_CMD.format(file_path=f.name))
             with open(f.name) as f:
                 if msg := strip_replied_msg(f.read().strip()):
-                    self.model.reply_message(text=msg)
+                    self.tg.reply_message(chat_id, reply_to_msg, msg)
                     self.present_info("Message sent")
                 else:
                     self.present_info("Message wasn't sent")
