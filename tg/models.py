@@ -29,7 +29,7 @@ class Model:
         return self.users.get_user(user_id)
 
     @property
-    def current_chat_id(self):
+    def current_chat_id(self) -> Optional[int]:
         return self.chats.id_by_index(self.current_chat)
 
     def get_current_chat_msg_idx(self) -> Optional[int]:
