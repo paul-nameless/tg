@@ -43,9 +43,8 @@ def update_msg_content(controller: Controller, update: Dict[str, Any]):
     controller.model.msgs.update_msg_content(
         chat_id, message_id, update["new_content"]
     )
-    current_chat_id = controller.model.chats.id_by_index(
-        controller.model.current_chat
-    )
+
+    current_chat_id = controller.model.current_chat_id
     if current_chat_id == chat_id:
         controller.render_msgs()
 
@@ -54,23 +53,19 @@ def update_msg_content(controller: Controller, update: Dict[str, Any]):
 def update_new_msg(controller: Controller, update: Dict[str, Any]):
     msg = MsgProxy(update["message"])
     controller.model.msgs.add_message(msg.chat_id, msg.msg)
-    current_chat_id = controller.model.chats.id_by_index(
-        controller.model.current_chat
-    )
+    current_chat_id = controller.model.current_chat_id
     if current_chat_id == msg.chat_id:
         controller.render_msgs()
     if msg.file_id and msg.size <= max_download_size:
         controller.download(msg.file_id, msg.chat_id, msg["id"])
 
-    controller._notify_for_message(msg.chat_id, msg)
+    controller.notify_for_message(msg.chat_id, msg)
 
 
 @update_handler("updateChatOrder")
 def update_chat_order(controller: Controller, update: Dict[str, Any]):
     log.info("Proccessing updateChatOrder")
-    current_chat_id = controller.model.chats.id_by_index(
-        controller.model.current_chat
-    )
+    current_chat_id = controller.model.current_chat_id
     chat_id = update["chat_id"]
     order = update["order"]
 
@@ -83,9 +78,8 @@ def update_chat_title(controller: Controller, update: Dict[str, Any]):
     log.info("Proccessing updateChatTitle")
     chat_id = update["chat_id"]
     title = update["title"]
-    current_chat_id = controller.model.chats.id_by_index(
-        controller.model.current_chat
-    )
+
+    current_chat_id = controller.model.current_chat_id
     controller.model.chats.update_chat(chat_id, title=title)
     controller._refresh_current_chat(current_chat_id)
 
@@ -97,9 +91,8 @@ def update_chat_marked_as_unread(
     log.info("Proccessing updateChatIsMarkedAsUnread")
     chat_id = update["chat_id"]
     is_marked_as_unread = update["is_marked_as_unread"]
-    current_chat_id = controller.model.chats.id_by_index(
-        controller.model.current_chat
-    )
+
+    current_chat_id = controller.model.current_chat_id
     controller.model.chats.update_chat(
         chat_id, is_marked_as_unread=is_marked_as_unread
     )
@@ -112,9 +105,8 @@ def update_chat_is_pinned(controller: Controller, update: Dict[str, Any]):
     chat_id = update["chat_id"]
     is_pinned = update["is_pinned"]
     order = update["order"]
-    current_chat_id = controller.model.chats.id_by_index(
-        controller.model.current_chat
-    )
+
+    current_chat_id = controller.model.current_chat_id
     controller.model.chats.update_chat(
         chat_id, is_pinned=is_pinned, order=order
     )
@@ -126,9 +118,8 @@ def update_chat_read_outbox(controller: Controller, update: Dict[str, Any]):
     log.info("Proccessing updateChatReadOutbox")
     chat_id = update["chat_id"]
     last_read_outbox_message_id = update["last_read_outbox_message_id"]
-    current_chat_id = controller.model.chats.id_by_index(
-        controller.model.current_chat
-    )
+
+    current_chat_id = controller.model.current_chat_id
     controller.model.chats.update_chat(
         chat_id, last_read_outbox_message_id=last_read_outbox_message_id,
     )
@@ -141,9 +132,8 @@ def update_chat_read_inbox(controller: Controller, update: Dict[str, Any]):
     chat_id = update["chat_id"]
     last_read_inbox_message_id = update["last_read_inbox_message_id"]
     unread_count = update["unread_count"]
-    current_chat_id = controller.model.chats.id_by_index(
-        controller.model.current_chat
-    )
+
+    current_chat_id = controller.model.current_chat_id
     controller.model.chats.update_chat(
         chat_id,
         last_read_inbox_message_id=last_read_inbox_message_id,
@@ -159,9 +149,8 @@ def update_chat_draft_msg(controller: Controller, update: Dict[str, Any]):
     # FIXME: ignoring draft message itself for now because UI can't show it
     # draft_message = update["draft_message"]
     order = update["order"]
-    current_chat_id = controller.model.chats.id_by_index(
-        controller.model.current_chat
-    )
+
+    current_chat_id = controller.model.current_chat_id
     controller.model.chats.update_chat(chat_id, order=order)
     controller._refresh_current_chat(current_chat_id)
 
@@ -172,9 +161,8 @@ def update_chat_last_msg(controller: Controller, update: Dict[str, Any]):
     chat_id = update["chat_id"]
     message = update["last_message"]
     order = update["order"]
-    current_chat_id = controller.model.chats.id_by_index(
-        controller.model.current_chat
-    )
+
+    current_chat_id = controller.model.current_chat_id
     controller.model.chats.update_chat(
         chat_id, last_message=message, order=order
     )
@@ -198,9 +186,8 @@ def update_msg_send_succeeded(controller: Controller, update):
     msg_id = update["old_message_id"]
     controller.model.msgs.add_message(chat_id, update["message"])
     controller.model.msgs.remove_message(chat_id, msg_id)
-    current_chat_id = controller.model.chats.id_by_index(
-        controller.model.current_chat
-    )
+
+    current_chat_id = controller.model.current_chat_id
     if current_chat_id == chat_id:
         controller.render_msgs()
 
