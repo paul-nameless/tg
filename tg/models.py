@@ -28,6 +28,10 @@ class Model:
     def get_user(self, user_id):
         return self.users.get_user(user_id)
 
+    @property
+    def current_chat_id(self):
+        return self.chats.id_by_index(self.current_chat)
+
     def get_current_chat_msg_idx(self) -> Optional[int]:
         chat_id = self.chats.id_by_index(self.current_chat)
         if chat_id is None:
@@ -119,14 +123,6 @@ class Model:
         offset = max(msgs_left_scroll_threshold - chats_left, 0)
         limit = offset + page_size
         return self.chats.fetch_chats(offset=offset, limit=limit)
-
-    def reply_message(self, text: str) -> bool:
-        chat_id = self.chats.id_by_index(self.current_chat)
-        if chat_id is None:
-            return False
-        reply_to_msg = self.current_msg_id
-        self.tg.reply_message(chat_id, reply_to_msg, text)
-        return True
 
     def send_message(self, text: str) -> bool:
         chat_id = self.chats.id_by_index(self.current_chat)
