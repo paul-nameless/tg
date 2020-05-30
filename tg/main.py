@@ -36,13 +36,17 @@ def run(tg: Tdlib, stdscr: window) -> None:
     for msg_type, handler in update_handlers.handlers.items():
         tg.add_update_handler(msg_type, partial(handler, controller))
 
-    t = threading.Thread(target=controller.run,)
-    t.start()
-    t.join()
+    thread = threading.Thread(target=controller.run,)
+    thread.daemon = True
+    thread.start()
+
+    log.info("count:: after %d", threading.active_count())
+    controller.draw()
 
 
 def main():
     utils.setup_log(config.LOG_LEVEL)
+    log.info("count:: before %d", threading.active_count())
 
     tg = Tdlib(
         api_id=config.API_ID,
@@ -54,6 +58,7 @@ def main():
         library_path=config.TDLIB_PATH,
     )
     tg.login()
+    log.info("count:: tdlib %d", threading.active_count())
 
     wrapper(partial(run, tg))
 

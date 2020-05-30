@@ -10,6 +10,7 @@ import re
 import shlex
 import struct
 import subprocess
+import sys
 from datetime import datetime
 from functools import wraps
 from typing import Optional
@@ -30,6 +31,37 @@ emoji_pattern = re.compile(
     flags=re.UNICODE,
 )
 units = {"B": 1, "KB": 10 ** 3, "MB": 10 ** 6, "GB": 10 ** 9, "TB": 10 ** 12}
+
+
+class LogWriter:
+    def __init__(self, level):
+        self.level = level
+
+    def write(self, message):
+        if message != "\n":
+            self.level.log(self.level, message)
+
+    def flush(self):
+        pass
+
+
+def setup_log(level="DEBUG"):
+    handlers = []
+
+    for level, filename in zip(
+        (config.LOG_LEVEL, logging.ERROR), ("all.log", "error.log"),
+    ):
+        handler = logging.FileHandler(filename)
+        handler.setLevel(level)
+        handlers.append(handler)
+
+    logging.basicConfig(
+        format="%(levelname)-8s [%(asctime)s] %(name)s %(message).1000s",
+        handlers=handlers,
+    )
+    logging.getLogger().setLevel(config.LOG_LEVEL)
+    sys.stderr = LogWriter(log.error)
+    logging.captureWarnings(True)
 
 
 def get_file_handler(file_path, default=None):
@@ -105,18 +137,6 @@ def get_waveform(file_path):
     waveform = (random.randint(0, 255) for _ in range(100))
     packed = struct.pack("100B", *waveform)
     return base64.b64encode(packed).decode()
-
-
-def setup_log(level="DEBUG"):
-    logging.basicConfig(
-        level=level,
-        format="%(asctime)s %(levelname)s %(message)s",
-        handlers=[
-            logging.handlers.RotatingFileHandler(
-                "./tg.log", backupCount=1, maxBytes=1024 * 1024 * 10  # 10 MB
-            ),
-        ],
-    )
 
 
 def notify(

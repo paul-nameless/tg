@@ -1,6 +1,7 @@
 import curses
 import logging
 import os
+import queue
 import threading
 from datetime import datetime
 from functools import partial
@@ -45,8 +46,8 @@ class Controller:
     def __init__(self, model: Model, view: View, tg: Tdlib) -> None:
         self.model = model
         self.view = view
-        self.render_lock = threading.RLock()
-        self.render_status_lock = threading.RLock()
+        self.queue = queue.Queue()
+        self.is_running = True
         self.tg = tg
         self.chat_size = 0.5
 
@@ -359,8 +360,11 @@ class Controller:
         return self.update_status("Info", msg)
 
     def update_status(self, level: str, msg: str):
-        with self.render_status_lock:
-            self.view.status.draw(f"{level}: {msg}")
+        self.queue.put(partial(self._update_status, level, msg))
+
+    def _update_status(self, level: str, msg: str):
+        # with self.render_status_lock:
+        self.view.status.draw(f"{level}: {msg}")
 
     def edit_msg(self):
         msg = MsgProxy(self.model.current_msg)
@@ -396,8 +400,12 @@ class Controller:
     def run(self) -> None:
         try:
             self.handle(self.chat_bindings, 0.5)
+            self.queue.put(self.close)
         except Exception:
             log.exception("Error happened in main loop")
+
+    def close(self):
+        self.is_running = False
 
     def handle_msgs(self, _: int):
         rc = self.handle(self.msg_bindings, 0.2)
@@ -427,6 +435,9 @@ class Controller:
         self.resize()
 
     def resize(self):
+        self.queue.put(self._resize)
+
+    def _resize(self):
         rows, cols = self.view.stdscr.getmaxyx()
         # If we didn't clear the screen before doing this,
         # the original window contents would remain on the screen
@@ -439,24 +450,39 @@ class Controller:
         self.view.status.resize(rows, cols)
         self.render()
 
-    def render(self) -> None:
-        with self.render_lock:
-            # using lock here, because render is used from another
-            # thread by tdlib python wrapper
-            page_size = self.view.chats.h
-            chats = self.model.get_chats(
-                self.model.current_chat, page_size, MSGS_LEFT_SCROLL_THRESHOLD
-            )
-            selected_chat = min(
-                self.model.current_chat, page_size - MSGS_LEFT_SCROLL_THRESHOLD
-            )
+    def draw(self):
+        while self.is_running:
+            try:
+                log.info("Queue size: %d", self.queue.qsize())
+                fun = self.queue.get()
+                fun()
+            except Exception:
+                log.exception("Error happened in draw loop")
 
-            self.view.chats.draw(selected_chat, chats)
-            self.render_msgs()
-            with self.render_status_lock:
-                self.view.status.draw()
+    def render(self) -> None:
+        self.queue.put(self._render)
+
+    def _render(self) -> None:
+        # with self.render_lock:
+        # using lock here, because render is used from another
+        # thread by tdlib python wrapper
+        page_size = self.view.chats.h
+        chats = self.model.get_chats(
+            self.model.current_chat, page_size, MSGS_LEFT_SCROLL_THRESHOLD
+        )
+        selected_chat = min(
+            self.model.current_chat, page_size - MSGS_LEFT_SCROLL_THRESHOLD
+        )
+
+        self.view.chats.draw(selected_chat, chats)
+        self.render_msgs()
+        # with self.render_status_lock:
+        self.view.status.draw()
 
     def render_msgs(self) -> None:
+        self.queue.put(self._render_msgs)
+
+    def _render_msgs(self) -> None:
         current_msg_idx = self.model.get_current_chat_msg_idx()
         if current_msg_idx is None:
             return
@@ -465,6 +491,7 @@ class Controller:
             page_size=self.view.msgs.h,
             msgs_left_scroll_threshold=MSGS_LEFT_SCROLL_THRESHOLD,
         )
+        # with self.render_msgs_lock:
         self.view.msgs.draw(current_msg_idx, msgs, MSGS_LEFT_SCROLL_THRESHOLD)
 
     def _notify_for_message(self, chat_id: int, msg: MsgProxy):
@@ -474,9 +501,12 @@ class Controller:
         for chat in self.model.chats.chats:
             if chat_id == chat["id"]:
                 break
+        else:
+            # chat not found, do not notify
+            return
 
         # TODO: handle cases when all chats muted on global level
-        if chat and chat["notification_settings"]["mute_for"]:
+        if chat["notification_settings"]["mute_for"]:
             return
 
         # notify
