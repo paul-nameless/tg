@@ -393,7 +393,17 @@ class MsgView:
             for attr, elem in zip(self._msg_attributes(selected), elements):
                 if not elem:
                     continue
-                self.win.addstr(line_num, column, elem, attr)
+                full_line = self.w - column - len(elem) == 0
+                last_line = self.h - 1 == line_num
+                # work around agaist curses behaviour, when you cant write
+                # char to the lower right coner of the window
+                # see https://stackoverflow.com/questions/21594778/how-to-fill-to-lower-right-corner-in-python-curses/27517397#27517397
+                if full_line and last_line:
+                    # insstr does not wraps long strings
+                    draw_func = self.win.insstr
+                else:
+                    draw_func = self.win.addstr
+                draw_func(line_num, column, elem, attr)
                 column += len(elem)
 
         self._refresh()
