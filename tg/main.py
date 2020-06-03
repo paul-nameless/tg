@@ -36,9 +36,11 @@ def run(tg: Tdlib, stdscr: window) -> None:
     for msg_type, handler in update_handlers.handlers.items():
         tg.add_update_handler(msg_type, partial(handler, controller))
 
-    t = threading.Thread(target=controller.run,)
-    t.start()
-    t.join()
+    thread = threading.Thread(target=controller.run,)
+    thread.daemon = True
+    thread.start()
+
+    controller.draw()
 
 
 def main():
