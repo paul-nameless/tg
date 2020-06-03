@@ -3,7 +3,7 @@ module = "tg"
 dist-name = "tg"
 description-file = "README.md"
 author = "Paul Nameless"
-author-email = "paul.nameless@icloud.com"
+author-email = "reacsdas@gmail.com"
 home-page = 'https://github.com/paul-nameless/tg'
 classifiers = [
     "Programming Language :: Python :: 3",

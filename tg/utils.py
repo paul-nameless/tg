@@ -149,7 +149,9 @@ def truncate_to_len(s: str, target_len: int, encoding: str = "utf-8") -> str:
 
 
 def copy_to_clipboard(text):
-    subprocess.run(config.COPY_CMD, universal_newlines=True, input=text)
+    subprocess.run(
+        config.COPY_CMD, universal_newlines=True, input=text, shell=True
+    )
 
 
 class suspend:
