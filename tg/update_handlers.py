@@ -169,7 +169,7 @@ def update_chat_last_msg(controller: Controller, update: Dict[str, Any]):
 
     current_chat_id = controller.model.current_chat_id
     if controller.model.chats.update_chat(
-        chat_id, last_message=message, order=order
+        chat_id, last_message=last_message, order=order
     ):
         controller._refresh_current_chat(current_chat_id)
 
