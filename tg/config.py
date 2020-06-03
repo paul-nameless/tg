@@ -14,6 +14,7 @@ _linux = "Linux"
 DEFAULT_CONFIG = os.path.expanduser("~/.config/tg/conf.py")
 DEFAULT_FILES = os.path.expanduser("~/.cache/tg/")
 LOG_LEVEL = "INFO"
+LOG_PATH = os.path.expanduser("~/.local/share/tg/")
 
 API_ID = "559815"
 API_HASH = "fd121358f59d764c57c55871aa0807ca"
