@@ -366,14 +366,16 @@ class MsgView:
                     needed_lines += (line_len // self.w) + 1
 
                 line_num -= needed_lines
-                if line_num <= 0:
+                if line_num < 0:
                     tail_lines = needed_lines + line_num - 1
                     # try preview long message that did fit in the screen
-                    if line_num < 0 and tail_lines > 0 and not is_selected_msg:
+                    if tail_lines > 0 and not is_selected_msg:
                         limit = self.w * tail_lines
                         tail_chatacters = len(msg) - limit - 3
                         elements = (
-                            *label_elements,
+                            "",
+                            "",
+                            "",
                             f" ...{msg[tail_chatacters:]}",
                         )
                         collected_items.append((elements, is_selected_msg, 0))
