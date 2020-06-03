@@ -471,7 +471,7 @@ class Controller:
         )
         self.view.msgs.draw(current_msg_idx, msgs, MSGS_LEFT_SCROLL_THRESHOLD)
 
-    def _notify_for_message(self, chat_id: int, msg: MsgProxy):
+    def notify_for_message(self, chat_id: int, msg: MsgProxy):
         # do not notify, if muted
         # TODO: optimize
         chat = None
