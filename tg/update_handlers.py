@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from functools import wraps
 from typing import Any, Callable, Dict
 
@@ -69,8 +70,8 @@ def update_chat_order(controller: Controller, update: Dict[str, Any]):
     chat_id = update["chat_id"]
     order = update["order"]
 
-    controller.model.chats.update_chat(chat_id, order=order)
-    controller._refresh_current_chat(current_chat_id)
+    if controller.model.chats.update_chat(chat_id, order=order):
+        controller._refresh_current_chat(current_chat_id)
 
 
 @update_handler("updateChatTitle")
@@ -80,8 +81,8 @@ def update_chat_title(controller: Controller, update: Dict[str, Any]):
     title = update["title"]
 
     current_chat_id = controller.model.current_chat_id
-    controller.model.chats.update_chat(chat_id, title=title)
-    controller._refresh_current_chat(current_chat_id)
+    if controller.model.chats.update_chat(chat_id, title=title):
+        controller._refresh_current_chat(current_chat_id)
 
 
 @update_handler("updateChatIsMarkedAsUnread")
@@ -93,10 +94,10 @@ def update_chat_marked_as_unread(
     is_marked_as_unread = update["is_marked_as_unread"]
 
     current_chat_id = controller.model.current_chat_id
-    controller.model.chats.update_chat(
+    if controller.model.chats.update_chat(
         chat_id, is_marked_as_unread=is_marked_as_unread
-    )
-    controller._refresh_current_chat(current_chat_id)
+    ):
+        controller._refresh_current_chat(current_chat_id)
 
 
 @update_handler("updateChatIsPinned")
@@ -107,10 +108,10 @@ def update_chat_is_pinned(controller: Controller, update: Dict[str, Any]):
     order = update["order"]
 
     current_chat_id = controller.model.current_chat_id
-    controller.model.chats.update_chat(
+    if controller.model.chats.update_chat(
         chat_id, is_pinned=is_pinned, order=order
-    )
-    controller._refresh_current_chat(current_chat_id)
+    ):
+        controller._refresh_current_chat(current_chat_id)
 
 
 @update_handler("updateChatReadOutbox")
@@ -120,10 +121,10 @@ def update_chat_read_outbox(controller: Controller, update: Dict[str, Any]):
     last_read_outbox_message_id = update["last_read_outbox_message_id"]
 
     current_chat_id = controller.model.current_chat_id
-    controller.model.chats.update_chat(
+    if controller.model.chats.update_chat(
         chat_id, last_read_outbox_message_id=last_read_outbox_message_id,
-    )
-    controller._refresh_current_chat(current_chat_id)
+    ):
+        controller._refresh_current_chat(current_chat_id)
 
 
 @update_handler("updateChatReadInbox")
@@ -134,12 +135,12 @@ def update_chat_read_inbox(controller: Controller, update: Dict[str, Any]):
     unread_count = update["unread_count"]
 
     current_chat_id = controller.model.current_chat_id
-    controller.model.chats.update_chat(
+    if controller.model.chats.update_chat(
         chat_id,
         last_read_inbox_message_id=last_read_inbox_message_id,
         unread_count=unread_count,
-    )
-    controller._refresh_current_chat(current_chat_id)
+    ):
+        controller._refresh_current_chat(current_chat_id)
 
 
 @update_handler("updateChatDraftMessage")
@@ -151,22 +152,26 @@ def update_chat_draft_msg(controller: Controller, update: Dict[str, Any]):
     order = update["order"]
 
     current_chat_id = controller.model.current_chat_id
-    controller.model.chats.update_chat(chat_id, order=order)
-    controller._refresh_current_chat(current_chat_id)
+    if controller.model.chats.update_chat(chat_id, order=order):
+        controller._refresh_current_chat(current_chat_id)
 
 
 @update_handler("updateChatLastMessage")
 def update_chat_last_msg(controller: Controller, update: Dict[str, Any]):
     log.info("Proccessing updateChatLastMessage")
     chat_id = update["chat_id"]
-    message = update["last_message"]
+    last_message = update.get("last_message")
+    if not last_message:
+        # according to documentation it can be null
+        log.warning("last_message is null: %s", update)
+        return
     order = update["order"]
 
     current_chat_id = controller.model.current_chat_id
-    controller.model.chats.update_chat(
+    if controller.model.chats.update_chat(
         chat_id, last_message=message, order=order
-    )
-    controller._refresh_current_chat(current_chat_id)
+    ):
+        controller._refresh_current_chat(current_chat_id)
 
 
 @update_handler("updateChatNotificationSettings")
@@ -174,10 +179,10 @@ def update_chat_notification_settings(controller: Controller, update):
     log.info("Proccessing update_chat_notification_settings")
     chat_id = update["chat_id"]
     notification_settings = update["notification_settings"]
-    controller.model.chats.update_chat(
+    if controller.model.chats.update_chat(
         chat_id, notification_settings=notification_settings
-    )
-    controller.render()
+    ):
+        controller.render()
 
 
 @update_handler("updateMessageSendSucceeded")
