@@ -287,23 +287,29 @@ class MsgView:
             return ""
         return " ".join(flags)
 
-    def _format_reply_msg(self, chat_id: int, msg: str, reply_to: int) -> str:
+    def _format_reply_msg(
+        self, chat_id: int, msg: str, reply_to: int, width_limit: int
+    ) -> str:
         reply_msg = MsgProxy(self.msg_model.get_message(chat_id, reply_to))
         if reply_msg_content := self._parse_msg(reply_msg):
             reply_msg_content = reply_msg_content.replace("\n", " ")
-            if len(reply_msg_content) > 68:
-                # trimming old reply messages as it done in tg web & desktop
-                reply_msg_content = f"{reply_msg_content[:65]}..."
             reply_sender = self._get_user_by_id(reply_msg.sender_id)
             sender_name = f" {reply_sender}:" if reply_sender else ""
-            msg = f">{sender_name} {reply_msg_content}\n{msg}"
+            reply_line = f">{sender_name} {reply_msg_content}"
+            if len(reply_line) >= width_limit:
+                reply_line = f"{reply_line[:width_limit - 4]}..."
+            msg = f"{reply_line}\n{msg}"
         return msg
 
-    def _format_msg(self, msg_proxy: MsgProxy, user_id_item: int) -> str:
+    def _format_msg(
+        self, msg_proxy: MsgProxy, user_id_item: int, width_limit: int
+    ) -> str:
         msg = self._parse_msg(msg_proxy)
         msg = msg.replace("\n", " ")
         if reply_to := msg_proxy.reply_msg_id:
-            msg = self._format_reply_msg(msg_proxy.chat_id, msg, reply_to)
+            msg = self._format_reply_msg(
+                msg_proxy.chat_id, msg, reply_to, width_limit
+            )
         return msg
 
     def _collect_msgs_to_draw(
@@ -333,7 +339,6 @@ class MsgView:
                 dt = msg_proxy.date.strftime("%H:%M:%S")
                 user_id_item = msg_proxy.sender_id
 
-                msg = self._format_msg(msg_proxy, user_id_item)
                 user_id = self._get_user_by_id(user_id_item)
                 flags = self._get_flags(msg_proxy)
                 if user_id and flags:
@@ -341,8 +346,11 @@ class MsgView:
                     flags = " " + flags
                 label_elements = f" {dt} ", user_id, flags
                 label_len = sum(len(e) for e in label_elements)
-                elements = *label_elements, f" {msg}"
 
+                msg = self._format_msg(
+                    msg_proxy, user_id_item, width_limit=self.w - label_len - 1
+                )
+                elements = *label_elements, f" {msg}"
                 needed_lines = 0
                 for i, msg_line in enumerate(msg.split("\n")):
                     # count wide character utf-8 symbols that take > 1 bytes to
