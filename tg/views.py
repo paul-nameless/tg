@@ -401,7 +401,24 @@ class MsgView:
             for attr, elem in zip(self._msg_attributes(selected), elements):
                 if not elem:
                     continue
-                self.win.addstr(line_num, column, elem, attr)
+                lines = (column + len(elem)) // self.w
+                last_line = self.h == line_num + lines
+                # work around agaist curses behaviour, when you cant write
+                # char to the lower right coner of the window
+                # see https://stackoverflow.com/questions/21594778/how-to-fill-to-lower-right-corner-in-python-curses/27517397#27517397
+                if last_line:
+                    start, stop = 0, self.w - column
+                    for i in range(lines):
+                        # insstr does not wraps long strings
+                        self.win.insstr(
+                            line_num + i,
+                            column if not i else 0,
+                            elem[start:stop],
+                            attr,
+                        )
+                        start, stop = stop, stop + self.w
+                else:
+                    self.win.addstr(line_num, column, elem, attr)
                 column += len(elem)
 
         self._refresh()
