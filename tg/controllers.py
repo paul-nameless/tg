@@ -499,9 +499,12 @@ class Controller:
         for chat in self.model.chats.chats:
             if chat_id == chat["id"]:
                 break
+        else:
+            # chat not found, do not notify
+            return
 
         # TODO: handle cases when all chats muted on global level
-        if chat and chat["notification_settings"]["mute_for"]:
+        if chat["notification_settings"]["mute_for"]:
             return
 
         # notify
