@@ -51,7 +51,7 @@ def setup_log(level="DEBUG"):
     for level, filename in zip(
         (config.LOG_LEVEL, logging.ERROR), ("all.log", "error.log"),
     ):
-        handler = logging.FileHandler(filename)
+        handler = logging.FileHandler(os.path.join(config.LOG_PATH, filename))
         handler.setLevel(level)
         handlers.append(handler)
 
