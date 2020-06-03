@@ -1,10 +1,10 @@
 import curses
 import logging
 import os
-import queue
 import threading
 from datetime import datetime
 from functools import partial
+from queue import Queue
 from tempfile import NamedTemporaryFile
 from typing import Any, Callable, Dict, Optional
 
@@ -46,7 +46,7 @@ class Controller:
     def __init__(self, model: Model, view: View, tg: Tdlib) -> None:
         self.model = model
         self.view = view
-        self.queue = queue.Queue()
+        self.queue: Queue = Queue()
         self.is_running = True
         self.tg = tg
         self.chat_size = 0.5
