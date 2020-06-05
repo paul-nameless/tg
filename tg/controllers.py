@@ -136,7 +136,7 @@ class Controller:
         from_chat_id, msg_ids = self.model.yanked_msgs
         if not msg_ids:
             return
-        self.tg.forward_msgs(chat_id, from_chat_id, msg_ids)
+        self.tg.forward_messages(chat_id, from_chat_id, msg_ids)
         self.present_info(f"Forwarded {len(msg_ids)} messages")
         self.model.yanked_msgs = (0, [])
 

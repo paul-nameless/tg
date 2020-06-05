@@ -391,7 +391,7 @@ class MsgModel:
 
     def edit_message(self, chat_id: int, message_id: int, text: str) -> bool:
         log.info("Editing msg")
-        result = self.tg.edit_message(chat_id, message_id, text)
+        result = self.tg.edit_message_text(chat_id, message_id, text)
 
         result.wait()
         if result.error:

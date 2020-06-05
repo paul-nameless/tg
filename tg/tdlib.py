@@ -104,14 +104,14 @@ class Tdlib(Telegram):
         }
         return self._send_data(data)
 
-    def edit_message(self, chat_id: int, message_id: int, msg: str):
+    def edit_message_text(self, chat_id: int, message_id: int, text: str):
         data = {
             "@type": "editMessageText",
             "message_id": message_id,
             "chat_id": chat_id,
             "input_message_content": {
                 "@type": "inputMessageText",
-                "text": {"@type": "formattedText", "text": msg},
+                "text": {"@type": "formattedText", "text": text},
             },
         }
         return self._send_data(data)
@@ -167,7 +167,7 @@ class Tdlib(Telegram):
         }
         return self._send_data(data)
 
-    def forward_msgs(
+    def forward_messages(
         self,
         chat_id: int,
         from_chat_id: int,
