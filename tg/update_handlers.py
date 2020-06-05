@@ -38,7 +38,7 @@ def update_handler(update_type):
 
 
 @update_handler("updateMessageContent")
-def update_msg_content(controller: Controller, update: Dict[str, Any]):
+def update_message_content(controller: Controller, update: Dict[str, Any]):
     chat_id = update["chat_id"]
     message_id = update["message_id"]
     controller.model.msgs.update_msg_content(
@@ -50,8 +50,22 @@ def update_msg_content(controller: Controller, update: Dict[str, Any]):
         controller.render_msgs()
 
 
+@update_handler("updateMessageEdited")
+def update_message_edited(controller: Controller, update: Dict[str, Any]):
+    chat_id = update["chat_id"]
+    message_id = update["message_id"]
+    edit_date = update["edit_date"]
+    controller.model.msgs.update_msg_fields(
+        chat_id, message_id, fields=dict(edit_date=edit_date)
+    )
+
+    current_chat_id = controller.model.current_chat_id
+    if current_chat_id == chat_id:
+        controller.render_msgs()
+
+
 @update_handler("updateNewMessage")
-def update_new_msg(controller: Controller, update: Dict[str, Any]):
+def update_new_message(controller: Controller, update: Dict[str, Any]):
     msg = MsgProxy(update["message"])
     controller.model.msgs.add_message(msg.chat_id, msg.msg)
     current_chat_id = controller.model.current_chat_id
@@ -86,7 +100,7 @@ def update_chat_title(controller: Controller, update: Dict[str, Any]):
 
 
 @update_handler("updateChatIsMarkedAsUnread")
-def update_chat_marked_as_unread(
+def update_chat_is_marked_as_unread(
     controller: Controller, update: Dict[str, Any]
 ):
     log.info("Proccessing updateChatIsMarkedAsUnread")
@@ -144,7 +158,7 @@ def update_chat_read_inbox(controller: Controller, update: Dict[str, Any]):
 
 
 @update_handler("updateChatDraftMessage")
-def update_chat_draft_msg(controller: Controller, update: Dict[str, Any]):
+def update_chat_draft_message(controller: Controller, update: Dict[str, Any]):
     log.info("Proccessing updateChatDraftMessage")
     chat_id = update["chat_id"]
     # FIXME: ignoring draft message itself for now because UI can't show it
@@ -157,7 +171,7 @@ def update_chat_draft_msg(controller: Controller, update: Dict[str, Any]):
 
 
 @update_handler("updateChatLastMessage")
-def update_chat_last_msg(controller: Controller, update: Dict[str, Any]):
+def update_chat_last_message(controller: Controller, update: Dict[str, Any]):
     log.info("Proccessing updateChatLastMessage")
     chat_id = update["chat_id"]
     last_message = update.get("last_message")
@@ -186,7 +200,7 @@ def update_chat_notification_settings(controller: Controller, update):
 
 
 @update_handler("updateMessageSendSucceeded")
-def update_msg_send_succeeded(controller: Controller, update):
+def update_message_send_succeeded(controller: Controller, update):
     chat_id = update["message"]["chat_id"]
     msg_id = update["old_message_id"]
     controller.model.msgs.add_message(chat_id, update["message"])
@@ -230,7 +244,7 @@ def update_message_content_opened(
 
 
 @update_handler("updateDeleteMessages")
-def update_delete_msgs(controller: Controller, update: Dict[str, Any]):
+def update_delete_messages(controller: Controller, update: Dict[str, Any]):
     chat_id = update["chat_id"]
     msg_ids = update["message_ids"]
     for msg_id in msg_ids:
