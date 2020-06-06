@@ -32,11 +32,11 @@ NOTIFY_CMD = "/usr/local/bin/terminal-notifier -title '{title}' -subtitle '{subt
 
 if _os_name == _linux:
     VOICE_RECORD_CMD = (
-        "ffmpeg -f alsa -i default -ar 22050 -b:a 32k '{file_path}'"
+        "ffmpeg -f alsa -i default -c:a libopus -b:a 32k '{file_path}'"
     )
 else:
     VOICE_RECORD_CMD = (
-        "ffmpeg -f avfoundation -i ':0' -ar 22050 -b:a 32k '{file_path}'"
+        "ffmpeg -f avfoundation -i ':0' -c:a libopus -b:a 32k '{file_path}'"
     )
 
 # TODO: use mailcap instead of editor
