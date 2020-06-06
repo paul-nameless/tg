@@ -41,8 +41,8 @@ def update_handler(update_type):
 def update_message_content(controller: Controller, update: Dict[str, Any]):
     chat_id = update["chat_id"]
     message_id = update["message_id"]
-    controller.model.msgs.update_msg_content(
-        chat_id, message_id, update["new_content"]
+    controller.model.msgs.update_msg(
+        chat_id, message_id, content=update["new_content"]
     )
 
     current_chat_id = controller.model.current_chat_id
@@ -55,9 +55,7 @@ def update_message_edited(controller: Controller, update: Dict[str, Any]):
     chat_id = update["chat_id"]
     message_id = update["message_id"]
     edit_date = update["edit_date"]
-    controller.model.msgs.update_msg_fields(
-        chat_id, message_id, fields=dict(edit_date=edit_date)
-    )
+    controller.model.msgs.update_msg(chat_id, message_id, edit_date=edit_date)
 
     current_chat_id = controller.model.current_chat_id
     if current_chat_id == chat_id:
