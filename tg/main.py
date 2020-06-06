@@ -56,6 +56,7 @@ def main():
         library_path=config.TDLIB_PATH,
     )
     tg.login()
+    utils.set_shorter_esc_delay()
 
     wrapper(partial(run, tg))
 

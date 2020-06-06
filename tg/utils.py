@@ -205,3 +205,7 @@ class suspend:
         self.view.stdscr.keypad(True)
         curses.curs_set(0)
         curses.doupdate()
+
+
+def set_shorter_esc_delay(delay=25):
+    os.environ.setdefault("ESCDELAY", str(delay))
