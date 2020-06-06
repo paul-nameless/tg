@@ -283,14 +283,6 @@ class MsgModel:
         msg_set.remove(msg_id)
         return True
 
-    def update_msg_content(
-        self, chat_id: int, msg_id: int, message_content: Dict[str, Any]
-    ) -> bool:
-        log.info(f"updating {msg_id=} {message_content=}")
-        return self.update_msg_fields(
-            chat_id, msg_id, fields=dict(content=message_content)
-        )
-
     def update_msg_content_opened(self, chat_id: int, msg_id: int):
         for message in self.msgs[chat_id]:
             if message["id"] != msg_id:
@@ -305,9 +297,7 @@ class MsgModel:
             # https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1update_message_content_opened.html
             return
 
-    def update_msg_fields(
-        self, chat_id: int, msg_id: int, fields: Dict[str, Any]
-    ):
+    def update_msg(self, chat_id: int, msg_id: int, **fields: Dict[str, Any]):
         msg = None
         for message in self.msgs[chat_id]:
             if message["id"] == msg_id:
