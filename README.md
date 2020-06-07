@@ -27,25 +27,6 @@ TODO:
 - [ ] bots (bot keyboard)
 
 
-## Requirements
-
-- [tdlib](https://tdlib.github.io/td/build.html?language=Python)
-
-  For macOS:
-  ```sh
-  brew install tdlib
-  ```
-- `python3.8`
-- `pip3 install python-telegram`
-- config file at `~/.config/tg/conf.py`
-  ```python
-  PHONE = "[your phone number]"
-  ENC_KEY = "[telegram db encryption key]"
-  ```
-- `terminal-notifier` or other program for notifications
-- `ffmpeg` to record voice msgs and upload videos correctly
-
-
 ## Usage
 
 From pip:
@@ -61,6 +42,18 @@ git clone git@github.com:paul-nameless/tg.git
 cd tg
 PYTHONPATH=. python3 tg/main.py
 ```
+
+## Optional dependencies
+
+- [tdlib](https://tdlib.github.io/td/build.html?language=Python) - in case of incompatibility with built in package
+  For macOS:
+  ```sh
+  brew install tdlib
+  ```
+- `python3.8`
+- `pip3 install python-telegram` - dependency for running from sources
+- `terminal-notifier` or other program for notifications (see configuration)
+- `ffmpeg` to record voice msgs and upload videos correctly
 
 
 ## Configuration
