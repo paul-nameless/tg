@@ -99,8 +99,10 @@ TDLIB_PATH = "/usr/local/Cellar/tdlib/1.6.0/lib/libtdjson.dylib"
 # it will focus on the tab of running tg
 NOTIFY_CMD = '/usr/local/bin/terminal-notifier -title "{title}" -subtitle "{subtitle}" -message "{msg}" -appIcon "{icon_path}" -sound default -execute \'/Applications/kitty.app/Contents/MacOS/kitty @ --to unix:/tmp/kitty focus-tab --no-response -m title:tg\''
 
-# you can customize to use your own voice recording cmd
-VOICE_RECORD_CMD = "ffmpeg -f avfoundation -i ':0' -ar 22050 -b:a 32k '{file_path}'"
+# You can use your own voice recording cmd but it's better to use default one.
+# The voice note must be encoded with the Opus codec, and stored inside an OGG
+# container. Voice notes can have only a single audio channel.
+VOICE_RECORD_CMD = "ffmpeg -f avfoundation -i ':0' -c:a libopus -b:a 32k '{file_path}'"
 ```
 
 
