@@ -286,8 +286,11 @@ class Controller:
         self.tg.send_video(file_path, chat_id, width, height, duration)
 
     def delete_msgs(self):
-        self.model.delete_msgs()
+        is_deleted = self.model.delete_msgs()
         self.discard_selected_msgs()
+        if not is_deleted:
+            self.present_error("Can't delete msg(s)")
+            return
         self.present_info("Message deleted")
 
     def send_file(self, send_file_fun, *args, **kwargs):

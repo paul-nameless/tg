@@ -143,13 +143,20 @@ class Model:
         msg_ids = self.selected[chat_id]
         if msg_ids:
             message_ids = msg_ids
+            for msg_id in message_ids:
+                msg = self.msgs.get_message(chat_id, msg_id)
+                if not msg['can_be_deleted_for_all_users']:
+                    return False
         else:
             selected_msg = self.msgs.current_msgs[chat_id]
             msg = self.msgs.msgs[chat_id][selected_msg]
+            if not msg['can_be_deleted_for_all_users']:
+                return False
             message_ids = [msg["id"]]
 
         log.info(f"Deleting msg from the chat {chat_id}: {message_ids}")
         self.tg.delete_messages(chat_id, message_ids, revoke=True)
+        return True
 
 
 class ChatModel:
