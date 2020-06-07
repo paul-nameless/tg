@@ -32,13 +32,16 @@ jobs:
 
     - name: Install tools
       run: |
-        pip install black==19.10b0 mypy==0.770
+        pip install black==19.10b0 mypy==0.770 isort==4.3.21
 
     - name: Check formatting with black
       run: |
         black --check tg
 
+    - name: Check sort formatting
+      run: |
+        isort -c tg/*.py
+
     - name: Check types with mypy
       run: |
         mypy tg --warn-redundant-casts --warn-unused-ignores --no-warn-no-return --warn-unreachable --strict-equality --ignore-missing-imports
-
