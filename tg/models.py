@@ -163,6 +163,22 @@ class Model:
         self.tg.delete_messages(chat_id, message_ids, revoke=True)
         return True
 
+    def forward_msgs(self) -> bool:
+        chat_id = self.chats.id_by_index(self.current_chat)
+        if not chat_id:
+            return False
+        from_chat_id, msg_ids = self.yanked_msgs
+        if not msg_ids:
+            return False
+        for msg_id in msg_ids:
+            msg = self.msgs.get_message(from_chat_id, msg_id)
+            if not msg["can_be_forwarded"]:
+                return False
+
+        self.tg.forward_messages(chat_id, from_chat_id, msg_ids)
+        self.yanked_msgs = (0, [])
+        return True
+
 
 class ChatModel:
     def __init__(self, tg: Tdlib) -> None:

@@ -129,16 +129,10 @@ class Controller:
         self.present_info("Copied msg")
 
     def forward_msgs(self):
-        # TODO: check <can_be_forwarded> flag
-        chat_id = self.model.chats.id_by_index(self.model.current_chat)
-        if not chat_id:
+        if not self.model.forward_msgs():
+            self.present_error("Can't forward msg(s)")
             return
-        from_chat_id, msg_ids = self.model.yanked_msgs
-        if not msg_ids:
-            return
-        self.tg.forward_messages(chat_id, from_chat_id, msg_ids)
-        self.present_info(f"Forwarded {len(msg_ids)} messages")
-        self.model.yanked_msgs = (0, [])
+        self.present_info("Forwarded msg(s)")
 
     def copy_msgs(self):
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
