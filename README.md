@@ -48,7 +48,13 @@ TODO:
 
 ## Usage
 
-Clone repository and run it:
+From pip:
+
+```sh
+pip3 install tg
+```
+
+From sources:
 
 ```sh
 git clone git@github.com:paul-nameless/tg.git

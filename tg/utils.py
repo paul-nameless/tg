@@ -45,7 +45,7 @@ class LogWriter:
         pass
 
 
-def setup_log(level="DEBUG"):
+def setup_log():
     handlers = []
 
     for level, filename in zip(
