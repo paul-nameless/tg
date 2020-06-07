@@ -136,6 +136,11 @@ class Model:
             return self.msgs.edit_message(chat_id, self.current_msg_id, text)
         return False
 
+    def can_be_deleted(self, chat_id: int, msg: Dict[str, Any]) -> bool:
+        if chat_id == msg["sender_user_id"]:
+            return msg["can_be_deleted_only_for_self"]
+        return msg["can_be_deleted_for_all_users"]
+
     def delete_msgs(self) -> bool:
         chat_id = self.chats.id_by_index(self.current_chat)
         if not chat_id:
@@ -145,12 +150,12 @@ class Model:
             message_ids = msg_ids
             for msg_id in message_ids:
                 msg = self.msgs.get_message(chat_id, msg_id)
-                if not msg["can_be_deleted_for_all_users"]:
+                if not self.can_be_deleted(chat_id, msg):
                     return False
         else:
             selected_msg = self.msgs.current_msgs[chat_id]
             msg = self.msgs.msgs[chat_id][selected_msg]
-            if not msg["can_be_deleted_for_all_users"]:
+            if not self.can_be_deleted(chat_id, msg):
                 return False
             message_ids = [msg["id"]]
 
