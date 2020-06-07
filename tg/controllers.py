@@ -239,8 +239,14 @@ class Controller:
         with suspend(self.view):
             breakpoint()
 
+    def can_send_msg(self) -> bool:
+        chat = self.model.chats.chats[self.model.current_chat]
+        return chat["permissions"]["can_send_messages"]
+
     def reply_message(self):
-        # write new message
+        if not self.can_send_msg():
+            self.present_info("Can't send msg in this chat")
+            return
         chat_id = self.model.current_chat_id
         reply_to_msg = self.model.current_msg_id
         if msg := self.view.status.get_input():
@@ -250,6 +256,9 @@ class Controller:
             self.present_info("Message reply wasn't sent")
 
     def reply_with_long_message(self):
+        if not self.can_send_msg():
+            self.present_info("Can't send msg in this chat")
+            return
         chat_id = self.model.current_chat_id
         reply_to_msg = self.model.current_msg_id
         msg = MsgProxy(self.model.current_msg)
@@ -267,12 +276,27 @@ class Controller:
                     self.present_info("Message wasn't sent")
 
     def write_short_msg(self):
-        # write new message
+        if not self.can_send_msg():
+            self.present_info("Can't send msg in this chat")
+            return
         if msg := self.view.status.get_input():
             self.model.send_message(text=msg)
             self.present_info("Message sent")
         else:
             self.present_info("Message wasn't sent")
+
+    def write_long_msg(self):
+        if not self.can_send_msg():
+            self.present_info("Can't send msg in this chat")
+            return
+        with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(
+            self.view
+        ) as s:
+            s.call(config.LONG_MSG_CMD.format(file_path=f.name))
+            with open(f.name) as f:
+                if msg := f.read().strip():
+                    self.model.send_message(text=msg)
+                    self.present_info("Message sent")
 
     def send_video(self):
         file_path = self.view.status.get_input()
@@ -392,16 +416,6 @@ class Controller:
                 if text := f.read().strip():
                     self.model.edit_message(text=text)
                     self.present_info("Message edited")
-
-    def write_long_msg(self):
-        with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(
-            self.view
-        ) as s:
-            s.call(config.LONG_MSG_CMD.format(file_path=f.name))
-            with open(f.name) as f:
-                if msg := f.read().strip():
-                    self.model.send_message(text=msg)
-                    self.present_info("Message sent")
 
     def run(self) -> None:
         try:
