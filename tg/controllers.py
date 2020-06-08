@@ -129,16 +129,10 @@ class Controller:
         self.present_info("Copied msg")
 
     def forward_msgs(self):
-        # TODO: check <can_be_forwarded> flag
-        chat_id = self.model.chats.id_by_index(self.model.current_chat)
-        if not chat_id:
+        if not self.model.forward_msgs():
+            self.present_error("Can't forward msg(s)")
             return
-        from_chat_id, msg_ids = self.model.yanked_msgs
-        if not msg_ids:
-            return
-        self.tg.forward_messages(chat_id, from_chat_id, msg_ids)
-        self.present_info(f"Forwarded {len(msg_ids)} messages")
-        self.model.yanked_msgs = (0, [])
+        self.present_info("Forwarded msg(s)")
 
     def copy_msgs(self):
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
@@ -239,8 +233,14 @@ class Controller:
         with suspend(self.view):
             breakpoint()
 
+    def can_send_msg(self) -> bool:
+        chat = self.model.chats.chats[self.model.current_chat]
+        return chat["permissions"]["can_send_messages"]
+
     def reply_message(self):
-        # write new message
+        if not self.can_send_msg():
+            self.present_info("Can't send msg in this chat")
+            return
         chat_id = self.model.current_chat_id
         reply_to_msg = self.model.current_msg_id
         if msg := self.view.status.get_input():
@@ -250,6 +250,9 @@ class Controller:
             self.present_info("Message reply wasn't sent")
 
     def reply_with_long_message(self):
+        if not self.can_send_msg():
+            self.present_info("Can't send msg in this chat")
+            return
         chat_id = self.model.current_chat_id
         reply_to_msg = self.model.current_msg_id
         msg = MsgProxy(self.model.current_msg)
@@ -267,12 +270,27 @@ class Controller:
                     self.present_info("Message wasn't sent")
 
     def write_short_msg(self):
-        # write new message
+        if not self.can_send_msg():
+            self.present_info("Can't send msg in this chat")
+            return
         if msg := self.view.status.get_input():
             self.model.send_message(text=msg)
             self.present_info("Message sent")
         else:
             self.present_info("Message wasn't sent")
+
+    def write_long_msg(self):
+        if not self.can_send_msg():
+            self.present_info("Can't send msg in this chat")
+            return
+        with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(
+            self.view
+        ) as s:
+            s.call(config.LONG_MSG_CMD.format(file_path=f.name))
+            with open(f.name) as f:
+                if msg := f.read().strip():
+                    self.model.send_message(text=msg)
+                    self.present_info("Message sent")
 
     def send_video(self):
         file_path = self.view.status.get_input()
@@ -286,8 +304,11 @@ class Controller:
         self.tg.send_video(file_path, chat_id, width, height, duration)
 
     def delete_msgs(self):
-        self.model.delete_msgs()
+        is_deleted = self.model.delete_msgs()
         self.discard_selected_msgs()
+        if not is_deleted:
+            self.present_error("Can't delete msg(s)")
+            return
         self.present_info("Message deleted")
 
     def send_file(self, send_file_fun, *args, **kwargs):
@@ -389,16 +410,6 @@ class Controller:
                 if text := f.read().strip():
                     self.model.edit_message(text=text)
                     self.present_info("Message edited")
-
-    def write_long_msg(self):
-        with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(
-            self.view
-        ) as s:
-            s.call(config.LONG_MSG_CMD.format(file_path=f.name))
-            with open(f.name) as f:
-                if msg := f.read().strip():
-                    self.model.send_message(text=msg)
-                    self.present_info("Message sent")
 
     def run(self) -> None:
         try:
