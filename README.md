@@ -48,7 +48,6 @@ Docker (voice recordings and notifications won't work):
 docker run -it --rm tg
 ```
 
-
 ## Optional dependencies
 
 - [tdlib](https://tdlib.github.io/td/build.html?language=Python) - in case of incompatibility with built in package
