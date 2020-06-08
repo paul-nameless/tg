@@ -1,5 +1,5 @@
 """
-Every parameter (except for DEFAULT_CONFIG) can be
+Every parameter (except for CONFIG_FILE) can be
 overwritten by external config file
 """
 import os
@@ -11,8 +11,10 @@ _darwin = "Darwin"
 _linux = "Linux"
 
 
-DEFAULT_CONFIG = os.path.expanduser("~/.config/tg/conf.py")
-DEFAULT_FILES = os.path.expanduser("~/.cache/tg/")
+CONFIG_DIR = os.path.expanduser("~/.config/tg/")
+CONFIG_FILE = os.path.join(CONFIG_DIR, "conf.py")
+FILES_DIR = os.path.expanduser("~/.cache/tg/")
+
 LOG_LEVEL = "INFO"
 LOG_PATH = os.path.expanduser("~/.local/share/tg/")
 
@@ -20,7 +22,7 @@ API_ID = "559815"
 API_HASH = "fd121358f59d764c57c55871aa0807ca"
 
 PHONE = None
-ENC_KEY = None
+ENC_KEY = ""
 
 TDLIB_PATH = None
 TDLIB_VERBOSITY = 0
@@ -54,8 +56,17 @@ else:
     COPY_CMD = "pbcopy"
 
 
-if os.path.isfile(DEFAULT_CONFIG):
-    config_params = runpy.run_path(DEFAULT_CONFIG)
+if os.path.isfile(CONFIG_FILE):
+    config_params = runpy.run_path(CONFIG_FILE)
     for param, value in config_params.items():
         if param.isupper():
             globals()[param] = value
+else:
+    for directory in (LOG_PATH, CONFIG_DIR, FILES_DIR):
+        os.makedirs(directory, exist_ok=True)
+
+    if not PHONE:
+        PHONE = input("phone> ")
+
+    with open(CONFIG_FILE, "w") as f:
+        f.write(f"PHONE = '{PHONE}'\n")

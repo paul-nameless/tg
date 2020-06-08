@@ -44,14 +44,13 @@ def run(tg: Tdlib, stdscr: window) -> None:
 
 
 def main():
-    utils.setup_log(config.LOG_LEVEL)
-
+    utils.setup_log()
     tg = Tdlib(
         api_id=config.API_ID,
         api_hash=config.API_HASH,
         phone=config.PHONE,
         database_encryption_key=config.ENC_KEY,
-        files_directory=config.DEFAULT_FILES,
+        files_directory=config.FILES_DIR,
         tdlib_verbosity=config.TDLIB_VERBOSITY,
         library_path=config.TDLIB_PATH,
     )

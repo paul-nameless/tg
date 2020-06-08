@@ -7,14 +7,13 @@ author-email = "reacsdas@gmail.com"
 home-page = 'https://github.com/paul-nameless/tg'
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
 ]
-requires-python = ">=3.7"
-requires = ['python-telegram']
+requires-python = ">=3.8"
+requires = ['python-telegram==0.12.0']
 
 [tool.flit.scripts]
-j = "j.main:main"
+tg = "tg.main:main"
 
 [tool.black]
 line-length = 79
-
