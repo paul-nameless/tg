@@ -17,3 +17,8 @@ tg = "tg.main:main"
 
 [tool.black]
 line-length = 79
+
+[tool.isort]
+line_length = 79
+multi_line_output = 3
+include_trailing_comma = true
