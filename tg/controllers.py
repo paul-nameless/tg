@@ -477,6 +477,14 @@ class Controller:
         self.queue.put(self._render)
 
     def _render(self) -> None:
+        self.render_chats()
+        self.render_msgs()
+        self.view.status.draw()
+
+    def render_chats(self) -> None:
+        self.queue.put(self._render_chats)
+
+    def _render_chats(self) -> None:
         page_size = self.view.chats.h
         chats = self.model.get_chats(
             self.model.current_chat, page_size, MSGS_LEFT_SCROLL_THRESHOLD
@@ -484,10 +492,7 @@ class Controller:
         selected_chat = min(
             self.model.current_chat, page_size - MSGS_LEFT_SCROLL_THRESHOLD
         )
-
         self.view.chats.draw(selected_chat, chats)
-        self.render_msgs()
-        self.view.status.draw()
 
     def render_msgs(self) -> None:
         self.queue.put(self._render_msgs)

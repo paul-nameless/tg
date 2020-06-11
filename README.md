@@ -1,8 +1,6 @@
 # tg
 
-Terminal telegram client.
-
-(!) usable but still in development
+Telegram terminal client.
 
 
 ## Features
@@ -55,6 +53,7 @@ docker run -it --rm tg
   ```sh
   brew install tdlib
   ```
+  and then set in config `TDLIB_PATH`
 - `python3.8`
 - `pip3 install python-telegram` - dependency for running from sources
 - `terminal-notifier` or other program for notifications (see configuration)
@@ -69,7 +68,6 @@ Config file should be stored at `~/.config/tg/conf.py`. This is simple python fi
 
 ```python
 PHONE = "[your phone number]"
-ENC_KEY = "[telegram db encryption key]"
 ```
 
 ### Advanced configuration:
@@ -86,6 +84,7 @@ def get_pass(key):
 
 
 PHONE = get_pass("i/telegram-phone")
+# encrypt you local tdlib database with the key
 ENC_KEY = get_pass("i/telegram-enc-key")
 
 # log level for debugging
@@ -107,6 +106,25 @@ NOTIFY_CMD = '/usr/local/bin/terminal-notifier -title "{title}" -subtitle "{subt
 # The voice note must be encoded with the Opus codec, and stored inside an OGG
 # container. Voice notes can have only a single audio channel.
 VOICE_RECORD_CMD = "ffmpeg -f avfoundation -i ':0' -c:a libopus -b:a 32k '{file_path}'"
+
+# You can customize chat and msg flags however you want.
+# By default words will be used for readability, but you can make
+# it as simple as one letter flags like in mutt or add emojies
+CHAT_FLAGS = {
+    "online": "●",
+    "pinned": "P",
+    "muted": "M",
+    "unread": "U",
+}
+MSG_FLAGS = {
+    "selected": "*",
+    "forwarded": "F",
+    "new": "N",
+    "unseen": "U",
+    "edited": "E",
+    "pending": "...",
+    "failed": "💩",
+}
 ```
 
 

@@ -4,6 +4,7 @@ from _curses import window  # type: ignore
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, cast
 
+from tg import config
 from tg.colors import blue, cyan, get_color, magenta, reverse, white, yellow
 from tg.models import Model, MsgModel, UserModel
 from tg.msg import MsgProxy
@@ -126,12 +127,13 @@ class StatusView:
 
 
 class ChatView:
-    def __init__(self, stdscr: window, p: float = 0.5) -> None:
+    def __init__(self, stdscr: window, users: UserModel, p: float = 0.5):
         self.stdscr = stdscr
         self.h = 0
         self.w = 0
         self.win = stdscr.subwin(self.h, self.w, 0, 0)
         self._refresh = self.win.refresh
+        self.users = users
 
     def resize(self, rows: int, cols: int, p: float = 0.25) -> None:
         self.h = rows - 1
@@ -193,33 +195,34 @@ class ChatView:
                     i, offset, last_msg, self._msg_color(is_selected)
                 )
 
-            if left_label := self._get_chat_label(
-                unread_count, is_pinned, chat
-            ):
+            if flags := self._get_flags(unread_count, is_pinned, chat):
                 self.win.addstr(
                     i,
-                    self.w - len(left_label) - 1,
-                    left_label,
+                    self.w - len(flags) - 1,
+                    flags,
                     self._unread_color(is_selected),
                 )
 
         self._refresh()
 
-    @staticmethod
-    def _get_chat_label(
-        unread_count: int, is_pinned: bool, chat: Dict[str, Any]
+    def _get_flags(
+        self, unread_count: int, is_pinned: bool, chat: Dict[str, Any]
     ) -> str:
-        labels = []
+        flags = []
+
+        if self.users.is_online(chat["id"]):
+            flags.append("online")
+
         if is_pinned:
-            labels.append("pinned")
+            flags.append("pinned")
 
         if chat["notification_settings"]["mute_for"]:
-            labels.append("muted")
+            flags.append("muted")
 
         if unread_count:
-            labels.append(str(unread_count))
+            flags.append(str(unread_count))
 
-        label = " ".join(labels)
+        label = " ".join(config.CHAT_FLAGS.get(flag, flag) for flag in flags)
         if label:
             return f" {label}"
         return label
@@ -285,7 +288,7 @@ class MsgView:
 
         if not flags:
             return ""
-        return " ".join(flags)
+        return " ".join(config.MSG_FLAGS.get(flag, flag) for flag in flags)
 
     def _format_reply_msg(
         self, chat_id: int, msg: str, reply_to: int, width_limit: int

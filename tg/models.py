@@ -1,4 +1,5 @@
 import logging
+import time
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -431,6 +432,23 @@ class MsgModel:
 
 
 class UserModel:
+
+    statuses = {
+        "userStatusEmpty": "",
+        "userStatusOnline": "online",
+        "userStatusOffline": "offline",
+        "userStatusRecently": "recently",
+        "userStatusLastWeek": "last week",
+        "userStatusLastMonth": "last month",
+    }
+
+    types = {
+        "userTypeUnknown": "unknown",
+        "userTypeBot": "bot",
+        "userTypeDeleted": "deleted",
+        "userTypeRegular": "regular",
+    }
+
     def __init__(self, tg: Tdlib) -> None:
         self.tg = tg
         self.me = None
@@ -446,6 +464,22 @@ class UserModel:
             return {}
         self.me = result.update
         return self.me
+
+    def set_status(self, user_id: int, status: Dict[str, Any]):
+        if user_id not in self.users:
+            self.get_user(user_id)
+        self.users[user_id]["status"] = status
+
+    def is_online(self, user_id: int):
+        user = self.get_user(user_id)
+        if (
+            user
+            and user["type"]["@type"] != "userTypeBot"
+            and user["status"]["@type"] == "userStatusOnline"
+            and user["status"]["expires"] > time.time()
+        ):
+            return True
+        return False
 
     def get_user(self, user_id: int) -> Dict[str, Any]:
         if user_id in self.users:
