@@ -33,6 +33,8 @@ MAX_DOWNLOAD_SIZE = "10MB"
 # TODO: check platform
 NOTIFY_CMD = "/usr/local/bin/terminal-notifier -title '{title}' -subtitle '{subtitle}' -message '{msg}' -appIcon '{icon_path}'"
 
+HELP_CMD = "less"
+
 if _os_name == _linux:
     VOICE_RECORD_CMD = (
         "ffmpeg -f alsa -i default -c:a libopus -b:a 32k '{file_path}'"
@@ -59,6 +61,8 @@ else:
 CHAT_FLAGS: Dict[str, str] = {}
 
 MSG_FLAGS: Dict[str, str] = {}
+
+ICON_PATH = os.path.join(os.path.dirname(__file__), "resources", "tg.png")
 
 if os.path.isfile(CONFIG_FILE):
     config_params = runpy.run_path(CONFIG_FILE)
