@@ -362,7 +362,7 @@ class Controller:
 
     @bind(chat_handler, ["l", "^J", "^E"])
     def handle_msgs(self):
-        rc = self.handle(msg, 0.2)
+        rc = self.handle(msg_handler, 0.2)
         if rc == "QUIT":
             return rc
         self.chat_size = 0.5
@@ -437,7 +437,7 @@ class Controller:
 
     def run(self) -> None:
         try:
-            self.handle(chat, 0.5)
+            self.handle(chat_handler, 0.5)
             self.queue.put(self.close)
         except Exception:
             log.exception("Error happened in main loop")
@@ -452,7 +452,7 @@ class Controller:
         while True:
             repeat_factor, keys = self.view.get_keys()
             fun = handlers.get(keys, lambda *_: None)
-            res = fun(self, repeat_factor)
+            res = fun(self, repeat_factor)  # type: ignore
             if res == "QUIT":
                 return res
             elif res == "BACK":
