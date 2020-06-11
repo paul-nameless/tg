@@ -18,7 +18,6 @@ from typing import Optional
 from tg import config
 
 log = logging.getLogger(__name__)
-
 emoji_pattern = re.compile(
     "["
     "\U0001F600-\U0001F64F"  # emoticons
@@ -51,12 +50,16 @@ def setup_log():
     for level, filename in zip(
         (config.LOG_LEVEL, logging.ERROR), ("all.log", "error.log"),
     ):
-        handler = logging.FileHandler(os.path.join(config.LOG_PATH, filename))
+        handler = logging.handlers.RotatingFileHandler(
+            os.path.join(config.LOG_PATH, filename),
+            maxBytes=parse_size("32MB"),
+            backupCount=1,
+        )
         handler.setLevel(level)
         handlers.append(handler)
 
     logging.basicConfig(
-        format="%(levelname)-8s [%(asctime)s] %(name)s %(message).1000s",
+        format="%(levelname)-8s [%(asctime)s] %(name)s %(message)s",
         handlers=handlers,
     )
     logging.getLogger().setLevel(config.LOG_LEVEL)

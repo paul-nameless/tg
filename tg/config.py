@@ -5,6 +5,7 @@ overwritten by external config file
 import os
 import platform
 import runpy
+from typing import Dict
 
 _os_name = platform.system()
 _darwin = "Darwin"
@@ -55,6 +56,9 @@ if _os_name == _linux:
 else:
     COPY_CMD = "pbcopy"
 
+CHAT_FLAGS: Dict[str, str] = {}
+
+MSG_FLAGS: Dict[str, str] = {}
 
 if os.path.isfile(CONFIG_FILE):
     config_params = runpy.run_path(CONFIG_FILE)

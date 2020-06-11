@@ -263,3 +263,9 @@ def update_connection_state(controller: Controller, update: Dict[str, Any]):
     }
     msg = states.get(state, "Unknown state")
     controller.present_info(msg)
+
+
+@update_handler("updateUserStatus")
+def update_user_status(controller: Controller, update: Dict[str, Any]):
+    controller.model.users.set_status(update["user_id"], update["status"])
+    controller.render_chats()
