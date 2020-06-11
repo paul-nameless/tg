@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from tg.msg import MsgProxy
 from tg.tdlib import Tdlib
+from tg.utils import copy_to_clipboard
 
 log = logging.getLogger(__name__)
 
@@ -18,7 +19,7 @@ class Model:
         self.current_chat = 0
         self.downloads: Dict[int, Tuple[int, int]] = {}
         self.selected: Dict[int, List[int]] = defaultdict(list)
-        self.yanked_msgs: Tuple[int, List[int]] = (0, [])
+        self.copied_msgs: Tuple[int, List[int]] = (0, [])
 
     def get_me(self):
         return self.users.get_me()
@@ -168,7 +169,7 @@ class Model:
         chat_id = self.chats.id_by_index(self.current_chat)
         if not chat_id:
             return False
-        from_chat_id, msg_ids = self.yanked_msgs
+        from_chat_id, msg_ids = self.copied_msgs
         if not msg_ids:
             return False
         for msg_id in msg_ids:
@@ -177,8 +178,23 @@ class Model:
                 return False
 
         self.tg.forward_messages(chat_id, from_chat_id, msg_ids)
-        self.yanked_msgs = (0, [])
+        self.copied_msgs = (0, [])
         return True
+
+    def copy_msgs_text(self):
+        """Copies current msg text or path to file if it's file"""
+        buffer = []
+
+        from_chat_id, msg_ids = self.copied_msgs
+        if not msg_ids:
+            return False
+        for msg_id in msg_ids:
+            msg = MsgProxy(self.msgs.get_message(from_chat_id, msg_id))
+            if msg.file_id:
+                buffer.append(msg.local_path)
+            elif msg.is_text:
+                buffer.append(msg.text_content)
+        copy_to_clipboard("\n".join(buffer))
 
 
 class ChatModel:

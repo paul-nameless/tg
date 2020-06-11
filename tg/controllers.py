@@ -13,7 +13,6 @@ from tg.models import Model
 from tg.msg import MsgProxy
 from tg.tdlib import Tdlib
 from tg.utils import (
-    copy_to_clipboard,
     get_duration,
     get_video_resolution,
     get_waveform,
@@ -107,7 +106,6 @@ class Controller:
             "A": lambda _: self.write_long_msg(),
             "p": lambda _: self.forward_msgs(),
             "y": lambda _: self.copy_msgs(),
-            "c": lambda _: self.copy_msg_text(),
             "r": lambda _: self.reply_message(),
             "R": lambda _: self.reply_with_long_message(),
             # message selection
@@ -115,18 +113,6 @@ class Controller:
             "^G": lambda _: self.discard_selected_msgs(),
             "^[": lambda _: self.discard_selected_msgs(),  # esc
         }
-
-    def copy_msg_text(self):
-        """Copies current msg text or path to file if it's file"""
-        msg = MsgProxy(self.model.current_msg)
-        if msg.file_id:
-            text = msg.local_path
-        elif msg.is_text:
-            text = msg.text_content
-        else:
-            return
-        copy_to_clipboard(text)
-        self.present_info("Copied msg")
 
     def forward_msgs(self):
         if not self.model.forward_msgs():
@@ -140,11 +126,12 @@ class Controller:
             return
         msg_ids = self.model.selected[chat_id]
         if not msg_ids:
-            self.present_error("No msgs selected")
-            return
-        self.model.yanked_msgs = (chat_id, msg_ids)
+            msg = self.model.current_msg
+            msg_ids = [msg["id"]]
+        self.model.copied_msgs = (chat_id, msg_ids)
         self.discard_selected_msgs()
-        self.present_info(f"Copied {len(msg_ids)} messages")
+        self.model.copy_msgs_text()
+        self.present_info(f"Copied {len(msg_ids)} msg(s)")
 
     def toggle_select_msg(self):
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
