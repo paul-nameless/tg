@@ -78,13 +78,13 @@ class Controller:
 
     @bind(chat_handler, ["?"])
     def show_chat_help(self):
-        _help = self.format_help(chat)
+        _help = self.format_help(chat_handler)
         with suspend(self.view) as s:
             s.run_with_input(config.HELP_CMD, _help)
 
     @bind(msg_handler, ["?"])
     def show_msg_help(self):
-        _help = self.format_help(msg)
+        _help = self.format_help(msg_handler)
         with suspend(self.view) as s:
             s.run_with_input(config.HELP_CMD, _help)
 
