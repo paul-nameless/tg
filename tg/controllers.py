@@ -280,15 +280,15 @@ class Controller:
 
     @bind(msg_handler, ["sd"])
     def send_document(self):
-        send_file(self.tg.send_doc)
+        self.send_file(self.tg.send_doc)
 
     @bind(msg_handler, ["sp"])
     def send_picture(self):
-        send_file(self.tg.send_photo)
+        self.send_file(self.tg.send_photo)
 
     @bind(msg_handler, ["sa"])
     def send_audio(self):
-        send_file(self.tg.send_audio)
+        self.send_file(self.tg.send_audio)
 
     def send_file(self, send_file_fun, *args, **kwargs):
         file_path = self.view.status.get_input()
