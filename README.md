@@ -143,6 +143,7 @@ For navigation arrow keys also can be used.
 - `p`: pin/unpin current chat
 - `u`: mark read/unread
 - `r`: read current chat
+- `?`: show help
 
 ## Msgs:
 
@@ -155,10 +156,10 @@ For navigation arrow keys also can be used.
   image/png; icat %s && read
   audio/*; mpv %s
   ```
-  if text, open in less (to view multiline msgs)
+  if text, open in `less` (to view multiline msgs)
 - `e`: edit current msg
 - `<space>`: space can be used to select multiple msgs for deletion or forwarding
-- `y`: yank (copy) selected msgs with <space> to internal buffer
+- `y`: yank (copy) selected msgs with <space> to internal buffer (for forwarding) and copy current msg text or path to file to clipboard
 - `p`: forward (paste) yanked (copied) msgs to current chat
 - `dd`: delete msg for everybody (multiple messages will be deleted if selected)
 - `i or a`: insert mode, type new message
@@ -169,6 +170,6 @@ For navigation arrow keys also can be used.
 - `sa`: send audio
 - `sp`: send picture
 - `sd`: send document
-- `c`: copy current msg text or path to file if this is document, photo or video
 - `]`: next chat
 - `[`: prev chat
+- `?`: show help
