@@ -147,9 +147,8 @@ def notify(
 ):
     if not cmd:
         return
-    icon_path = os.path.join(os.path.dirname(__file__), "tg.png")
     notify_cmd = cmd.format(
-        icon_path=icon_path, title=title, subtitle=subtitle, msg=msg
+        icon_path=config.ICON_PATH, title=title, subtitle=subtitle, msg=msg
     )
     log.info("notify-cmd: %s", notify_cmd)
     os.system(notify_cmd)
@@ -183,6 +182,9 @@ class suspend:
 
     def call(self, cmd):
         subprocess.call(cmd, shell=True)
+
+    def run_with_input(self, cmd, text):
+        subprocess.run(cmd, universal_newlines=True, input=text, shell=True)
 
     def open_file(self, file_path):
         cmd = get_file_handler(file_path)
