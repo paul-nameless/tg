@@ -91,10 +91,10 @@ class Controller:
             return
         if len(urls) == 1:
             with suspend(self.view) as s:
-                s.call(f"open -a Firefox '{url}'")
+                s.call(config.DEFAULT_OPEN.format(file_path=url))
             return
         with suspend(self.view) as s:
-            s.run_with_input("urlview", "\n".join(urls))
+            s.run_with_input(config.URL_VIEW, "\n".join(urls))
 
     def format_help(self, bindings):
         return "\n".join(

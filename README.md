@@ -58,6 +58,7 @@ docker run -it --rm tg
 - `pip3 install python-telegram` - dependency for running from sources
 - `terminal-notifier` or other program for notifications (see configuration)
 - `ffmpeg` to record voice msgs and upload videos correctly
+- `urlview` to choose urls when there is multiple in message, use `URL_VIEW` in config file to use another app (it should accept urls in stdin)
 
 
 ## Configuration
@@ -125,6 +126,9 @@ MSG_FLAGS = {
     "pending": "...",
     "failed": "💩",
 }
+
+# use this app to open url when there are multiple
+URL_VIEW = 'urlview'
 ```
 
 
@@ -138,6 +142,7 @@ For navigation arrow keys also can be used.
 
 - `j,k`: move up/down
 - `J,K`: move 10 chats up/down
+- `g`: go to top chat
 - `l`: open msgs of the chat
 - `m`: mute/unmute current chat
 - `p`: pin/unpin current chat
@@ -170,6 +175,7 @@ For navigation arrow keys also can be used.
 - `sa`: send audio
 - `sp`: send picture
 - `sd`: send document
+- `o`: open url present in message (if multiple urls, `urlview` will be opened)
 - `]`: next chat
 - `[`: prev chat
 - `?`: show help
