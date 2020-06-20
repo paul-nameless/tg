@@ -313,10 +313,10 @@ class MsgModel:
     def get_message(
         self, chat_id: int, msg_id: int
     ) -> Optional[Dict[str, Any]]:
-        msg_set = self.msg_ids[chat_id]
+        msgs_dict = self.msg_ids[chat_id]
         if msg_id in self.not_found:
             return None
-        if msg_id not in msg_set:
+        if msg_id not in msgs_dict:
             # we are not storing any out of ordres old msgs
             # just fetching then on demand
             result = self.tg.get_message(chat_id, msg_id)
@@ -325,17 +325,17 @@ class MsgModel:
                 self.not_found.add(msg_id)
                 return None
             return result.update
-        index = msg_set[msg_id]
+        index = msgs_dict[msg_id]
         return self.msgs[chat_id][index]
 
     def remove_message(self, chat_id: int, msg_id: int):
-        msg_set = self.msg_ids[chat_id]
-        if msg_id not in msg_set:
+        msgs_dict = self.msg_ids[chat_id]
+        if msg_id not in msgs_dict:
             return False
         log.info(f"removing msg {msg_id=}")
         index = self.msg_ids[chat_id][msg_id]
         self.msgs[chat_id].pop(index)
-        msg_set.pop(msg_id, None)
+        msgs_dict.pop(msg_id, None)
         return True
 
     def update_msg_content_opened(self, chat_id: int, msg_id: int):
@@ -362,8 +362,8 @@ class MsgModel:
 
     def add_message(self, chat_id: int, message: Dict[str, Any]) -> bool:
         msg_id = message["id"]
-        msg_set = self.msg_ids[chat_id]
-        if msg_id in msg_set:
+        msgs_dict = self.msg_ids[chat_id]
+        if msg_id in msgs_dict:
             log.warning(
                 f"message {msg_id} was added earlier. probably, inaccurate "
                 "usage of the tdlib lead to unnecessary requests"
@@ -371,7 +371,7 @@ class MsgModel:
             return False
         log.info(f"adding {msg_id=} {message}")
         self.msgs[chat_id].append(message)
-        msg_set[msg_id] = len(self.msgs[chat_id]) - 1
+        msgs_dict[msg_id] = len(self.msgs[chat_id]) - 1
         return True
 
     def _fetch_msgs_until_limit(
