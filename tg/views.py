@@ -185,7 +185,9 @@ class ChatView:
                     truncate_to_len(elem, max(0, self.w - offset - 1)),
                     attr,
                 )
-                offset += len(elem)
+                offset += len(elem) + sum(
+                    map(len, emoji_pattern.findall(elem))
+                )
 
             last_msg = " " + last_msg.replace("\n", " ")
             last_msg = truncate_to_len(last_msg, max(0, self.w - offset))
@@ -195,9 +197,12 @@ class ChatView:
                 )
 
             if flags := self._get_flags(unread_count, is_pinned, chat):
+                flags_len = len(flags) + sum(
+                    map(len, emoji_pattern.findall(flags))
+                )
                 self.win.addstr(
                     i,
-                    self.w - len(flags) - 1,
+                    self.w - flags_len - 1,
                     flags,
                     self._unread_color(is_selected),
                 )

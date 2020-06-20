@@ -91,10 +91,10 @@ class Controller:
             return
         if len(urls) == 1:
             with suspend(self.view) as s:
-                s.call(f"open -a Firefox '{url}'")
+                s.call(config.DEFAULT_OPEN.format(file_path=url))
             return
         with suspend(self.view) as s:
-            s.run_with_input("urlview", "\n".join(urls))
+            s.run_with_input(config.URL_VIEW, "\n".join(urls))
 
     def format_help(self, bindings):
         return "\n".join(
@@ -280,15 +280,15 @@ class Controller:
 
     @bind(msg_handler, ["sd"])
     def send_document(self):
-        send_file(self.tg.send_doc)
+        self.send_file(self.tg.send_doc)
 
     @bind(msg_handler, ["sp"])
     def send_picture(self):
-        send_file(self.tg.send_photo)
+        self.send_file(self.tg.send_photo)
 
     @bind(msg_handler, ["sa"])
     def send_audio(self):
-        send_file(self.tg.send_audio)
+        self.send_file(self.tg.send_audio)
 
     def send_file(self, send_file_fun, *args, **kwargs):
         file_path = self.view.status.get_input()
