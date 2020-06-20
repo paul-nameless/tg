@@ -44,7 +44,6 @@ def run(tg: Tdlib, stdscr: window) -> None:
 
 
 def main():
-    utils.setup_log()
     tg = Tdlib(
         api_id=config.API_ID,
         api_hash=config.API_HASH,
@@ -55,6 +54,8 @@ def main():
         library_path=config.TDLIB_PATH,
     )
     tg.login()
+
+    utils.setup_log()
     utils.set_shorter_esc_delay()
 
     wrapper(partial(run, tg))

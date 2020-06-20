@@ -70,6 +70,32 @@ class Controller:
         self.tg = tg
         self.chat_size = 0.5
 
+    @bind(msg_handler, ["o"])
+    def open_url(self):
+        msg = self.model.current_msg
+        msg = MsgProxy(msg)
+        if not msg.is_text:
+            self.present_error("Does not contain urls")
+            return
+        text = msg["content"]["text"]["text"]
+        urls = []
+        for entity in msg["content"]["text"]["entities"]:
+            if entity["type"]["@type"] != "textEntityTypeUrl":
+                continue
+            offset = entity["offset"]
+            length = entity["length"]
+            url = text[offset : offset + length]
+            urls.append(url)
+        if not urls:
+            self.present_error("No url to open")
+            return
+        if len(urls) == 1:
+            with suspend(self.view) as s:
+                s.call(config.DEFAULT_OPEN.format(file_path=url))
+            return
+        with suspend(self.view) as s:
+            s.run_with_input(config.URL_VIEW, "\n".join(urls))
+
     def format_help(self, bindings):
         return "\n".join(
             f"{key}\t{fun.__name__}\t{fun.__doc__ or ''}"

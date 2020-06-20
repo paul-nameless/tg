@@ -14,7 +14,6 @@ log = logging.getLogger(__name__)
 
 MAX_KEYBINDING_LENGTH = 5
 MULTICHAR_KEYBINDINGS = (
-    "gg",
     "dd",
     "sd",
     "sp",
@@ -309,11 +308,24 @@ class MsgView:
             msg = f"{reply_line}\n{msg}"
         return msg
 
+    def _format_url(self, msg_proxy: MsgProxy):
+        if not msg_proxy.is_text or "web_page" not in msg_proxy.msg["content"]:
+            return ""
+        web = msg_proxy.msg["content"]["web_page"]
+        name = web["site_name"]
+        title = web["title"]
+        description = web["description"].replace("\n", "")
+        url = f"\n | {name}: {title}"
+        if description:
+            url += f"\n | {description}"
+        return url
+
     def _format_msg(
         self, msg_proxy: MsgProxy, user_id_item: int, width_limit: int
     ) -> str:
         msg = self._parse_msg(msg_proxy)
         msg = msg.replace("\n", " ")
+        msg += self._format_url(msg_proxy)
         if reply_to := msg_proxy.reply_msg_id:
             msg = self._format_reply_msg(
                 msg_proxy.chat_id, msg, reply_to, width_limit
