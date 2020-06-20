@@ -313,9 +313,10 @@ class MsgModel:
     def get_message(
         self, chat_id: int, msg_id: int
     ) -> Optional[Dict[str, Any]]:
-        msgs_dict = self.msg_ids[chat_id]
         if msg_id in self.not_found:
             return None
+        msgs_dict = self.msg_ids[chat_id]
+
         if msg_id not in msgs_dict:
             # we are not storing any out of ordres old msgs
             # just fetching then on demand
