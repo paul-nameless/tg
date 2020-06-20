@@ -27,6 +27,9 @@ TODO:
 
 ## Usage
 
+`python3.8` required.
+
+
 From pip:
 
 ```sh
@@ -36,6 +39,7 @@ pip3 install tg
 From sources:
 
 ```sh
+pip3 install python-telegram
 git clone git@github.com:paul-nameless/tg.git
 cd tg
 PYTHONPATH=. python3 tg/main.py
@@ -48,16 +52,14 @@ docker run -it --rm tg
 
 ## Optional dependencies
 
+- `terminal-notifier` or other program for notifications (see configuration)
+- `ffmpeg` to record voice msgs and upload videos correctly
 - [tdlib](https://tdlib.github.io/td/build.html?language=Python) - in case of incompatibility with built in package
-  For macOS:
+  For example, macOS:
   ```sh
   brew install tdlib
   ```
   and then set in config `TDLIB_PATH`
-- `python3.8`
-- `pip3 install python-telegram` - dependency for running from sources
-- `terminal-notifier` or other program for notifications (see configuration)
-- `ffmpeg` to record voice msgs and upload videos correctly
 - `urlview` to choose urls when there is multiple in message, use `URL_VIEW` in config file to use another app (it should accept urls in stdin)
 
 
@@ -88,13 +90,13 @@ PHONE = get_pass("i/telegram-phone")
 # encrypt you local tdlib database with the key
 ENC_KEY = get_pass("i/telegram-enc-key")
 
-# log level for debugging
+# log level for debugging, info by default
 LOG_LEVEL = "DEBUG"
 # path where logs will be stored (all.log and error.log)
-LOG_PATH = "/var/log/tg/"
+LOG_PATH = "~/.local/share/tg/"
 
 # If you have problems with tdlib shipped with the client, you can install and
-# use your own
+# use your own, for example:
 TDLIB_PATH = "/usr/local/Cellar/tdlib/1.6.0/lib/libtdjson.dylib"
 
 # you can use any other notification cmd, it is simple python file which
@@ -131,6 +133,28 @@ MSG_FLAGS = {
 URL_VIEW = 'urlview'
 ```
 
+### Mailcap file
+
+Mailcap file is used for deciding how to open telegram files (docs, pics, voice notes, etc.).
+
+Example: `~/.mailcap`
+
+```ini
+# media
+video/*; mpv "%s"
+audio/ogg; mpv --speed 1.33 "%s"
+audio/mpeg; mpv --no-video "%s"
+image/*; qView "%s"
+
+# text
+text/html; w3m "%s"
+text/html; open -a Firefox "%s"
+text/plain; less "%s"
+
+# fallback to vim
+text/*; vim "%s"
+```
+
 
 ## Keybindings
 
@@ -156,10 +180,10 @@ For navigation arrow keys also can be used.
 - `J,K`: move 10 msgs up/down
 - `G`: move to the last msg (at the bottom)
 - `l`: if video, pics or audio then open app specified in mailcap file, for example:
-  ```
+  ```ini
   # Images
-  image/png; icat %s && read
-  audio/*; mpv %s
+  image/png; qView "%s"
+  audio/*; mpv "%s"
   ```
   if text, open in `less` (to view multiline msgs)
 - `e`: edit current msg
