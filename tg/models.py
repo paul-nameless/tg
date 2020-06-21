@@ -330,13 +330,15 @@ class MsgModel:
         return self.msgs[chat_id][index]
 
     def remove_message(self, chat_id: int, msg_id: int):
-        msgs_dict = self.msg_ids[chat_id]
-        if msg_id not in msgs_dict:
+        if msg_id not in self.msg_ids[chat_id]:
             return False
         log.info(f"removing msg {msg_id=}")
-        index = self.msg_ids[chat_id][msg_id]
-        self.msgs[chat_id].pop(index)
-        msgs_dict.pop(msg_id, None)
+        self.msgs[chat_id] = [
+            m for m in self.msgs[chat_id] if m["id"] != msg_id
+        ]
+        self.msg_ids[chat_id] = {
+            msg["id"]: i for i, msg in enumerate(reversed(self.msgs[chat_id]))
+        }
         return True
 
     def update_msg_content_opened(self, chat_id: int, msg_id: int):
@@ -363,8 +365,7 @@ class MsgModel:
 
     def add_message(self, chat_id: int, message: Dict[str, Any]) -> bool:
         msg_id = message["id"]
-        msgs_dict = self.msg_ids[chat_id]
-        if msg_id in msgs_dict:
+        if msg_id in self.msg_ids[chat_id]:
             log.warning(
                 f"message {msg_id} was added earlier. probably, inaccurate "
                 "usage of the tdlib lead to unnecessary requests"
@@ -372,7 +373,12 @@ class MsgModel:
             return False
         log.info(f"adding {msg_id=} {message}")
         self.msgs[chat_id].append(message)
-        msgs_dict[msg_id] = len(self.msgs[chat_id]) - 1
+        self.msgs[chat_id] = sorted(
+            self.msgs[chat_id], key=lambda d: d["id"], reverse=True
+        )
+        self.msg_ids[chat_id] = {
+            msg["id"]: i for i, msg in enumerate(reversed(self.msgs[chat_id]))
+        }
         return True
 
     def _fetch_msgs_until_limit(
