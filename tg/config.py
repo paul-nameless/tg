@@ -31,17 +31,17 @@ TDLIB_VERBOSITY = 0
 MAX_DOWNLOAD_SIZE = "10MB"
 
 # TODO: check platform
-NOTIFY_CMD = "/usr/local/bin/terminal-notifier -title '{title}' -subtitle '{subtitle}' -message '{msg}' -appIcon '{icon_path}'"
+NOTIFY_CMD = "/usr/local/bin/terminal-notifier -title {title} -subtitle {subtitle} -message {msg} -appIcon {icon_path}"
 
 HELP_CMD = "less"
 
 if _os_name == _linux:
     VOICE_RECORD_CMD = (
-        "ffmpeg -f alsa -i default -c:a libopus -b:a 32k '{file_path}'"
+        "ffmpeg -f alsa -i default -c:a libopus -b:a 32k {file_path}"
     )
 else:
     VOICE_RECORD_CMD = (
-        "ffmpeg -f avfoundation -i ':0' -c:a libopus -b:a 32k '{file_path}'"
+        "ffmpeg -f avfoundation -i ':0' -c:a libopus -b:a 32k {file_path}"
     )
 
 # TODO: use mailcap instead of editor
@@ -49,9 +49,9 @@ LONG_MSG_CMD = "vim + -c 'startinsert' {file_path}"
 EDITOR = os.environ.get("EDITOR", "vi")
 
 if _os_name == _linux:
-    DEFAULT_OPEN = "xdg-open '{file_path}'"
+    DEFAULT_OPEN = "xdg-open {file_path}"
 else:
-    DEFAULT_OPEN = "open '{file_path}'"
+    DEFAULT_OPEN = "open {file_path}"
 
 if _os_name == _linux:
     COPY_CMD = "xclip -selection c"
