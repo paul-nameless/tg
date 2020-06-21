@@ -77,6 +77,12 @@ else:
 
     if not PHONE:
         PHONE = input("phone> ")
+        if not PHONE.startswith("+"):
+            COUNTRY_CODE = input("country code> ")
+            if not COUNTRY_CODE.startswith("+"):
+                COUNTRY_CODE = "+" + COUNTRY_CODE
+
+            PHONE = COUNTRY_CODE + PHONE
 
     with open(CONFIG_FILE, "w") as f:
         f.write(f"PHONE = '{PHONE}'\n")
