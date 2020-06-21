@@ -1,6 +1,7 @@
 import curses
 import logging
 import os
+import shlex
 import threading
 from datetime import datetime
 from functools import partial, wraps
@@ -91,7 +92,7 @@ class Controller:
             return
         if len(urls) == 1:
             with suspend(self.view) as s:
-                s.call(config.DEFAULT_OPEN.format(file_path=url))
+                s.call(config.DEFAULT_OPEN.format(file_path=shlex.quote(url)))
             return
         with suspend(self.view) as s:
             s.run_with_input(config.URL_VIEW, "\n".join(urls))
@@ -224,7 +225,7 @@ class Controller:
         ) as s:
             f.write(insert_replied_msg(msg))
             f.seek(0)
-            s.call(config.LONG_MSG_CMD.format(file_path=f.name))
+            s.call(config.LONG_MSG_CMD.format(file_path=shlex.quote(f.name)))
             with open(f.name) as f:
                 if msg := strip_replied_msg(f.read().strip()):
                     self.tg.reply_message(chat_id, reply_to_msg, msg)
@@ -251,7 +252,7 @@ class Controller:
         with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(
             self.view
         ) as s:
-            s.call(config.LONG_MSG_CMD.format(file_path=f.name))
+            s.call(config.LONG_MSG_CMD.format(file_path=shlex.quote(f.name)))
             with open(f.name) as f:
                 if msg := f.read().strip():
                     self.model.send_message(text=msg)
@@ -301,7 +302,11 @@ class Controller:
     def record_voice(self):
         file_path = f"/tmp/voice-{datetime.now()}.oga"
         with suspend(self.view) as s:
-            s.call(config.VOICE_RECORD_CMD.format(file_path=file_path))
+            s.call(
+                config.VOICE_RECORD_CMD.format(
+                    file_path=shlex.quote(file_path)
+                )
+            )
         resp = self.view.status.get_input(
             f"Do you want to send recording: {file_path}? [Y/n]"
         )

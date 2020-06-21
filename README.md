@@ -2,6 +2,8 @@
 
 Telegram terminal client.
 
+![tg screenshot](tg-screenshot.png)
+
 
 ## Features
 
@@ -54,7 +56,7 @@ docker run -it --rm tg
 
 - `terminal-notifier` or other program for notifications (see configuration)
 - `ffmpeg` to record voice msgs and upload videos correctly
-- [tdlib](https://tdlib.github.io/td/build.html?language=Python) - in case of incompatibility with built in package
+- [tdlib](https://tdlib.github.io/td/build.html?language=Python) - in case of incompatibility with built in package.
   For example, macOS:
   ```sh
   brew install tdlib
@@ -99,16 +101,16 @@ LOG_PATH = "~/.local/share/tg/"
 # use your own, for example:
 TDLIB_PATH = "/usr/local/Cellar/tdlib/1.6.0/lib/libtdjson.dylib"
 
-# you can use any other notification cmd, it is simple python file which
+# you can use any other notification cmd, it is simple python string which
 # can format title, msg, subtitle and icon_path paramters
 # In these exapmle, kitty terminal is used and when notification is pressed
 # it will focus on the tab of running tg
-NOTIFY_CMD = '/usr/local/bin/terminal-notifier -title "{title}" -subtitle "{subtitle}" -message "{msg}" -appIcon "{icon_path}" -sound default -execute \'/Applications/kitty.app/Contents/MacOS/kitty @ --to unix:/tmp/kitty focus-tab --no-response -m title:tg\''
+NOTIFY_CMD = "/usr/local/bin/terminal-notifier -title {title} -subtitle {subtitle} -message {msg} -appIcon {icon_path} -sound default -execute '/Applications/kitty.app/Contents/MacOS/kitty @ --to unix:/tmp/kitty focus-tab --no-response -m title:tg'"
 
 # You can use your own voice recording cmd but it's better to use default one.
 # The voice note must be encoded with the Opus codec, and stored inside an OGG
 # container. Voice notes can have only a single audio channel.
-VOICE_RECORD_CMD = "ffmpeg -f avfoundation -i ':0' -c:a libopus -b:a 32k '{file_path}'"
+VOICE_RECORD_CMD = "ffmpeg -f avfoundation -i ':0' -c:a libopus -b:a 32k {file_path}"
 
 # You can customize chat and msg flags however you want.
 # By default words will be used for readability, but you can make

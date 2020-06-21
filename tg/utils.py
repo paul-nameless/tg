@@ -74,7 +74,7 @@ def get_file_handler(file_path, default=None):
     caps = mailcap.getcaps()
     handler, view = mailcap.findmatch(caps, mtype, filename=file_path)
     if not handler:
-        return config.DEFAULT_OPEN.format(file_path=file_path)
+        return config.DEFAULT_OPEN.format(file_path=shlex.quote(file_path))
     return handler
 
 
@@ -148,9 +148,11 @@ def notify(
     if not cmd:
         return
     notify_cmd = cmd.format(
-        icon_path=config.ICON_PATH, title=title, subtitle=subtitle, msg=msg
+        icon_path=shlex.quote(config.ICON_PATH),
+        title=shlex.quote(title),
+        subtitle=shlex.quote(subtitle),
+        msg=shlex.quote(msg),
     )
-    log.info("notify-cmd: %s", notify_cmd)
     os.system(notify_cmd)
 
 
