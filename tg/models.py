@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from tg.msg import MsgProxy
 from tg.tdlib import Tdlib
-from tg.utils import copy_to_clipboard
+from tg.utils import bisect_index_rev, bisect_left_rev, copy_to_clipboard
 
 log = logging.getLogger(__name__)
 
@@ -277,7 +277,7 @@ class ChatModel:
             log.info(f"Updated chat with keys {list(updates)}")
             return True
         else:
-            log.error(f"Can't find chat {chat_id} in existing chats")
+            log.warning(f"Can't find chat {chat_id} in existing chats")
             return False
 
 
@@ -286,7 +286,6 @@ class MsgModel:
         self.tg = tg
         self.msgs: Dict[int, List[Dict]] = defaultdict(list)
         self.current_msgs: Dict[int, int] = defaultdict(int)
-        self.msg_ids: Dict[int, Dict[int, int]] = defaultdict(dict)
         self.not_found: Set[int] = set()
 
     def next_msg(self, chat_id: int, step: int = 1) -> bool:
@@ -315,9 +314,11 @@ class MsgModel:
     ) -> Optional[Dict[str, Any]]:
         if msg_id in self.not_found:
             return None
-        msgs_dict = self.msg_ids[chat_id]
+        index = bisect_index_rev(
+            self.msgs[chat_id], msg_id, key=lambda msg: msg["id"]
+        )
 
-        if msg_id not in msgs_dict:
+        if index is None:
             # we are not storing any out of ordres old msgs
             # just fetching then on demand
             result = self.tg.get_message(chat_id, msg_id)
@@ -326,23 +327,22 @@ class MsgModel:
                 self.not_found.add(msg_id)
                 return None
             return result.update
-        index = msgs_dict[msg_id]
         return self.msgs[chat_id][index]
 
     def remove_message(self, chat_id: int, msg_id: int):
-        if msg_id not in self.msg_ids[chat_id]:
-            return False
         log.info(f"removing msg {msg_id=}")
-        self.msgs[chat_id] = [
-            m for m in self.msgs[chat_id] if m["id"] != msg_id
-        ]
-        self.msg_ids[chat_id] = {
-            msg["id"]: i for i, msg in enumerate(reversed(self.msgs[chat_id]))
-        }
+        index = bisect_index_rev(
+            self.msgs[chat_id], msg_id, key=lambda msg: msg["id"]
+        )
+        if index is None:
+            return False
+        self.msgs[chat_id].pop(index)
         return True
 
     def update_msg_content_opened(self, chat_id: int, msg_id: int):
-        index = self.msg_ids[chat_id].get(msg_id)
+        index = bisect_index_rev(
+            self.msgs[chat_id], msg_id, key=lambda msg: msg["id"]
+        )
         if index is None or index >= len(self.msgs[chat_id][index]):
             return
         message = self.msgs[chat_id][index]
@@ -356,7 +356,9 @@ class MsgModel:
         # https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1update_message_content_opened.html
 
     def update_msg(self, chat_id: int, msg_id: int, **fields: Dict[str, Any]):
-        index = self.msg_ids[chat_id].get(msg_id)
+        index = bisect_index_rev(
+            self.msgs[chat_id], msg_id, key=lambda msg: msg["id"]
+        )
         if index is None or index >= len(self.msgs[chat_id][index]):
             return
         msg = self.msgs[chat_id][index]
@@ -365,20 +367,21 @@ class MsgModel:
 
     def add_message(self, chat_id: int, message: Dict[str, Any]) -> bool:
         msg_id = message["id"]
-        if msg_id in self.msg_ids[chat_id]:
+        index = bisect_index_rev(
+            self.msgs[chat_id], message["id"], key=lambda msg: msg["id"]
+        )
+        if index is not None:
             log.warning(
                 f"message {msg_id} was added earlier. probably, inaccurate "
                 "usage of the tdlib lead to unnecessary requests"
             )
             return False
         log.info(f"adding {msg_id=} {message}")
-        self.msgs[chat_id].append(message)
-        self.msgs[chat_id] = sorted(
-            self.msgs[chat_id], key=lambda d: d["id"], reverse=True
+
+        index = bisect_left_rev(
+            self.msgs[chat_id], msg_id, key=lambda msg: msg["id"]
         )
-        self.msg_ids[chat_id] = {
-            msg["id"]: i for i, msg in enumerate(reversed(self.msgs[chat_id]))
-        }
+        self.msgs[chat_id].insert(index, message)
         return True
 
     def _fetch_msgs_until_limit(
@@ -515,7 +518,7 @@ class UserModel:
         result = self.tg.call_method("getUser", {"user_id": user_id})
         result.wait()
         if result.error:
-            log.error(f"get user error: {result.error_info}")
+            log.warning(f"get user error: {result.error_info}")
             self.not_found.add(user_id)
             return {}
         self.users[user_id] = result.update

@@ -13,7 +13,7 @@ import subprocess
 import sys
 from datetime import datetime
 from functools import wraps
-from typing import Optional
+from typing import Any, Callable, List, Optional
 
 from tg import config
 
@@ -216,3 +216,27 @@ class suspend:
 
 def set_shorter_esc_delay(delay=25):
     os.environ.setdefault("ESCDELAY", str(delay))
+
+
+def bisect_left_rev(
+    a: List[Any], x: Any, key: Callable[[Any], Any] = lambda x: x
+) -> int:
+    lo = 0
+    hi = len(a)
+    while lo < hi:
+        mid = (lo + hi) // 2
+        value = key(a[mid])
+        if x > value:
+            hi = mid
+        else:
+            lo = mid + 1
+    return lo
+
+
+def bisect_index_rev(
+    a: List[Any], x: Any, key: Callable[[Any], Any] = lambda x: x
+) -> Optional[int]:
+    i = bisect_left_rev(a, x, key=key) - 1
+    if i >= 0 and key(a[i]) == x:
+        return i
+    return None
