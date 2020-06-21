@@ -2,6 +2,8 @@
 
 Telegram terminal client.
 
+![tg screenshot](tg-screenshot.png)
+
 
 ## Features
 
