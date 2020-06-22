@@ -76,13 +76,10 @@ else:
         os.makedirs(directory, exist_ok=True)
 
     if not PHONE:
+        print("Enter your phone number in international format (including country code)")
         PHONE = input("phone> ")
         if not PHONE.startswith("+"):
-            COUNTRY_CODE = input("country code> ")
-            if not COUNTRY_CODE.startswith("+"):
-                COUNTRY_CODE = "+" + COUNTRY_CODE
-
-            PHONE = COUNTRY_CODE + PHONE
+            PHONE = "+" + PHONE
 
     with open(CONFIG_FILE, "w") as f:
         f.write(f"PHONE = '{PHONE}'\n")
