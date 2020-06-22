@@ -76,7 +76,9 @@ else:
         os.makedirs(directory, exist_ok=True)
 
     if not PHONE:
-        print("Enter your phone number in international format (including country code)")
+        print(
+            "Enter your phone number in international format (including country code)"
+        )
         PHONE = input("phone> ")
         if not PHONE.startswith("+"):
             PHONE = "+" + PHONE
