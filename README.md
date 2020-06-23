@@ -27,7 +27,7 @@ TODO:
 - [ ] bots (bot keyboard)
 
 
-## Usage
+## Installation
 
 `python3.8` required.
 
@@ -52,10 +52,16 @@ Docker (voice recordings and notifications won't work):
 docker run -it --rm tg
 ```
 
+Arch Linux users can install from the AUR: https://aur.archlinux.org/packages/telegram-tg-git/
+
+```bash
+yay -S telegram-tg-git
+```
+
 ## Optional dependencies
 
-- `terminal-notifier` or other program for notifications (see configuration)
-- `ffmpeg` to record voice msgs and upload videos correctly
+- [terminal-notifier](https://github.com/julienXX/terminal-notifier) for Mac, [dunst](https://github.com/dunst-project/dunst) for Linux or other program for notifications (see configuration)
+- [ffmpeg](https://ffmpeg.org/) to record voice msgs and upload videos correctly
 - [tdlib](https://tdlib.github.io/td/build.html?language=Python) - in case of incompatibility with built in package.
   For example, macOS:
   ```sh
