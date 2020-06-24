@@ -11,7 +11,7 @@ log = logging.getLogger(__name__)
 
 
 class Model:
-    def __init__(self, tg: Tdlib) -> None:
+    def __init__(self, tg: Tdlib):
         self.tg = tg
         self.chats = ChatModel(tg)
         self.msgs = MsgModel(tg)
@@ -51,8 +51,8 @@ class Model:
             return []
         msgs_left = page_size - 1 - current_position
         offset = max(msgs_left_scroll_threshold - msgs_left, 0)
-
         limit = offset + page_size
+
         return self.msgs.fetch_msgs(chat_id, offset=offset, limit=limit)
 
     @property
@@ -152,7 +152,7 @@ class Model:
             message_ids = msg_ids
             for msg_id in message_ids:
                 msg = self.msgs.get_message(chat_id, msg_id)
-                if not self.can_be_deleted(chat_id, msg):
+                if not msg or not self.can_be_deleted(chat_id, msg):
                     return False
         else:
             selected_msg = self.msgs.current_msgs[chat_id]
@@ -174,7 +174,7 @@ class Model:
             return False
         for msg_id in msg_ids:
             msg = self.msgs.get_message(from_chat_id, msg_id)
-            if not msg["can_be_forwarded"]:
+            if not msg or not msg["can_be_forwarded"]:
                 return False
 
         self.tg.forward_messages(chat_id, from_chat_id, msg_ids)
@@ -189,7 +189,10 @@ class Model:
         if not msg_ids:
             return False
         for msg_id in msg_ids:
-            msg = MsgProxy(self.msgs.get_message(from_chat_id, msg_id))
+            _msg = self.msgs.get_message(from_chat_id, msg_id)
+            if not _msg:
+                return False
+            msg = MsgProxy(_msg)
             if msg.file_id:
                 buffer.append(msg.local_path)
             elif msg.is_text:
@@ -198,7 +201,7 @@ class Model:
 
 
 class ChatModel:
-    def __init__(self, tg: Tdlib) -> None:
+    def __init__(self, tg: Tdlib):
         self.tg = tg
         self.chats: List[Dict[str, Any]] = []
         self.chat_ids: List[int] = []
@@ -274,15 +277,16 @@ class ChatModel:
             log.info(f"Updated chat with keys {list(updates)}")
             return True
         else:
-            log.error(f"Can't find chat {chat_id} in existing chats")
+            log.warning(f"Can't find chat {chat_id} in existing chats")
             return False
 
 
 class MsgModel:
-    def __init__(self, tg: Tdlib) -> None:
+    def __init__(self, tg: Tdlib):
         self.tg = tg
         self.msgs: Dict[int, List[Dict]] = defaultdict(list)
         self.current_msgs: Dict[int, int] = defaultdict(int)
+        self.not_found: Set[int] = set()
         self.msg_ids: Dict[int, Set[int]] = defaultdict(set)
 
     def next_msg(self, chat_id: int, step: int = 1) -> bool:
@@ -292,7 +296,7 @@ class MsgModel:
         self.current_msgs[chat_id] = max(0, current_msg - step)
         return True
 
-    def jump_bottom(self, chat_id):
+    def jump_bottom(self, chat_id: int):
         if self.current_msgs[chat_id] == 0:
             return False
         self.current_msgs[chat_id] = 0
@@ -306,13 +310,16 @@ class MsgModel:
 
         return False
 
-    def get_message(self, chat_id: int, msg_id: int) -> Dict:
+    def get_message(self, chat_id: int, msg_id: int) -> Optional[Dict]:
         msg_set = self.msg_ids[chat_id]
         if msg_id not in msg_set:
             # we are not storing any out of ordres old msgs
             # just fetching then on demand
             result = self.tg.get_message(chat_id, msg_id)
             result.wait()
+            if result.error:
+                self.not_found.add(msg_id)
+                return None
             return result.update
         return next(iter(m for m in self.msgs[chat_id] if m["id"] == msg_id))
 
@@ -370,13 +377,10 @@ class MsgModel:
         )
         return True
 
-    def add_messages(self, chat_id: int, messages: Any) -> bool:
-        return any([self.add_message(chat_id, msg) for msg in messages])
-
     def _fetch_msgs_until_limit(
         self, chat_id: int, offset: int = 0, limit: int = 10
     ) -> List[Dict[str, Any]]:
-        if len(self.msgs[chat_id]):
+        if self.msgs[chat_id]:
             result = self.tg.get_chat_history(
                 chat_id,
                 from_message_id=self.msgs[chat_id][-1]["id"],
@@ -416,7 +420,8 @@ class MsgModel:
             messages = self._fetch_msgs_until_limit(
                 chat_id, offset, offset + limit
             )
-            self.add_messages(chat_id, messages)
+            for msg in messages:
+                self.add_message(chat_id, msg)
 
         return [
             (i, self.msgs[chat_id][i])
@@ -469,6 +474,7 @@ class UserModel:
         self.tg = tg
         self.me = None
         self.users: Dict[int, Dict] = {}
+        self.not_found: Set[int] = set()
 
     def get_me(self):
         if self.me:
@@ -476,7 +482,7 @@ class UserModel:
         result = self.tg.get_me()
         result.wait()
         if result.error:
-            log.error(f"get chat ids error: {result.error_info}")
+            log.error(f"get myself error: {result.error_info}")
             return {}
         self.me = result.update
         return self.me
@@ -498,12 +504,15 @@ class UserModel:
         return False
 
     def get_user(self, user_id: int) -> Dict[str, Any]:
+        if user_id in self.not_found:
+            return {}
         if user_id in self.users:
             return self.users[user_id]
         result = self.tg.call_method("getUser", {"user_id": user_id})
         result.wait()
         if result.error:
-            log.error(f"get chat ids error: {result.error_info}")
+            log.warning(f"get user error: {result.error_info}")
+            self.not_found.add(user_id)
             return {}
         self.users[user_id] = result.update
         return result.update
