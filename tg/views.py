@@ -297,7 +297,10 @@ class MsgView:
     def _format_reply_msg(
         self, chat_id: int, msg: str, reply_to: int, width_limit: int
     ) -> str:
-        reply_msg = MsgProxy(self.msg_model.get_message(chat_id, reply_to))
+        _msg = self.msg_model.get_message(chat_id, reply_to)
+        if not _msg:
+            return msg
+        reply_msg = MsgProxy(_msg)
         if reply_msg_content := self._parse_msg(reply_msg):
             reply_msg_content = reply_msg_content.replace("\n", " ")
             reply_sender = self._get_user_by_id(reply_msg.sender_id)
