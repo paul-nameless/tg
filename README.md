@@ -15,7 +15,7 @@ Telegram terminal client.
 - [X] record and send voice msgs
 - [X] auto download files
 - [X] toggle chats: pin/unpin, mark as read/unread, mute/unmute
-- [X] Message history
+- [X] message history
 
 TODO:
 
@@ -27,7 +27,7 @@ TODO:
 - [ ] bots (bot keyboard)
 
 
-## Usage
+## Installation
 
 `python3.8` required.
 
@@ -52,10 +52,16 @@ Docker (voice recordings and notifications won't work):
 docker run -it --rm tg
 ```
 
+Arch Linux users can install from the AUR: https://aur.archlinux.org/packages/telegram-tg-git/
+
+```bash
+yay -S telegram-tg-git
+```
+
 ## Optional dependencies
 
-- `terminal-notifier` or other program for notifications (see configuration)
-- `ffmpeg` to record voice msgs and upload videos correctly
+- [terminal-notifier](https://github.com/julienXX/terminal-notifier) for Mac (used by default). You can change it to [dunst](https://github.com/dunst-project/dunst) for Linux or any other notifications program (see `NOTIFY_CMD` in configuration)
+- [ffmpeg](https://ffmpeg.org/) to record voice msgs and upload videos.
 - [tdlib](https://tdlib.github.io/td/build.html?language=Python) - in case of incompatibility with built in package.
   For example, macOS:
   ```sh
