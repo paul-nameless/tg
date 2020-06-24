@@ -15,7 +15,7 @@ Telegram terminal client.
 - [X] record and send voice msgs
 - [X] auto download files
 - [X] toggle chats: pin/unpin, mark as read/unread, mute/unmute
-- [X] Message history
+- [X] message history
 
 TODO:
 
@@ -60,8 +60,8 @@ yay -S telegram-tg-git
 
 ## Optional dependencies
 
-- [terminal-notifier](https://github.com/julienXX/terminal-notifier) for Mac, [dunst](https://github.com/dunst-project/dunst) for Linux or other program for notifications (see configuration)
-- [ffmpeg](https://ffmpeg.org/) to record voice msgs and upload videos correctly
+- [terminal-notifier](https://github.com/julienXX/terminal-notifier) for Mac (used by default). You can change it to [dunst](https://github.com/dunst-project/dunst) for Linux or any other notifications program (see `NOTIFY_CMD` in configuration)
+- [ffmpeg](https://ffmpeg.org/) to record voice msgs and upload videos.
 - [tdlib](https://tdlib.github.io/td/build.html?language=Python) - in case of incompatibility with built in package.
   For example, macOS:
   ```sh
