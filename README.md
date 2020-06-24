@@ -125,7 +125,10 @@ CHAT_FLAGS = {
     "online": "●",
     "pinned": "P",
     "muted": "M",
+    # chat is marked as unread
     "unread": "U",
+    # last msg haven't been seen by recipient
+    "unseen": "✓",
 }
 MSG_FLAGS = {
     "selected": "*",

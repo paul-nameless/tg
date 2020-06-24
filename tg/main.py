@@ -25,8 +25,8 @@ def run(tg: Tdlib, stdscr: window) -> None:
 
     model = Model(tg)
     status_view = StatusView(stdscr)
-    msg_view = MsgView(stdscr, model.msgs, model, model.users)
-    chat_view = ChatView(stdscr, model.users)
+    msg_view = MsgView(stdscr, model)
+    chat_view = ChatView(stdscr, model)
     view = View(stdscr, chat_view, msg_view, status_view)
     controller = Controller(model, view, tg)
 
