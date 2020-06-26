@@ -340,9 +340,7 @@ class MsgModel:
             log.info(f"adding {msg=}")
             self.msgs[chat_id].append(msg)
             self.msgs[chat_id] = sorted(
-                self.msgs[chat_id],
-                key=lambda d: d["id"],
-                reverse=True,
+                self.msgs[chat_id], key=lambda d: d["id"], reverse=True,
             )
             self.msg_ids[chat_id] = {
                 msg["id"]: i for i, msg in enumerate(self.msgs[chat_id])
