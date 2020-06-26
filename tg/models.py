@@ -288,7 +288,7 @@ class MsgModel:
         self.msgs: Dict[int, List[Dict]] = defaultdict(list)
         self.current_msgs: Dict[int, int] = defaultdict(int)
         self.not_found: Set[int] = set()
-        self.msg_ids: Dict[int, Dict[int, int]] = defaultdict(dict)
+        self.msg_idx: Dict[int, Dict[int, int]] = defaultdict(dict)
         self.lock = threading.Lock()
 
     def next_msg(self, chat_id: int, step: int = 1) -> bool:
@@ -313,8 +313,7 @@ class MsgModel:
 
     def get_message(self, chat_id: int, msg_id: int) -> Optional[Dict]:
         with self.lock:
-            index = self.msg_ids[chat_id].get(msg_id)
-            if index:
+            if index := self.msg_idx[chat_id].get(msg_id):
                 return self.msgs[chat_id][index]
         # we are not storing any out of ordres old msgs
         # just fetching them on demand
@@ -325,13 +324,13 @@ class MsgModel:
             return None
         return result.update
 
-    def remove_messages(self, chat_id: int, msg_ids: List[int]):
+    def remove_messages(self, chat_id: int, msg_idx: List[int]):
         with self.lock:
-            log.info(f"removing msg {msg_ids=}")
+            log.info(f"removing msg {msg_idx=}")
             self.msgs[chat_id] = [
-                m for m in self.msgs[chat_id] if m["id"] not in msg_ids
+                m for m in self.msgs[chat_id] if m["id"] not in msg_idx
             ]
-            self.msg_ids[chat_id] = {
+            self.msg_idx[chat_id] = {
                 msg["id"]: i for i, msg in enumerate(self.msgs[chat_id])
             }
 
@@ -342,13 +341,13 @@ class MsgModel:
             self.msgs[chat_id] = sorted(
                 self.msgs[chat_id], key=lambda d: d["id"], reverse=True,
             )
-            self.msg_ids[chat_id] = {
+            self.msg_idx[chat_id] = {
                 msg["id"]: i for i, msg in enumerate(self.msgs[chat_id])
             }
 
     def update_msg_content_opened(self, chat_id: int, msg_id: int):
         with self.lock:
-            index = self.msg_ids[chat_id][msg_id]
+            index = self.msg_idx[chat_id][msg_id]
             msg = MsgProxy(self.msgs[chat_id][index])
             if msg.content_type == "voice":
                 msg.is_listened = True
@@ -360,7 +359,7 @@ class MsgModel:
 
     def update_msg(self, chat_id: int, msg_id: int, **fields: Dict[str, Any]):
         with self.lock:
-            index = self.msg_ids[chat_id][msg_id]
+            index = self.msg_idx[chat_id][msg_id]
             msg = self.msgs[chat_id][index]
             msg.update(fields)
 
