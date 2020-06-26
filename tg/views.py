@@ -126,13 +126,13 @@ class StatusView:
 
 
 class ChatView:
-    def __init__(self, stdscr: window, users: UserModel, p: float = 0.5):
+    def __init__(self, stdscr: window, model: Model):
         self.stdscr = stdscr
         self.h = 0
         self.w = 0
         self.win = stdscr.subwin(self.h, self.w, 0, 0)
         self._refresh = self.win.refresh
-        self.users = users
+        self.model = model
 
     def resize(self, rows: int, cols: int, p: float = 0.25) -> None:
         self.h = rows - 1
@@ -214,7 +214,17 @@ class ChatView:
     ) -> str:
         flags = []
 
-        if self.users.is_online(chat["id"]):
+        msg = chat.get("last_message")
+        if (
+            msg
+            and self.model.is_me(msg["sender_user_id"])
+            and msg["id"] > chat["last_read_outbox_message_id"]
+            and not self.model.is_me(chat["id"])
+        ):
+            # last msg haven't been seen by recipient
+            flags.append("unseen")
+
+        if self.model.users.is_online(chat["id"]):
             flags.append("online")
 
         if is_pinned:
@@ -234,16 +244,9 @@ class ChatView:
 
 class MsgView:
     def __init__(
-        self,
-        stdscr: window,
-        msg_model: MsgModel,
-        model: Model,
-        users: UserModel,
-        p: float = 0.5,
-    ) -> None:
-        self.msg_model = msg_model
+        self, stdscr: window, model: Model,
+    ):
         self.model = model
-        self.users = users
         self.stdscr = stdscr
         self.h = 0
         self.w = 0
@@ -297,7 +300,7 @@ class MsgView:
     def _format_reply_msg(
         self, chat_id: int, msg: str, reply_to: int, width_limit: int
     ) -> str:
-        _msg = self.msg_model.get_message(chat_id, reply_to)
+        _msg = self.model.msgs.get_message(chat_id, reply_to)
         if not _msg:
             return msg
         reply_msg = MsgProxy(_msg)
@@ -473,7 +476,7 @@ class MsgView:
     def _get_user_by_id(self, user_id: int) -> str:
         if user_id == 0:
             return ""
-        user = self.users.get_user(user_id)
+        user = self.model.users.get_user(user_id)
         if user["first_name"] and user["last_name"]:
             return f'{user["first_name"]} {user["last_name"]}'[:20]
 
