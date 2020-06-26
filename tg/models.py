@@ -323,7 +323,7 @@ class MsgModel:
             return result.update
         return next(iter(m for m in self.msgs[chat_id] if m["id"] == msg_id))
 
-    def remove_message(self, chat_id, msg_id):
+    def remove_message(self, chat_id: int, msg_id: int):
         msg_set = self.msg_ids[chat_id]
         if msg_id not in msg_set:
             return False
