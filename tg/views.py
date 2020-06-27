@@ -161,19 +161,19 @@ class ChatView:
             return tuple(attr | reverse for attr in attrs)
         return attrs
 
-    def draw(self, current: int, chats: List[Dict[str, Any]]) -> None:
+    def draw(
+        self, current: int, chats: List[Dict[str, Any]], title: str = "Chats"
+    ) -> None:
         self.win.erase()
         line = curses.ACS_VLINE  # type: ignore
         self.win.vline(0, self.w - 1, line, self.h)
-        for i, chat in enumerate(chats):
-            is_selected = i == current
-            unread_count = chat["unread_count"]
-            if chat["is_marked_as_unread"]:
-                unread_count = "unread"
 
+        self.win.addstr(0, 0, title.center(self.w - 1), get_color(cyan, -1))
+
+        for i, chat in enumerate(chats, 1):
+            is_selected = i == current + 1
             date = get_date(chat)
             title = chat["title"]
-            is_pinned = chat["is_pinned"]
             last_msg = get_last_msg(chat)
             offset = 0
             for attr, elem in zip(
@@ -196,7 +196,7 @@ class ChatView:
                     i, offset, last_msg, self._msg_color(is_selected)
                 )
 
-            if flags := self._get_flags(unread_count, is_pinned, chat):
+            if flags := self._get_flags(chat):
                 flags_len = len(flags) + sum(
                     map(len, emoji_pattern.findall(flags))
                 )
@@ -209,9 +209,7 @@ class ChatView:
 
         self._refresh()
 
-    def _get_flags(
-        self, unread_count: int, is_pinned: bool, chat: Dict[str, Any]
-    ) -> str:
+    def _get_flags(self, chat: Dict[str, Any]) -> str:
         flags = []
 
         msg = chat.get("last_message")
@@ -224,17 +222,22 @@ class ChatView:
             # last msg haven't been seen by recipient
             flags.append("unseen")
 
+        if action := self.model.users.get_action(chat["id"]):
+            flags.append(action)
+
         if self.model.users.is_online(chat["id"]):
             flags.append("online")
 
-        if is_pinned:
+        if chat["is_pinned"]:
             flags.append("pinned")
 
         if chat["notification_settings"]["mute_for"]:
             flags.append("muted")
 
-        if unread_count:
-            flags.append(str(unread_count))
+        if chat["is_marked_as_unread"]:
+            flags.append("unread")
+        elif chat["unread_count"]:
+            flags.append(str(chat["unread_count"]))
 
         label = " ".join(config.CHAT_FLAGS.get(flag, flag) for flag in flags)
         if label:
@@ -425,6 +428,7 @@ class MsgView:
         current_msg_idx: int,
         msgs: List[Tuple[int, Dict[str, Any]]],
         min_msg_padding: int,
+        chat: Dict[str, Any],
     ) -> None:
         self.win.erase()
         msgs_to_draw = self._collect_msgs_to_draw(
@@ -459,7 +463,44 @@ class MsgView:
                     self.win.addstr(line_num, column, elem, attr)
                 column += len(elem)
 
+        self.win.addstr(0, 0, self._msg_title(chat), get_color(cyan, -1))
         self._refresh()
+
+    def _msg_title(self, chat: Dict[str, Any]):
+        chat_type = chat["type"]["@type"]
+        info = ""
+        _type = "unknown"
+        if chat_type == "chatTypePrivate":
+            _type = "private"
+            info = self.model.users.get_status(chat["id"]) or ""
+        elif chat_type == "chatTypeBasicGroup":
+            _type = "group"
+            group = self.model.users.get_group_info(
+                chat["type"]["basic_group_id"]
+            )
+            log.info(f"group:: {group}")
+            if group:
+                info = f"{group['member_count']} members"
+        elif chat_type == "chatTypeSupergroup":
+            if chat["type"]["is_channel"]:
+                _type = "channel"
+            else:
+                _type = "supergroup"
+            supergroup = self.model.users.get_supergroup_info(
+                chat["type"]["supergroup_id"]
+            )
+            log.info(f"supergroup:: {supergroup}")
+            if supergroup:
+                info = f"{supergroup['member_count']} members"
+
+        elif chat_type == "chatTypeSecret":
+            _type = "secret"
+
+        # return f" {chat['title']} [{_type}] {info}".center(self.w)
+        if action := self.model.users.get_action(chat["id"]):
+            info = action
+
+        return f" {chat['title']}: {info}".center(self.w)
 
     def _msg_attributes(self, is_selected: bool) -> Tuple[int, ...]:
         attrs = (

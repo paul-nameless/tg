@@ -1,4 +1,5 @@
 import logging
+import time
 from functools import wraps
 from typing import Any, Callable, Dict
 
@@ -258,13 +259,38 @@ def update_connection_state(controller: Controller, update: Dict[str, Any]):
         "connectionStateConnectingToProxy": "Connecting to proxy...",
         "connectionStateConnecting": "Connecting...",
         "connectionStateUpdating": "Updating...",
-        "connectionStateReady": "Ready",
+        # "connectionStateReady": "Ready",
     }
-    msg = states.get(state, "Unknown state")
-    controller.present_info(msg)
+    controller.model.chats.title = states.get(state, "Chats")
+    controller.render_chats()
 
 
 @update_handler("updateUserStatus")
 def update_user_status(controller: Controller, update: Dict[str, Any]):
     controller.model.users.set_status(update["user_id"], update["status"])
-    controller.render_chats()
+    controller.render()
+
+
+@update_handler("updateBasicGroup")
+def update_basic_group(controller: Controller, update: Dict[str, Any]):
+    basic_group = update["basic_group"]
+    controller.model.users.groups[basic_group["id"]] = basic_group
+    controller.render_msgs()
+
+
+@update_handler("updateSupergroup")
+def update_supergroup(controller: Controller, update: Dict[str, Any]):
+    supergroup = update["supergroup"]
+    controller.model.users.supergroups[supergroup["id"]] = supergroup
+    controller.render_msgs()
+
+
+@update_handler("updateUserChatAction")
+def update_user_chat_action(controller: Controller, update: Dict[str, Any]):
+    log.info("typing:: %s", update)
+    chat_id = update["chat_id"]
+    if update["action"]["@type"] == "chatActionCancel":
+        controller.model.users.actions.pop(chat_id, None)
+    else:
+        controller.model.users.actions[chat_id] = update
+    controller.render()
