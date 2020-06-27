@@ -296,8 +296,7 @@ class Controller:
         self.send_file(self.tg.send_audio)
 
     def send_file(
-        self,
-        send_file_fun: Callable[[str, int], AsyncResult],
+        self, send_file_fun: Callable[[str, int], AsyncResult],
     ) -> None:
         file_path = self.view.status.get_input()
         if file_path and os.path.isfile(file_path):
