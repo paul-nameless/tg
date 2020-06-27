@@ -2,7 +2,6 @@ import curses
 import logging
 import os
 import shlex
-import threading
 from datetime import datetime
 from functools import partial, wraps
 from queue import Queue
@@ -19,7 +18,6 @@ from tg.utils import (
     get_duration,
     get_video_resolution,
     get_waveform,
-    handle_exception,
     is_yes,
     notify,
     suspend,
@@ -53,7 +51,7 @@ def bind(
             return fun(*args, **kwargs)
 
         @wraps(fun)
-        def _no_repeat_factor(self: Controller, _: bool) -> Any:
+        def _no_repeat_factor(self: "Controller", _: bool) -> Any:
             return fun(self)
 
         for key in keys:
@@ -298,11 +296,14 @@ class Controller:
         self.send_file(self.tg.send_audio)
 
     def send_file(
-        self, send_file_fun: Callable[[str, int], AsyncResult], *args: Any, **kwargs: Any
+        self,
+        send_file_fun: Callable[[str, int], AsyncResult],
     ) -> None:
         file_path = self.view.status.get_input()
         if file_path and os.path.isfile(file_path):
-            if chat_id := self.model.chats.id_by_index(self.model.current_chat):
+            if chat_id := self.model.chats.id_by_index(
+                self.model.current_chat
+            ):
                 send_file_fun(file_path, chat_id)
                 self.present_info("File sent")
 
@@ -597,7 +598,7 @@ class Controller:
         if text := msg.text_content if msg.is_text else msg.content_type:
             notify(text, title=name)
 
-    def _refresh_current_chat(self, current_chat_id: Optional[int]) -> None:
+    def refresh_current_chat(self, current_chat_id: Optional[int]) -> None:
         if current_chat_id is None:
             return
         # TODO: we can create <index> for chats, it's faster than sqlite anyway

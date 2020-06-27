@@ -12,10 +12,9 @@ import struct
 import subprocess
 import sys
 from datetime import datetime
-from functools import wraps
 from logging.handlers import RotatingFileHandler
 from types import TracebackType
-from typing import Any, Callable, Optional, TextIO, Tuple, Type
+from typing import Any, Optional, Tuple, Type
 
 from tg import config
 
@@ -173,18 +172,7 @@ def notify(
     os.system(notify_cmd)
 
 
-def handle_exception(fun: Callable) -> Callable:
-    @wraps(fun)
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
-        try:
-            return fun(*args, **kwargs)
-        except Exception:
-            log.exception("Error happened in %s handler", fun.__name__)
-
-    return wrapper
-
-
-def truncate_to_len(s: str, target_len: int, encoding: str = "utf-8") -> str:
+def truncate_to_len(s: str, target_len: int) -> str:
     target_len -= sum(map(bool, map(emoji_pattern.findall, s[:target_len])))
     return s[: max(1, target_len - 1)]
 

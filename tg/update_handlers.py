@@ -15,8 +15,10 @@ handlers: Dict[str, UpdateHandler] = {}
 max_download_size: int = utils.parse_size(config.MAX_DOWNLOAD_SIZE)
 
 
-def update_handler(update_type: str) -> Callable:
-    def decorator(fun: Callable) -> Callable:
+def update_handler(
+    update_type: str,
+) -> Callable[[UpdateHandler], UpdateHandler]:
+    def decorator(fun: UpdateHandler) -> UpdateHandler:
         global handlers
         assert (
             update_type not in handlers
@@ -25,9 +27,9 @@ def update_handler(update_type: str) -> Callable:
         handlers[update_type] = fun
 
         @wraps(fun)
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
+        def wrapper(controller: Controller, update: Dict[str, Any]) -> None:
             try:
-                return fun(*args, **kwargs)
+                return fun(controller, update)
             except Exception:
                 log.exception("Error happened in %s handler", fun.__name__)
 
@@ -86,7 +88,7 @@ def update_chat_order(controller: Controller, update: Dict[str, Any]) -> None:
     order = update["order"]
 
     if controller.model.chats.update_chat(chat_id, order=order):
-        controller._refresh_current_chat(current_chat_id)
+        controller.refresh_current_chat(current_chat_id)
 
 
 @update_handler("updateChatTitle")
@@ -97,7 +99,7 @@ def update_chat_title(controller: Controller, update: Dict[str, Any]) -> None:
 
     current_chat_id = controller.model.current_chat_id
     if controller.model.chats.update_chat(chat_id, title=title):
-        controller._refresh_current_chat(current_chat_id)
+        controller.refresh_current_chat(current_chat_id)
 
 
 @update_handler("updateChatIsMarkedAsUnread")
@@ -112,7 +114,7 @@ def update_chat_is_marked_as_unread(
     if controller.model.chats.update_chat(
         chat_id, is_marked_as_unread=is_marked_as_unread
     ):
-        controller._refresh_current_chat(current_chat_id)
+        controller.refresh_current_chat(current_chat_id)
 
 
 @update_handler("updateChatIsPinned")
@@ -128,7 +130,7 @@ def update_chat_is_pinned(
     if controller.model.chats.update_chat(
         chat_id, is_pinned=is_pinned, order=order
     ):
-        controller._refresh_current_chat(current_chat_id)
+        controller.refresh_current_chat(current_chat_id)
 
 
 @update_handler("updateChatReadOutbox")
@@ -143,7 +145,7 @@ def update_chat_read_outbox(
     if controller.model.chats.update_chat(
         chat_id, last_read_outbox_message_id=last_read_outbox_message_id
     ):
-        controller._refresh_current_chat(current_chat_id)
+        controller.refresh_current_chat(current_chat_id)
 
 
 @update_handler("updateChatReadInbox")
@@ -161,7 +163,7 @@ def update_chat_read_inbox(
         last_read_inbox_message_id=last_read_inbox_message_id,
         unread_count=unread_count,
     ):
-        controller._refresh_current_chat(current_chat_id)
+        controller.refresh_current_chat(current_chat_id)
 
 
 @update_handler("updateChatDraftMessage")
@@ -176,7 +178,7 @@ def update_chat_draft_message(
 
     current_chat_id = controller.model.current_chat_id
     if controller.model.chats.update_chat(chat_id, order=order):
-        controller._refresh_current_chat(current_chat_id)
+        controller.refresh_current_chat(current_chat_id)
 
 
 @update_handler("updateChatLastMessage")
@@ -196,7 +198,7 @@ def update_chat_last_message(
     if controller.model.chats.update_chat(
         chat_id, last_message=last_message, order=order
     ):
-        controller._refresh_current_chat(current_chat_id)
+        controller.refresh_current_chat(current_chat_id)
 
 
 @update_handler("updateChatNotificationSettings")
