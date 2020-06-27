@@ -13,7 +13,9 @@ import subprocess
 import sys
 from datetime import datetime
 from functools import wraps
-from typing import Optional
+from logging.handlers import RotatingFileHandler
+from types import TracebackType
+from typing import Any, Callable, Optional, TextIO, Tuple, Type
 
 from tg import config
 
@@ -33,29 +35,30 @@ units = {"B": 1, "KB": 10 ** 3, "MB": 10 ** 6, "GB": 10 ** 9, "TB": 10 ** 12}
 
 
 class LogWriter:
-    def __init__(self, level):
+    def __init__(self, level: Any) -> None:
         self.level = level
 
-    def write(self, message):
+    def write(self, message: str) -> None:
         if message != "\n":
             self.level.log(self.level, message)
 
-    def flush(self):
+    def flush(self) -> None:
         pass
 
 
-def setup_log():
+def setup_log() -> None:
     handlers = []
 
-    for level, filename in zip(
-        (config.LOG_LEVEL, logging.ERROR), ("all.log", "error.log"),
+    for level, filename in (
+        (config.LOG_LEVEL, "all.log"),
+        (logging.ERROR, "error.log"),
     ):
-        handler = logging.handlers.RotatingFileHandler(
+        handler = RotatingFileHandler(
             os.path.join(config.LOG_PATH, filename),
             maxBytes=parse_size("32MB"),
             backupCount=1,
         )
-        handler.setLevel(level)
+        handler.setLevel(level)  # type: ignore
         handlers.append(handler)
 
     logging.basicConfig(
@@ -63,11 +66,11 @@ def setup_log():
         handlers=handlers,
     )
     logging.getLogger().setLevel(config.LOG_LEVEL)
-    sys.stderr = LogWriter(log.error)
+    sys.stderr = LogWriter(log.error)  # type: ignore
     logging.captureWarnings(True)
 
 
-def get_file_handler(file_path, default=None):
+def get_file_handler(file_path: str, default: str = None) -> Optional[str]:
     mtype, _ = mimetypes.guess_type(file_path)
     if not mtype:
         return default
@@ -87,8 +90,19 @@ def parse_size(size: str) -> int:
 
 
 def humanize_size(
-    num, suffix="B", suffixes=("", "K", "M", "G", "T", "P", "E", "Z")
-):
+    num: int,
+    suffix: str = "B",
+    suffixes: Tuple[str, str, str, str, str, str, str, str] = (
+        "",
+        "K",
+        "M",
+        "G",
+        "T",
+        "P",
+        "E",
+        "Z",
+    ),
+) -> str:
     magnitude = int(math.floor(math.log(num, 1024)))
     val = num / math.pow(1024, magnitude)
     if magnitude > 7:
@@ -96,7 +110,7 @@ def humanize_size(
     return "{:3.1f}{}{}".format(val, suffixes[magnitude], suffix)
 
 
-def humanize_duration(seconds):
+def humanize_duration(seconds: int) -> str:
     dt = datetime.utcfromtimestamp(seconds)
     fmt = "%-M:%S"
     if seconds >= 3600:
@@ -111,13 +125,13 @@ def num(value: str, default: Optional[int] = None) -> Optional[int]:
         return default
 
 
-def is_yes(resp):
+def is_yes(resp: str) -> bool:
     if resp.strip().lower() == "y" or resp == "":
         return True
     return False
 
 
-def get_duration(file_path):
+def get_duration(file_path: str) -> int:
     cmd = f"ffprobe -v error -i '{file_path}' -show_format"
     stdout = subprocess.check_output(shlex.split(cmd)).decode().splitlines()
     line = next((line for line in stdout if "duration" in line), None)
@@ -128,14 +142,14 @@ def get_duration(file_path):
     return 0
 
 
-def get_video_resolution(file_path):
+def get_video_resolution(file_path: str) -> Tuple[int, int]:
     cmd = f"ffprobe -v error -show_entries stream=width,height -of default=noprint_wrappers=1 '{file_path}'"
     lines = subprocess.check_output(shlex.split(cmd)).decode().splitlines()
     info = {line.split("=")[0]: line.split("=")[1] for line in lines}
-    return info.get("width"), info.get("height")
+    return int(str(info.get("width"))), int(str(info.get("height")))
 
 
-def get_waveform(file_path):
+def get_waveform(file_path: str) -> str:
     # mock for now
     waveform = (random.randint(0, 255) for _ in range(100))
     packed = struct.pack("100B", *waveform)
@@ -143,8 +157,11 @@ def get_waveform(file_path):
 
 
 def notify(
-    msg, subtitle="", title="tg", cmd=config.NOTIFY_CMD,
-):
+    msg: str,
+    subtitle: str = "",
+    title: str = "tg",
+    cmd: str = config.NOTIFY_CMD,
+) -> None:
     if not cmd:
         return
     notify_cmd = cmd.format(
@@ -156,9 +173,9 @@ def notify(
     os.system(notify_cmd)
 
 
-def handle_exception(fun):
+def handle_exception(fun: Callable) -> Callable:
     @wraps(fun)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             return fun(*args, **kwargs)
         except Exception:
@@ -172,29 +189,30 @@ def truncate_to_len(s: str, target_len: int, encoding: str = "utf-8") -> str:
     return s[: max(1, target_len - 1)]
 
 
-def copy_to_clipboard(text):
+def copy_to_clipboard(text: str) -> None:
     subprocess.run(
         config.COPY_CMD, universal_newlines=True, input=text, shell=True
     )
 
 
 class suspend:
-    def __init__(self, view):
+    # FIXME: can't explicitly set type "View" due to circular import
+    def __init__(self, view: Any) -> None:
         self.view = view
 
-    def call(self, cmd):
+    def call(self, cmd: str) -> None:
         subprocess.call(cmd, shell=True)
 
-    def run_with_input(self, cmd, text):
+    def run_with_input(self, cmd: str, text: str) -> None:
         subprocess.run(cmd, universal_newlines=True, input=text, shell=True)
 
-    def open_file(self, file_path):
+    def open_file(self, file_path: str) -> None:
         cmd = get_file_handler(file_path)
         if not cmd:
             return
         self.call(cmd)
 
-    def __enter__(self):
+    def __enter__(self) -> "suspend":
         for view in (self.view.chats, self.view.msgs, self.view.status):
             view._refresh = view.win.noutrefresh
         curses.echo()
@@ -204,7 +222,12 @@ class suspend:
         curses.endwin()
         return self
 
-    def __exit__(self, exc_type, exc_val, tb):
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        tb: Optional[TracebackType],
+    ) -> None:
         for view in (self.view.chats, self.view.msgs, self.view.status):
             view._refresh = view.win.refresh
         curses.noecho()
@@ -214,5 +237,5 @@ class suspend:
         curses.doupdate()
 
 
-def set_shorter_esc_delay(delay=25):
+def set_shorter_esc_delay(delay: int = 25) -> None:
     os.environ.setdefault("ESCDELAY", str(delay))

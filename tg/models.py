@@ -1,7 +1,7 @@
 import logging
 import time
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from tg.msg import MsgProxy
 from tg.tdlib import Tdlib
@@ -11,7 +11,7 @@ log = logging.getLogger(__name__)
 
 
 class Model:
-    def __init__(self, tg: Tdlib):
+    def __init__(self, tg: Tdlib) -> None:
         self.tg = tg
         self.chats = ChatModel(tg)
         self.msgs = MsgModel(tg)
@@ -21,13 +21,13 @@ class Model:
         self.selected: Dict[int, List[int]] = defaultdict(list)
         self.copied_msgs: Tuple[int, List[int]] = (0, [])
 
-    def get_me(self):
+    def get_me(self) -> Dict[str, Any]:
         return self.users.get_me()
 
     def is_me(self, user_id: int) -> bool:
         return self.get_me()["id"] == user_id
 
-    def get_user(self, user_id):
+    def get_user(self, user_id: int) -> Dict:
         return self.users.get_user(user_id)
 
     @property
@@ -68,9 +68,10 @@ class Model:
     def current_msg_id(self) -> int:
         return self.current_msg["id"]
 
-    def jump_bottom(self):
-        chat_id = self.chats.id_by_index(self.current_chat)
-        return self.msgs.jump_bottom(chat_id)
+    def jump_bottom(self) -> bool:
+        if chat_id := self.chats.id_by_index(self.current_chat):
+            return self.msgs.jump_bottom(chat_id)
+        return False
 
     def next_chat(self, step: int = 1) -> bool:
         new_idx = self.current_chat + step
@@ -85,17 +86,17 @@ class Model:
         self.current_chat = max(0, self.current_chat - step)
         return True
 
-    def first_chat(self):
+    def first_chat(self) -> bool:
         if self.current_chat != 0:
             self.current_chat = 0
             return True
         return False
 
-    def view_current_msg(self):
-        chat_id = self.chats.id_by_index(self.current_chat)
+    def view_current_msg(self) -> None:
         msg = MsgProxy(self.current_msg)
         msg_id = msg["id"]
-        self.tg.view_messages(chat_id, [msg_id])
+        if chat_id := self.chats.id_by_index(self.current_chat):
+            self.tg.view_messages(chat_id, [msg_id])
 
     def next_msg(self, step: int = 1) -> bool:
         chat_id = self.chats.id_by_index(self.current_chat)
@@ -120,7 +121,7 @@ class Model:
         current_position: int = 0,
         page_size: int = 10,
         msgs_left_scroll_threshold: int = 10,
-    ):
+    ) -> List[Dict[str, Any]]:
         chats_left = page_size - current_position
         offset = max(msgs_left_scroll_threshold - chats_left, 0)
         limit = offset + page_size
@@ -181,7 +182,7 @@ class Model:
         self.copied_msgs = (0, [])
         return True
 
-    def copy_msgs_text(self):
+    def copy_msgs_text(self) -> bool:
         """Copies current msg text or path to file if it's file"""
         buffer = []
 
@@ -193,15 +194,16 @@ class Model:
             if not _msg:
                 return False
             msg = MsgProxy(_msg)
-            if msg.file_id:
+            if msg.file_id and msg.local_path:
                 buffer.append(msg.local_path)
             elif msg.is_text:
                 buffer.append(msg.text_content)
         copy_to_clipboard("\n".join(buffer))
+        return True
 
 
 class ChatModel:
-    def __init__(self, tg: Tdlib):
+    def __init__(self, tg: Tdlib) -> None:
         self.tg = tg
         self.chats: List[Dict[str, Any]] = []
         self.chat_ids: List[int] = []
@@ -220,7 +222,7 @@ class ChatModel:
 
         return self.chats[offset:limit]
 
-    def _load_next_chats(self):
+    def _load_next_chats(self) -> None:
         """
         based on
         https://github.com/tdlib/td/issues/56#issuecomment-364221408
@@ -282,7 +284,7 @@ class ChatModel:
 
 
 class MsgModel:
-    def __init__(self, tg: Tdlib):
+    def __init__(self, tg: Tdlib) -> None:
         self.tg = tg
         self.msgs: Dict[int, List[Dict]] = defaultdict(list)
         self.current_msgs: Dict[int, int] = defaultdict(int)
@@ -296,7 +298,7 @@ class MsgModel:
         self.current_msgs[chat_id] = max(0, current_msg - step)
         return True
 
-    def jump_bottom(self, chat_id: int):
+    def jump_bottom(self, chat_id: int) -> bool:
         if self.current_msgs[chat_id] == 0:
             return False
         self.current_msgs[chat_id] = 0
@@ -323,7 +325,7 @@ class MsgModel:
             return result.update
         return next(iter(m for m in self.msgs[chat_id] if m["id"] == msg_id))
 
-    def remove_message(self, chat_id: int, msg_id: int):
+    def remove_message(self, chat_id: int, msg_id: int) -> bool:
         msg_set = self.msg_ids[chat_id]
         if msg_id not in msg_set:
             return False
@@ -335,7 +337,7 @@ class MsgModel:
         msg_set.remove(msg_id)
         return True
 
-    def update_msg_content_opened(self, chat_id: int, msg_id: int):
+    def update_msg_content_opened(self, chat_id: int, msg_id: int) -> None:
         for message in self.msgs[chat_id]:
             if message["id"] != msg_id:
                 continue
@@ -349,7 +351,9 @@ class MsgModel:
             # https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1update_message_content_opened.html
             return
 
-    def update_msg(self, chat_id: int, msg_id: int, **fields: Dict[str, Any]):
+    def update_msg(
+        self, chat_id: int, msg_id: int, **fields: Dict[str, Any]
+    ) -> bool:
         msg = None
         for message in self.msgs[chat_id]:
             if message["id"] == msg_id:
@@ -472,11 +476,11 @@ class UserModel:
 
     def __init__(self, tg: Tdlib) -> None:
         self.tg = tg
-        self.me = None
+        self.me: Dict[str, Any] = {}
         self.users: Dict[int, Dict] = {}
         self.not_found: Set[int] = set()
 
-    def get_me(self):
+    def get_me(self) -> Dict[str, Any]:
         if self.me:
             return self.me
         result = self.tg.get_me()
@@ -487,12 +491,12 @@ class UserModel:
         self.me = result.update
         return self.me
 
-    def set_status(self, user_id: int, status: Dict[str, Any]):
+    def set_status(self, user_id: int, status: Dict[str, Any]) -> None:
         if user_id not in self.users:
             self.get_user(user_id)
         self.users[user_id]["status"] = status
 
-    def is_online(self, user_id: int):
+    def is_online(self, user_id: int) -> bool:
         user = self.get_user(user_id)
         if (
             user

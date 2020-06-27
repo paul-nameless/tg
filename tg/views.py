@@ -2,7 +2,7 @@ import curses
 import logging
 from _curses import window  # type: ignore
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from tg import config
 from tg.colors import blue, cyan, get_color, magenta, reverse, white, yellow
@@ -82,7 +82,7 @@ class StatusView:
         self.win = stdscr.subwin(self.h, self.w, self.y, self.x)
         self._refresh = self.win.refresh
 
-    def resize(self, rows: int, cols: int):
+    def resize(self, rows: int, cols: int) -> None:
         self.w = cols - 1
         self.y = rows - 1
         self.win.resize(self.h, self.w)
@@ -95,7 +95,7 @@ class StatusView:
         self.win.addstr(0, 0, msg[: self.w])
         self._refresh()
 
-    def get_input(self, msg="") -> str:
+    def get_input(self, msg: str = "") -> str:
         self.draw(msg)
         curses.curs_set(1)
 
@@ -126,7 +126,7 @@ class StatusView:
 
 
 class ChatView:
-    def __init__(self, stdscr: window, model: Model):
+    def __init__(self, stdscr: window, model: Model) -> None:
         self.stdscr = stdscr
         self.h = 0
         self.w = 0
@@ -243,9 +243,7 @@ class ChatView:
 
 
 class MsgView:
-    def __init__(
-        self, stdscr: window, model: Model,
-    ):
+    def __init__(self, stdscr: window, model: Model,) -> None:
         self.model = model
         self.stdscr = stdscr
         self.h = 0
@@ -265,7 +263,7 @@ class MsgView:
         self.win.resize(self.h, self.w)
         self.win.mvwin(0, self.x)
 
-    def _get_flags(self, msg_proxy: MsgProxy):
+    def _get_flags(self, msg_proxy: MsgProxy) -> str:
         flags = []
         chat = self.model.chats.chats[self.model.current_chat]
 
@@ -314,7 +312,7 @@ class MsgView:
             msg = f"{reply_line}\n{msg}"
         return msg
 
-    def _format_url(self, msg_proxy: MsgProxy):
+    def _format_url(self, msg_proxy: MsgProxy) -> str:
         if not msg_proxy.is_text or "web_page" not in msg_proxy.msg["content"]:
             return ""
         web = msg_proxy.msg["content"]["web_page"]
@@ -541,11 +539,11 @@ def format_bool(value: Optional[bool]) -> Optional[str]:
     return "yes" if value else "no"
 
 
-def get_download(local, size):
+def get_download(local: Dict[str, Union[str, bool, int]], size: int) -> str:
     if local["is_downloading_completed"]:
         return "yes"
     elif local["is_downloading_active"]:
-        d = local["downloaded_size"]
+        d = int(local["downloaded_size"])
         percent = int(d * 100 / size)
         return f"{percent}%"
     return "no"

@@ -8,15 +8,15 @@ from tg.msg import MsgProxy
 
 log = logging.getLogger(__name__)
 
-_update_handler_type = Callable[[Controller, Dict[str, Any]], None]
+UpdateHandler = Callable[[Controller, Dict[str, Any]], None]
 
-handlers: Dict[str, _update_handler_type] = {}
+handlers: Dict[str, UpdateHandler] = {}
 
 max_download_size: int = utils.parse_size(config.MAX_DOWNLOAD_SIZE)
 
 
-def update_handler(update_type):
-    def decorator(fun):
+def update_handler(update_type: str) -> Callable:
+    def decorator(fun: Callable) -> Callable:
         global handlers
         assert (
             update_type not in handlers
@@ -25,7 +25,7 @@ def update_handler(update_type):
         handlers[update_type] = fun
 
         @wraps(fun)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             try:
                 return fun(*args, **kwargs)
             except Exception:
@@ -37,7 +37,9 @@ def update_handler(update_type):
 
 
 @update_handler("updateMessageContent")
-def update_message_content(controller: Controller, update: Dict[str, Any]):
+def update_message_content(
+    controller: Controller, update: Dict[str, Any]
+) -> None:
     chat_id = update["chat_id"]
     message_id = update["message_id"]
     controller.model.msgs.update_msg(
@@ -50,7 +52,9 @@ def update_message_content(controller: Controller, update: Dict[str, Any]):
 
 
 @update_handler("updateMessageEdited")
-def update_message_edited(controller: Controller, update: Dict[str, Any]):
+def update_message_edited(
+    controller: Controller, update: Dict[str, Any]
+) -> None:
     chat_id = update["chat_id"]
     message_id = update["message_id"]
     edit_date = update["edit_date"]
@@ -62,7 +66,7 @@ def update_message_edited(controller: Controller, update: Dict[str, Any]):
 
 
 @update_handler("updateNewMessage")
-def update_new_message(controller: Controller, update: Dict[str, Any]):
+def update_new_message(controller: Controller, update: Dict[str, Any]) -> None:
     msg = MsgProxy(update["message"])
     controller.model.msgs.add_message(msg.chat_id, msg.msg)
     current_chat_id = controller.model.current_chat_id
@@ -75,7 +79,7 @@ def update_new_message(controller: Controller, update: Dict[str, Any]):
 
 
 @update_handler("updateChatOrder")
-def update_chat_order(controller: Controller, update: Dict[str, Any]):
+def update_chat_order(controller: Controller, update: Dict[str, Any]) -> None:
     log.info("Proccessing updateChatOrder")
     current_chat_id = controller.model.current_chat_id
     chat_id = update["chat_id"]
@@ -86,7 +90,7 @@ def update_chat_order(controller: Controller, update: Dict[str, Any]):
 
 
 @update_handler("updateChatTitle")
-def update_chat_title(controller: Controller, update: Dict[str, Any]):
+def update_chat_title(controller: Controller, update: Dict[str, Any]) -> None:
     log.info("Proccessing updateChatTitle")
     chat_id = update["chat_id"]
     title = update["title"]
@@ -99,7 +103,7 @@ def update_chat_title(controller: Controller, update: Dict[str, Any]):
 @update_handler("updateChatIsMarkedAsUnread")
 def update_chat_is_marked_as_unread(
     controller: Controller, update: Dict[str, Any]
-):
+) -> None:
     log.info("Proccessing updateChatIsMarkedAsUnread")
     chat_id = update["chat_id"]
     is_marked_as_unread = update["is_marked_as_unread"]
@@ -112,7 +116,9 @@ def update_chat_is_marked_as_unread(
 
 
 @update_handler("updateChatIsPinned")
-def update_chat_is_pinned(controller: Controller, update: Dict[str, Any]):
+def update_chat_is_pinned(
+    controller: Controller, update: Dict[str, Any]
+) -> None:
     log.info("Proccessing updateChatIsPinned")
     chat_id = update["chat_id"]
     is_pinned = update["is_pinned"]
@@ -126,20 +132,24 @@ def update_chat_is_pinned(controller: Controller, update: Dict[str, Any]):
 
 
 @update_handler("updateChatReadOutbox")
-def update_chat_read_outbox(controller: Controller, update: Dict[str, Any]):
+def update_chat_read_outbox(
+    controller: Controller, update: Dict[str, Any]
+) -> None:
     log.info("Proccessing updateChatReadOutbox")
     chat_id = update["chat_id"]
     last_read_outbox_message_id = update["last_read_outbox_message_id"]
 
     current_chat_id = controller.model.current_chat_id
     if controller.model.chats.update_chat(
-        chat_id, last_read_outbox_message_id=last_read_outbox_message_id,
+        chat_id, last_read_outbox_message_id=last_read_outbox_message_id
     ):
         controller._refresh_current_chat(current_chat_id)
 
 
 @update_handler("updateChatReadInbox")
-def update_chat_read_inbox(controller: Controller, update: Dict[str, Any]):
+def update_chat_read_inbox(
+    controller: Controller, update: Dict[str, Any]
+) -> None:
     log.info("Proccessing updateChatReadInbox")
     chat_id = update["chat_id"]
     last_read_inbox_message_id = update["last_read_inbox_message_id"]
@@ -155,7 +165,9 @@ def update_chat_read_inbox(controller: Controller, update: Dict[str, Any]):
 
 
 @update_handler("updateChatDraftMessage")
-def update_chat_draft_message(controller: Controller, update: Dict[str, Any]):
+def update_chat_draft_message(
+    controller: Controller, update: Dict[str, Any]
+) -> None:
     log.info("Proccessing updateChatDraftMessage")
     chat_id = update["chat_id"]
     # FIXME: ignoring draft message itself for now because UI can't show it
@@ -168,7 +180,9 @@ def update_chat_draft_message(controller: Controller, update: Dict[str, Any]):
 
 
 @update_handler("updateChatLastMessage")
-def update_chat_last_message(controller: Controller, update: Dict[str, Any]):
+def update_chat_last_message(
+    controller: Controller, update: Dict[str, Any]
+) -> None:
     log.info("Proccessing updateChatLastMessage")
     chat_id = update["chat_id"]
     last_message = update.get("last_message")
@@ -186,7 +200,9 @@ def update_chat_last_message(controller: Controller, update: Dict[str, Any]):
 
 
 @update_handler("updateChatNotificationSettings")
-def update_chat_notification_settings(controller: Controller, update):
+def update_chat_notification_settings(
+    controller: Controller, update: Dict[str, Any]
+) -> None:
     log.info("Proccessing update_chat_notification_settings")
     chat_id = update["chat_id"]
     notification_settings = update["notification_settings"]
@@ -197,7 +213,9 @@ def update_chat_notification_settings(controller: Controller, update):
 
 
 @update_handler("updateMessageSendSucceeded")
-def update_message_send_succeeded(controller: Controller, update):
+def update_message_send_succeeded(
+    controller: Controller, update: Dict[str, Any]
+) -> None:
     chat_id = update["message"]["chat_id"]
     msg_id = update["old_message_id"]
     controller.model.msgs.add_message(chat_id, update["message"])
@@ -209,7 +227,7 @@ def update_message_send_succeeded(controller: Controller, update):
 
 
 @update_handler("updateFile")
-def update_file(controller: Controller, update):
+def update_file(controller: Controller, update: Dict[str, Any]) -> None:
     log.info("update_file: %s", update)
     file_id = update["file"]["id"]
     local = update["file"]["local"]
@@ -233,7 +251,7 @@ def update_file(controller: Controller, update):
 @update_handler("updateMessageContentOpened")
 def update_message_content_opened(
     controller: Controller, update: Dict[str, Any]
-):
+) -> None:
     chat_id = update["chat_id"]
     message_id = update["message_id"]
     controller.model.msgs.update_msg_content_opened(chat_id, message_id)
@@ -241,7 +259,9 @@ def update_message_content_opened(
 
 
 @update_handler("updateDeleteMessages")
-def update_delete_messages(controller: Controller, update: Dict[str, Any]):
+def update_delete_messages(
+    controller: Controller, update: Dict[str, Any]
+) -> None:
     chat_id = update["chat_id"]
     msg_ids = update["message_ids"]
     for msg_id in msg_ids:
@@ -250,7 +270,9 @@ def update_delete_messages(controller: Controller, update: Dict[str, Any]):
 
 
 @update_handler("updateConnectionState")
-def update_connection_state(controller: Controller, update: Dict[str, Any]):
+def update_connection_state(
+    controller: Controller, update: Dict[str, Any]
+) -> None:
     log.info("state:: %s", update)
     state = update["state"]["@type"]
     states = {
@@ -265,6 +287,6 @@ def update_connection_state(controller: Controller, update: Dict[str, Any]):
 
 
 @update_handler("updateUserStatus")
-def update_user_status(controller: Controller, update: Dict[str, Any]):
+def update_user_status(controller: Controller, update: Dict[str, Any]) -> None:
     controller.model.users.set_status(update["user_id"], update["status"])
     controller.render_chats()

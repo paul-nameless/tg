@@ -1,9 +1,9 @@
-import logging
 import logging.handlers
 import signal
 import threading
 from curses import window, wrapper  # type: ignore
 from functools import partial
+from types import FrameType
 
 from tg import config, update_handlers, utils
 from tg.controllers import Controller
@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 def run(tg: Tdlib, stdscr: window) -> None:
 
     # handle ctrl+c, to avoid interrupting tg when subprocess is called
-    def interrupt_signal_handler(sig, frame):
+    def interrupt_signal_handler(sig: int, frame: FrameType) -> None:
         # TODO: draw on status pane: to quite press <q>
         log.info("Interrupt signal is handled and ignored on purpose.")
 
@@ -36,14 +36,14 @@ def run(tg: Tdlib, stdscr: window) -> None:
     for msg_type, handler in update_handlers.handlers.items():
         tg.add_update_handler(msg_type, partial(handler, controller))
 
-    thread = threading.Thread(target=controller.run,)
+    thread = threading.Thread(target=controller.run)
     thread.daemon = True
     thread.start()
 
     controller.draw()
 
 
-def main():
+def main() -> None:
     tg = Tdlib(
         api_id=config.API_ID,
         api_hash=config.API_HASH,

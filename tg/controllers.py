@@ -9,6 +9,8 @@ from queue import Queue
 from tempfile import NamedTemporaryFile
 from typing import Any, Callable, Dict, List, Optional
 
+from telegram.utils import AsyncResult
+
 from tg import config
 from tg.models import Model
 from tg.msg import MsgProxy
@@ -32,26 +34,26 @@ log = logging.getLogger(__name__)
 # cause blan areas on the msg display screen
 MSGS_LEFT_SCROLL_THRESHOLD = 2
 REPLY_MSG_PREFIX = "# >"
-handler_type = Callable[[Any], Any]
+HandlerType = Callable[[Any], Optional[str]]
 
-chat_handler: Dict[str, handler_type] = {}
-msg_handler: Dict[str, handler_type] = {}
+chat_handler: Dict[str, HandlerType] = {}
+msg_handler: Dict[str, HandlerType] = {}
 
 
 def bind(
-    binding: Dict[str, handler_type],
+    binding: Dict[str, HandlerType],
     keys: List[str],
     repeat_factor: bool = False,
-):
+) -> Callable:
     """bind handlers to given keys"""
 
-    def decorator(fun):
+    def decorator(fun: Callable) -> HandlerType:
         @wraps(fun)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             return fun(*args, **kwargs)
 
         @wraps(fun)
-        def _no_repeat_factor(self, repeat_factor):
+        def _no_repeat_factor(self: Controller, _: bool) -> Any:
             return fun(self)
 
         for key in keys:
@@ -72,9 +74,8 @@ class Controller:
         self.chat_size = 0.5
 
     @bind(msg_handler, ["o"])
-    def open_url(self):
-        msg = self.model.current_msg
-        msg = MsgProxy(msg)
+    def open_url(self) -> None:
+        msg = MsgProxy(self.model.current_msg)
         if not msg.is_text:
             self.present_error("Does not contain urls")
             return
@@ -97,41 +98,42 @@ class Controller:
         with suspend(self.view) as s:
             s.run_with_input(config.URL_VIEW, "\n".join(urls))
 
-    def format_help(self, bindings):
+    @staticmethod
+    def format_help(bindings: Dict[str, HandlerType]) -> str:
         return "\n".join(
             f"{key}\t{fun.__name__}\t{fun.__doc__ or ''}"
             for key, fun in sorted(bindings.items())
         )
 
     @bind(chat_handler, ["?"])
-    def show_chat_help(self):
+    def show_chat_help(self) -> None:
         _help = self.format_help(chat_handler)
         with suspend(self.view) as s:
             s.run_with_input(config.HELP_CMD, _help)
 
     @bind(msg_handler, ["?"])
-    def show_msg_help(self):
+    def show_msg_help(self) -> None:
         _help = self.format_help(msg_handler)
         with suspend(self.view) as s:
             s.run_with_input(config.HELP_CMD, _help)
 
     @bind(chat_handler, ["bp"])
     @bind(msg_handler, ["bp"])
-    def breakpoint(self):
+    def breakpoint(self) -> None:
         with suspend(self.view):
             breakpoint()
 
     @bind(chat_handler, ["q"])
     @bind(msg_handler, ["q"])
-    def quit(self):
+    def quit(self) -> str:
         return "QUIT"
 
     @bind(msg_handler, ["h", "^D"])
-    def back(self):
+    def back(self) -> str:
         return "BACK"
 
     @bind(msg_handler, ["p"])
-    def forward_msgs(self):
+    def forward_msgs(self) -> None:
         """Paste yanked msgs"""
         if not self.model.forward_msgs():
             self.present_error("Can't forward msg(s)")
@@ -139,7 +141,7 @@ class Controller:
         self.present_info("Forwarded msg(s)")
 
     @bind(msg_handler, ["y"])
-    def yank_msgs(self):
+    def yank_msgs(self) -> None:
         """Copy msgs to clipboard and internal buffer to forward"""
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
         if not chat_id:
@@ -154,7 +156,7 @@ class Controller:
         self.present_info(f"Copied {len(msg_ids)} msg(s)")
 
     @bind(msg_handler, [" "])
-    def toggle_select_msg(self):
+    def toggle_select_msg(self) -> None:
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
         if not chat_id:
             return
@@ -168,7 +170,7 @@ class Controller:
         self.render_msgs()
 
     @bind(msg_handler, ["^G", "^["])
-    def discard_selected_msgs(self):
+    def discard_selected_msgs(self) -> None:
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
         if not chat_id:
             return
@@ -177,34 +179,36 @@ class Controller:
         self.present_info("Discarded selected messages")
 
     @bind(msg_handler, ["G"])
-    def bottom_msg(self):
+    def bottom_msg(self) -> None:
         if self.model.jump_bottom():
             self.render_msgs()
 
     @bind(msg_handler, ["j", "^B", "^N"], repeat_factor=True)
-    def next_msg(self, repeat_factor: int = 1):
+    def next_msg(self, repeat_factor: int = 1) -> None:
         if self.model.next_msg(repeat_factor):
             self.render_msgs()
 
     @bind(msg_handler, ["J"])
-    def jump_10_msgs_down(self):
+    def jump_10_msgs_down(self) -> None:
         self.next_msg(10)
 
     @bind(msg_handler, ["k", "^C", "^P"], repeat_factor=True)
-    def prev_msg(self, repeat_factor: int = 1):
+    def prev_msg(self, repeat_factor: int = 1) -> None:
         if self.model.prev_msg(repeat_factor):
             self.render_msgs()
 
     @bind(msg_handler, ["K"])
-    def jump_10_msgs_up(self):
+    def jump_10_msgs_up(self) -> None:
         self.prev_msg(10)
 
     @bind(msg_handler, ["r"])
-    def reply_message(self):
+    def reply_message(self) -> None:
         if not self.can_send_msg():
             self.present_info("Can't send msg in this chat")
             return
         chat_id = self.model.current_chat_id
+        if chat_id is None:
+            return
         reply_to_msg = self.model.current_msg_id
         if msg := self.view.status.get_input():
             self.tg.reply_message(chat_id, reply_to_msg, msg)
@@ -213,11 +217,13 @@ class Controller:
             self.present_info("Message reply wasn't sent")
 
     @bind(msg_handler, ["R"])
-    def reply_with_long_message(self):
+    def reply_with_long_message(self) -> None:
         if not self.can_send_msg():
             self.present_info("Can't send msg in this chat")
             return
         chat_id = self.model.current_chat_id
+        if chat_id is None:
+            return
         reply_to_msg = self.model.current_msg_id
         msg = MsgProxy(self.model.current_msg)
         with NamedTemporaryFile("w+", suffix=".txt") as f, suspend(
@@ -227,14 +233,14 @@ class Controller:
             f.seek(0)
             s.call(config.LONG_MSG_CMD.format(file_path=shlex.quote(f.name)))
             with open(f.name) as f:
-                if msg := strip_replied_msg(f.read().strip()):
-                    self.tg.reply_message(chat_id, reply_to_msg, msg)
+                if replied_msg := strip_replied_msg(f.read().strip()):
+                    self.tg.reply_message(chat_id, reply_to_msg, replied_msg)
                     self.present_info("Message sent")
                 else:
                     self.present_info("Message wasn't sent")
 
     @bind(msg_handler, ["a", "i"])
-    def write_short_msg(self):
+    def write_short_msg(self) -> None:
         if not self.can_send_msg():
             self.present_info("Can't send msg in this chat")
             return
@@ -245,7 +251,7 @@ class Controller:
             self.present_info("Message wasn't sent")
 
     @bind(msg_handler, ["A", "I"])
-    def write_long_msg(self):
+    def write_long_msg(self) -> None:
         if not self.can_send_msg():
             self.present_info("Can't send msg in this chat")
             return
@@ -259,7 +265,7 @@ class Controller:
                     self.present_info("Message sent")
 
     @bind(msg_handler, ["sv"])
-    def send_video(self):
+    def send_video(self) -> None:
         file_path = self.view.status.get_input()
         if not file_path or not os.path.isfile(file_path):
             return
@@ -271,7 +277,7 @@ class Controller:
         self.tg.send_video(file_path, chat_id, width, height, duration)
 
     @bind(msg_handler, ["dd"])
-    def delete_msgs(self):
+    def delete_msgs(self) -> None:
         is_deleted = self.model.delete_msgs()
         self.discard_selected_msgs()
         if not is_deleted:
@@ -280,26 +286,28 @@ class Controller:
         self.present_info("Message deleted")
 
     @bind(msg_handler, ["sd"])
-    def send_document(self):
+    def send_document(self) -> None:
         self.send_file(self.tg.send_doc)
 
     @bind(msg_handler, ["sp"])
-    def send_picture(self):
+    def send_picture(self) -> None:
         self.send_file(self.tg.send_photo)
 
     @bind(msg_handler, ["sa"])
-    def send_audio(self):
+    def send_audio(self) -> None:
         self.send_file(self.tg.send_audio)
 
-    def send_file(self, send_file_fun, *args, **kwargs):
+    def send_file(
+        self, send_file_fun: Callable[[str, int], AsyncResult], *args: Any, **kwargs: Any
+    ) -> None:
         file_path = self.view.status.get_input()
         if file_path and os.path.isfile(file_path):
-            chat_id = self.model.chats.id_by_index(self.model.current_chat)
-            send_file_fun(file_path, chat_id, *args, **kwargs)
-            self.present_info("File sent")
+            if chat_id := self.model.chats.id_by_index(self.model.current_chat):
+                send_file_fun(file_path, chat_id)
+                self.present_info("File sent")
 
     @bind(msg_handler, ["v"])
-    def record_voice(self):
+    def record_voice(self) -> None:
         file_path = f"/tmp/voice-{datetime.now()}.oga"
         with suspend(self.view) as s:
             s.call(
@@ -327,7 +335,7 @@ class Controller:
         self.present_info(f"Sent voice msg: {file_path}")
 
     @bind(msg_handler, ["D"])
-    def download_current_file(self):
+    def download_current_file(self) -> None:
         msg = MsgProxy(self.model.current_msg)
         log.debug("Downloading msg: %s", msg.msg)
         file_id = msg.file_id
@@ -337,7 +345,7 @@ class Controller:
         self.download(file_id, msg["chat_id"], msg["id"])
         self.present_info("File started downloading")
 
-    def download(self, file_id: int, chat_id: int, msg_id: int):
+    def download(self, file_id: int, chat_id: int, msg_id: int) -> None:
         log.info("Downloading file: file_id=%s", file_id)
         self.model.downloads[file_id] = (chat_id, msg_id)
         self.tg.download_file(file_id=file_id)
@@ -348,7 +356,7 @@ class Controller:
         return chat["permissions"]["can_send_messages"]
 
     @bind(msg_handler, ["l", "^J"])
-    def open_current_msg(self):
+    def open_current_msg(self) -> None:
         msg = MsgProxy(self.model.current_msg)
         if msg.is_text:
             with NamedTemporaryFile("w", suffix=".txt") as f:
@@ -370,7 +378,7 @@ class Controller:
             s.open_file(path)
 
     @bind(msg_handler, ["e"])
-    def edit_msg(self):
+    def edit_msg(self) -> None:
         msg = MsgProxy(self.model.current_msg)
         log.info("Editing msg: %s", msg.msg)
         if not self.model.is_me(msg.sender_id):
@@ -392,7 +400,7 @@ class Controller:
                     self.present_info("Message edited")
 
     @bind(chat_handler, ["l", "^J", "^E"])
-    def handle_msgs(self):
+    def handle_msgs(self) -> Optional[str]:
         rc = self.handle(msg_handler, 0.2)
         if rc == "QUIT":
             return rc
@@ -400,32 +408,32 @@ class Controller:
         self.resize()
 
     @bind(chat_handler, ["g"])
-    def top_chat(self):
+    def top_chat(self) -> None:
         if self.model.first_chat():
             self.render()
 
     @bind(chat_handler, ["j", "^B", "^N"], repeat_factor=True)
     @bind(msg_handler, ["]"])
-    def next_chat(self, repeat_factor: int = 1):
+    def next_chat(self, repeat_factor: int = 1) -> None:
         if self.model.next_chat(repeat_factor):
             self.render()
 
     @bind(chat_handler, ["k", "^C", "^P"], repeat_factor=True)
     @bind(msg_handler, ["["])
-    def prev_chat(self, repeat_factor: int = 1):
+    def prev_chat(self, repeat_factor: int = 1) -> None:
         if self.model.prev_chat(repeat_factor):
             self.render()
 
     @bind(chat_handler, ["J"])
-    def jump_10_chats_down(self):
+    def jump_10_chats_down(self) -> None:
         self.next_chat(10)
 
     @bind(chat_handler, ["K"])
-    def jump_10_chats_up(self):
+    def jump_10_chats_up(self) -> None:
         self.prev_chat(10)
 
     @bind(chat_handler, ["u"])
-    def toggle_unread(self):
+    def toggle_unread(self) -> None:
         chat = self.model.chats.chats[self.model.current_chat]
         chat_id = chat["id"]
         toggle = not chat["is_marked_as_unread"]
@@ -433,7 +441,7 @@ class Controller:
         self.render()
 
     @bind(chat_handler, ["r"])
-    def read_msgs(self):
+    def read_msgs(self) -> None:
         chat = self.model.chats.chats[self.model.current_chat]
         chat_id = chat["id"]
         msg_id = chat["last_message"]["id"]
@@ -441,7 +449,7 @@ class Controller:
         self.render()
 
     @bind(chat_handler, ["m"])
-    def toggle_mute(self):
+    def toggle_mute(self) -> None:
         # TODO: if it's msg to yourself, do not change its
         # notification setting, because we can't by documentation,
         # instead write about it in status
@@ -459,7 +467,7 @@ class Controller:
         self.render()
 
     @bind(chat_handler, ["p"])
-    def toggle_pin(self):
+    def toggle_pin(self) -> None:
         chat = self.model.chats.chats[self.model.current_chat]
         chat_id = chat["id"]
         toggle = not chat["is_pinned"]
@@ -473,10 +481,10 @@ class Controller:
         except Exception:
             log.exception("Error happened in main loop")
 
-    def close(self):
+    def close(self) -> None:
         self.is_running = False
 
-    def handle(self, handlers: Dict[str, handler_type], size: float):
+    def handle(self, handlers: Dict[str, HandlerType], size: float) -> str:
         self.chat_size = size
         self.resize()
 
@@ -489,15 +497,15 @@ class Controller:
             elif res == "BACK":
                 return res
 
-    def resize_handler(self, signum, frame):
+    def resize_handler(self, signum: int, frame: Any) -> None:
         curses.endwin()
         self.view.stdscr.refresh()
         self.resize()
 
-    def resize(self):
+    def resize(self) -> None:
         self.queue.put(self._resize)
 
-    def _resize(self):
+    def _resize(self) -> None:
         rows, cols = self.view.stdscr.getmaxyx()
         # If we didn't clear the screen before doing this,
         # the original window contents would remain on the screen
@@ -510,7 +518,7 @@ class Controller:
         self.view.status.resize(rows, cols)
         self.render()
 
-    def draw(self):
+    def draw(self) -> None:
         while self.is_running:
             try:
                 log.info("Queue size: %d", self.queue.qsize())
@@ -519,16 +527,16 @@ class Controller:
             except Exception:
                 log.exception("Error happened in draw loop")
 
-    def present_error(self, msg: str):
+    def present_error(self, msg: str) -> None:
         return self.update_status("Error", msg)
 
-    def present_info(self, msg: str):
+    def present_info(self, msg: str) -> None:
         return self.update_status("Info", msg)
 
-    def update_status(self, level: str, msg: str):
+    def update_status(self, level: str, msg: str) -> None:
         self.queue.put(partial(self._update_status, level, msg))
 
-    def _update_status(self, level: str, msg: str):
+    def _update_status(self, level: str, msg: str) -> None:
         self.view.status.draw(f"{level}: {msg}")
 
     def render(self) -> None:
@@ -566,10 +574,9 @@ class Controller:
         )
         self.view.msgs.draw(current_msg_idx, msgs, MSGS_LEFT_SCROLL_THRESHOLD)
 
-    def notify_for_message(self, chat_id: int, msg: MsgProxy):
+    def notify_for_message(self, chat_id: int, msg: MsgProxy) -> None:
         # do not notify, if muted
         # TODO: optimize
-        chat = None
         for chat in self.model.chats.chats:
             if chat_id == chat["id"]:
                 break
@@ -587,10 +594,10 @@ class Controller:
         user = self.model.users.get_user(msg.sender_id)
         name = f"{user['first_name']} {user['last_name']}"
 
-        text = msg.text_content if msg.is_text else msg.content_type
-        notify(text, title=name)
+        if text := msg.text_content if msg.is_text else msg.content_type:
+            notify(text, title=name)
 
-    def _refresh_current_chat(self, current_chat_id: Optional[int]):
+    def _refresh_current_chat(self, current_chat_id: Optional[int]) -> None:
         if current_chat_id is None:
             return
         # TODO: we can create <index> for chats, it's faster than sqlite anyway
@@ -604,12 +611,16 @@ class Controller:
 
 
 def insert_replied_msg(msg: MsgProxy) -> str:
-    text = msg.text_content if msg.is_text else msg.content_type
-    return (
-        "\n".join([f"{REPLY_MSG_PREFIX} {line}" for line in text.split("\n")])
-        # adding line with whitespace so text editor could start editing from last line
-        + "\n "
-    )
+    if text := msg.text_content if msg.is_text else msg.content_type:
+        return (
+            "\n".join(
+                [f"{REPLY_MSG_PREFIX} {line}" for line in text.split("\n")]
+            )
+            # adding line with whitespace so text editor could start editing from last line
+            + "\n "
+        )
+    else:
+        return ""
 
 
 def strip_replied_msg(msg: str) -> str:
