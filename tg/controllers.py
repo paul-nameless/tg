@@ -610,16 +610,14 @@ class Controller:
 
 
 def insert_replied_msg(msg: MsgProxy) -> str:
-    if text := msg.text_content if msg.is_text else msg.content_type:
-        return (
-            "\n".join(
-                [f"{REPLY_MSG_PREFIX} {line}" for line in text.split("\n")]
-            )
-            # adding line with whitespace so text editor could start editing from last line
-            + "\n "
-        )
-    else:
+    text = msg.text_content if msg.is_text else msg.content_type
+    if not text:
         return ""
+    return (
+        "\n".join([f"{REPLY_MSG_PREFIX} {line}" for line in text.split("\n")])
+        # adding line with whitespace so text editor could start editing from last line
+        + "\n "
+    )
 
 
 def strip_replied_msg(msg: str) -> str:
