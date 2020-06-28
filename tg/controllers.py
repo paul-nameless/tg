@@ -11,7 +11,7 @@ from typing import Any, Callable, Dict, List, Optional
 from tg import config
 from tg.models import Model
 from tg.msg import MsgProxy
-from tg.tdlib import Action, Tdlib
+from tg.tdlib import ChatAction, Tdlib
 from tg.utils import (
     get_duration,
     get_video_resolution,
@@ -237,12 +237,12 @@ class Controller:
             self.present_info("Can't send msg in this chat")
             return
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
-        self.tg.send_chat_action(chat_id, Action.chatActionTyping)
+        self.tg.send_chat_action(chat_id, ChatAction.chatActionTyping)
         if msg := self.view.status.get_input():
             self.model.send_message(text=msg)
             self.present_info("Message sent")
         else:
-            self.tg.send_chat_action(chat_id, Action.chatActionCancel)
+            self.tg.send_chat_action(chat_id, ChatAction.chatActionCancel)
             self.present_info("Message wasn't sent")
 
     @bind(msg_handler, ["A", "I"])
@@ -254,14 +254,16 @@ class Controller:
             self.view
         ) as s:
             chat_id = self.model.chats.id_by_index(self.model.current_chat)
-            self.tg.send_chat_action(chat_id, Action.chatActionTyping)
+            self.tg.send_chat_action(chat_id, ChatAction.chatActionTyping)
             s.call(config.LONG_MSG_CMD.format(file_path=shlex.quote(f.name)))
             with open(f.name) as f:
                 if msg := f.read().strip():
                     self.model.send_message(text=msg)
                     self.present_info("Message sent")
                 else:
-                    self.tg.send_chat_action(chat_id, Action.chatActionCancel)
+                    self.tg.send_chat_action(
+                        chat_id, ChatAction.chatActionCancel
+                    )
                     self.present_info("Message wasn't sent")
 
     @bind(msg_handler, ["sv"])

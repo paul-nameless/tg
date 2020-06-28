@@ -4,8 +4,8 @@ from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from tg.msg import MsgProxy
-from tg.tdlib import Action, Tdlib
-from tg.utils import copy_to_clipboard
+from tg.tdlib import ChatAction, Tdlib, UserStatus
+from tg.utils import copy_to_clipboard, pretty_ts
 
 log = logging.getLogger(__name__)
 
@@ -125,8 +125,6 @@ class Model:
         offset = max(msgs_left_scroll_threshold - chats_left, 0)
         limit = offset + page_size
         return self.chats.fetch_chats(offset=offset, limit=limit)
-
-    # def send_action(self, action: Action)
 
     def send_message(self, text: str) -> bool:
         chat_id = self.chats.id_by_index(self.current_chat)
@@ -457,15 +455,6 @@ class MsgModel:
 
 class UserModel:
 
-    statuses = {
-        "userStatusEmpty": "",
-        "userStatusOnline": "online",
-        "userStatusOffline": "offline",
-        "userStatusRecently": "recently",
-        "userStatusLastWeek": "last week",
-        "userStatusLastMonth": "last month",
-    }
-
     types = {
         "userTypeUnknown": "unknown",
         "userTypeBot": "bot",
@@ -499,9 +488,9 @@ class UserModel:
             return None
         action_type = action["action"]["@type"]
         try:
-            return Action[action_type].value + "..."
+            return ChatAction[action_type].value + "..."
         except KeyError:
-            log.error(f"Action type {action_type} not implemented")
+            log.error(f"ChatAction type {action_type} not implemented")
         return None
 
     def set_status(self, user_id: int, status: Dict[str, Any]):
@@ -509,22 +498,29 @@ class UserModel:
             self.get_user(user_id)
         self.users[user_id]["status"] = status
 
-    def get_status(self, user_id: int):
+    def get_status(self, user_id: int) -> str:
         if user_id not in self.users:
-            return None
+            return ""
         user_status = self.users[user_id]["status"]
-        log.info(f"user_status:: {user_status}")
-        status = self.statuses.get(user_status["@type"])
-        if status == "online":
+
+        try:
+            status = UserStatus[user_status["@type"]]
+        except KeyError:
+            log.error(f"UserStatus type {user_status} not implemented")
+            return ""
+
+        if status == UserStatus.userStatusEmpty:
+            return ""
+        elif status == UserStatus.userStatusOnline:
             expires = user_status["expires"]
             if expires < time.time():
-                return None
-            return status
-        elif status == "offline":
+                return ""
+            return status.value
+        elif status == UserStatus.userStatusOffline:
             was_online = user_status["was_online"]
             ago = pretty_ts(was_online)
             return f"last seen {ago}"
-        return f"last seen {status}"
+        return f"last seen {status.value}"
 
     def is_online(self, user_id: int):
         user = self.get_user(user_id)
@@ -560,38 +556,3 @@ class UserModel:
         if supergroup_id in self.supergroups:
             return self.supergroups[supergroup_id]
         self.tg.get_supergroup(supergroup_id)
-
-
-def pretty_ts(ts):
-    from datetime import datetime
-
-    now = datetime.now()
-    diff = now - datetime.fromtimestamp(ts)
-    second_diff = diff.seconds
-    day_diff = diff.days
-
-    if day_diff < 0:
-        return ""
-
-    if day_diff == 0:
-        if second_diff < 10:
-            return "just now"
-        if second_diff < 60:
-            return f"{second_diff} seconds ago"
-        if second_diff < 120:
-            return "a minute ago"
-        if second_diff < 3600:
-            return f"{int(second_diff / 60)} minutes ago"
-        if second_diff < 7200:
-            return "an hour ago"
-        if second_diff < 86400:
-            return f"{int(second_diff / 3600)} hours ago"
-    if day_diff == 1:
-        return "Yesterday"
-    if day_diff < 7:
-        return f"{day_diff} days ago"
-    if day_diff < 31:
-        return f"{int(day_diff / 7)} weeks ago"
-    if day_diff < 365:
-        return f"{int(day_diff / 30)} months ago"
-    return f"{int(day_diff / 365)} years ago"

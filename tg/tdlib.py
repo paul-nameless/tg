@@ -4,20 +4,37 @@ from typing import Any, Dict, List
 from telegram.client import AsyncResult, Telegram
 
 
-class Action(Enum):
+class ChatAction(Enum):
     chatActionTyping = "typing"
     chatActionCancel = "cancel"
     chatActionRecordingVideo = "recording video"
     chatActionUploadingVideo = "uploading video"
-    chatActionRecordingVoiceNote = "recording voice note"
-    chatActionUploadingVoiceNote = "uploading voice note"
+    chatActionRecordingVoiceNote = "recording voice"
+    chatActionUploadingVoiceNote = "uploading voice"
     chatActionUploadingPhoto = "uploading photo"
     chatActionUploadingDocument = "uploading document"
     chatActionChoosingLocation = "choosing location"
     chatActionChoosingContact = "choosing contact"
     chatActionStartPlayingGame = "start playing game"
-    chatActionRecordingVideoNote = "recording video note"
-    chatActionUploadingVideoNote = "uploading video note"
+    chatActionRecordingVideoNote = "recording video"
+    chatActionUploadingVideoNote = "uploading video"
+
+
+class ChatType(Enum):
+    chatTypePrivate = "private"
+    chatTypeBasicGroup = "group"
+    chatTypeSupergroup = "supergroup"
+    channel = "channel"
+    chatTypeSecret = "secret"
+
+
+class UserStatus(Enum):
+    userStatusEmpty = ""
+    userStatusOnline = "online"
+    userStatusOffline = "offline"
+    userStatusRecently = "recently"
+    userStatusLastWeek = "last week"
+    userStatusLastMonth = "last month"
 
 
 class Tdlib(Telegram):
@@ -221,7 +238,7 @@ class Tdlib(Telegram):
         return self._send_data(data)
 
     def send_chat_action(
-        self, chat_id: int, action: Action, progress: int = None
+        self, chat_id: int, action: ChatAction, progress: int = None
     ) -> AsyncResult:
         data = {
             "@type": "sendChatAction",

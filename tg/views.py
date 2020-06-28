@@ -5,9 +5,19 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, cast
 
 from tg import config
-from tg.colors import blue, cyan, get_color, magenta, reverse, white, yellow
-from tg.models import Model, MsgModel, UserModel
+from tg.colors import (
+    blue,
+    bold,
+    cyan,
+    get_color,
+    magenta,
+    reverse,
+    white,
+    yellow,
+)
+from tg.models import Model
 from tg.msg import MsgProxy
+from tg.tdlib import ChatType
 from tg.utils import emoji_pattern, num, truncate_to_len
 
 log = logging.getLogger(__name__)
@@ -166,9 +176,11 @@ class ChatView:
     ) -> None:
         self.win.erase()
         line = curses.ACS_VLINE  # type: ignore
-        self.win.vline(0, self.w - 1, line, self.h)
-
-        self.win.addstr(0, 0, title.center(self.w - 1), get_color(cyan, -1))
+        width = self.w - 1
+        self.win.vline(0, width, line, self.h)
+        self.win.addstr(
+            0, 0, title.center(width)[:width], get_color(cyan, -1) | bold
+        )
 
         for i, chat in enumerate(chats, 1):
             is_selected = i == current + 1
@@ -182,7 +194,7 @@ class ChatView:
                 self.win.addstr(
                     i,
                     offset,
-                    truncate_to_len(elem, max(0, self.w - offset - 1)),
+                    truncate_to_len(elem, max(0, width - offset)),
                     attr,
                 )
                 offset += len(elem) + sum(
@@ -202,8 +214,8 @@ class ChatView:
                 )
                 self.win.addstr(
                     i,
-                    self.w - flags_len - 1,
-                    flags,
+                    max(0, width - flags_len),
+                    flags[-width:],
                     self._unread_color(is_selected),
                 )
 
@@ -463,44 +475,48 @@ class MsgView:
                     self.win.addstr(line_num, column, elem, attr)
                 column += len(elem)
 
-        self.win.addstr(0, 0, self._msg_title(chat), get_color(cyan, -1))
+        self.win.addstr(
+            0, 0, self._msg_title(chat), get_color(cyan, -1) | bold
+        )
         self._refresh()
 
+    def _get_chat_type(self, chat: Dict[str, Any]) -> Optional[ChatType]:
+        try:
+            chat_type = ChatType[chat["type"]["@type"]]
+            if (
+                chat_type == ChatType.chatTypeSupergroup
+                and chat["type"]["is_channel"]
+            ):
+                chat_type = ChatType.channel
+            return chat_type
+        except KeyError:
+            log.error(f"ChatType {chat['type']} not implemented")
+        return None
+
     def _msg_title(self, chat: Dict[str, Any]):
-        chat_type = chat["type"]["@type"]
-        info = ""
-        _type = "unknown"
-        if chat_type == "chatTypePrivate":
-            _type = "private"
-            info = self.model.users.get_status(chat["id"]) or ""
-        elif chat_type == "chatTypeBasicGroup":
-            _type = "group"
-            group = self.model.users.get_group_info(
-                chat["type"]["basic_group_id"]
-            )
-            log.info(f"group:: {group}")
-            if group:
-                info = f"{group['member_count']} members"
-        elif chat_type == "chatTypeSupergroup":
-            if chat["type"]["is_channel"]:
-                _type = "channel"
-            else:
-                _type = "supergroup"
-            supergroup = self.model.users.get_supergroup_info(
-                chat["type"]["supergroup_id"]
-            )
-            log.info(f"supergroup:: {supergroup}")
-            if supergroup:
-                info = f"{supergroup['member_count']} members"
-
-        elif chat_type == "chatTypeSecret":
-            _type = "secret"
-
-        # return f" {chat['title']} [{_type}] {info}".center(self.w)
+        chat_type = self._get_chat_type(chat)
+        status = ""
         if action := self.model.users.get_action(chat["id"]):
-            info = action
+            status = action
+        elif chat_type == ChatType.chatTypePrivate:
+            status = self.model.users.get_status(chat["id"])
+        elif chat_type == ChatType.chatTypeBasicGroup:
+            if group := self.model.users.get_group_info(
+                chat["type"]["basic_group_id"]
+            ):
+                status = f"{group['member_count']} members"
+        elif chat_type == ChatType.chatTypeSupergroup:
+            if supergroup := self.model.users.get_supergroup_info(
+                chat["type"]["supergroup_id"]
+            ):
+                status = f"{supergroup['member_count']} members"
+        elif chat_type == ChatType.channel:
+            if supergroup := self.model.users.get_supergroup_info(
+                chat["type"]["supergroup_id"]
+            ):
+                status = f"{supergroup['member_count']} subscribers"
 
-        return f" {chat['title']}: {info}".center(self.w)
+        return f"{chat['title']}: {status}".center(self.w)[: self.w]
 
     def _msg_attributes(self, is_selected: bool) -> Tuple[int, ...]:
         attrs = (
