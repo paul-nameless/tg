@@ -36,8 +36,9 @@ NOTIFY_CMD = "/usr/local/bin/terminal-notifier -title {title} -subtitle {subtitl
 HELP_CMD = "less"
 
 if _os_name == _linux:
+    # for more info see https://trac.ffmpeg.org/wiki/Capture/ALSA
     VOICE_RECORD_CMD = (
-        "ffmpeg -f alsa -i default -c:a libopus -b:a 32k {file_path}"
+        "ffmpeg -f alsa -i hw:0 -c:a libopus -b:a 32k {file_path}"
     )
 else:
     VOICE_RECORD_CMD = (
