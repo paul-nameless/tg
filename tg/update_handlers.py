@@ -212,7 +212,7 @@ def update_message_send_succeeded(
     chat_id = update["message"]["chat_id"]
     msg_id = update["old_message_id"]
     controller.model.msgs.add_message(chat_id, update["message"])
-    controller.model.msgs.remove_message(chat_id, msg_id)
+    controller.model.msgs.remove_messages(chat_id, [msg_id])
 
     current_chat_id = controller.model.current_chat_id
     if current_chat_id == chat_id:
@@ -256,8 +256,7 @@ def update_delete_messages(
 ) -> None:
     chat_id = update["chat_id"]
     msg_ids = update["message_ids"]
-    for msg_id in msg_ids:
-        controller.model.msgs.remove_message(chat_id, msg_id)
+    controller.model.msgs.remove_messages(chat_id, msg_ids)
     controller.render_msgs()
 
 

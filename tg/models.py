@@ -326,17 +326,15 @@ class MsgModel:
             return result.update
         return next(iter(m for m in self.msgs[chat_id] if m["id"] == msg_id))
 
-    def remove_message(self, chat_id: int, msg_id: int) -> bool:
-        msg_set = self.msg_ids[chat_id]
-        if msg_id not in msg_set:
-            return False
-        log.info(f"removing msg {msg_id=}")
+    def remove_messages(self, chat_id: int, msg_ids: List[int]) -> None:
+        log.info(f"removing msgs {msg_ids=}")
         # FIXME: potential bottleneck, replace with constan time operation
         self.msgs[chat_id] = [
-            m for m in self.msgs[chat_id] if m["id"] != msg_id
+            m for m in self.msgs[chat_id] if m["id"] not in msg_ids
         ]
-        msg_set.remove(msg_id)
-        return True
+        msg_set = self.msg_ids[chat_id]
+        for msg_id in msg_ids:
+            msg_set.remove(msg_id)
 
     def update_msg_content_opened(self, chat_id: int, msg_id: int) -> None:
         for message in self.msgs[chat_id]:
