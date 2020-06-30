@@ -344,6 +344,8 @@ class MsgView:
     ) -> str:
         msg = self._parse_msg(msg_proxy)
         msg = msg.replace("\n", " ")
+        if caption := msg_proxy.caption:
+            msg += "\n" + caption.replace("\n", " ")
         msg += self._format_url(msg_proxy)
         if reply_to := msg_proxy.reply_msg_id:
             msg = self._format_reply_msg(

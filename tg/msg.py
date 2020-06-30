@@ -189,3 +189,10 @@ class MsgProxy:
     @property
     def forward(self) -> Optional[Dict[str, Any]]:
         return self.msg.get("forward_info")
+
+    @property
+    def caption(self) -> Optional[str]:
+        caption = self.msg["content"].get("caption")
+        if not caption:
+            return None
+        return caption["text"]
