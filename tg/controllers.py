@@ -2,7 +2,6 @@ import curses
 import logging
 import os
 import shlex
-import threading
 from datetime import datetime
 from functools import partial, wraps
 from queue import Queue
@@ -12,12 +11,11 @@ from typing import Any, Callable, Dict, List, Optional
 from tg import config
 from tg.models import Model
 from tg.msg import MsgProxy
-from tg.tdlib import Tdlib
+from tg.tdlib import ChatAction, Tdlib
 from tg.utils import (
     get_duration,
     get_video_resolution,
     get_waveform,
-    handle_exception,
     is_yes,
     notify,
     suspend,
@@ -238,10 +236,13 @@ class Controller:
         if not self.can_send_msg():
             self.present_info("Can't send msg in this chat")
             return
+        chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        self.tg.send_chat_action(chat_id, ChatAction.chatActionTyping)
         if msg := self.view.status.get_input():
             self.model.send_message(text=msg)
             self.present_info("Message sent")
         else:
+            self.tg.send_chat_action(chat_id, ChatAction.chatActionCancel)
             self.present_info("Message wasn't sent")
 
     @bind(msg_handler, ["A", "I"])
@@ -252,11 +253,18 @@ class Controller:
         with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(
             self.view
         ) as s:
+            chat_id = self.model.chats.id_by_index(self.model.current_chat)
+            self.tg.send_chat_action(chat_id, ChatAction.chatActionTyping)
             s.call(config.LONG_MSG_CMD.format(file_path=shlex.quote(f.name)))
             with open(f.name) as f:
                 if msg := f.read().strip():
                     self.model.send_message(text=msg)
                     self.present_info("Message sent")
+                else:
+                    self.tg.send_chat_action(
+                        chat_id, ChatAction.chatActionCancel
+                    )
+                    self.present_info("Message wasn't sent")
 
     @bind(msg_handler, ["sv"])
     def send_video(self):
@@ -543,14 +551,14 @@ class Controller:
         self.queue.put(self._render_chats)
 
     def _render_chats(self) -> None:
-        page_size = self.view.chats.h
+        page_size = self.view.chats.h - 1
         chats = self.model.get_chats(
             self.model.current_chat, page_size, MSGS_LEFT_SCROLL_THRESHOLD
         )
         selected_chat = min(
             self.model.current_chat, page_size - MSGS_LEFT_SCROLL_THRESHOLD
         )
-        self.view.chats.draw(selected_chat, chats)
+        self.view.chats.draw(selected_chat, chats, self.model.chats.title)
 
     def render_msgs(self) -> None:
         self.queue.put(self._render_msgs)
@@ -561,10 +569,13 @@ class Controller:
             return
         msgs = self.model.fetch_msgs(
             current_position=current_msg_idx,
-            page_size=self.view.msgs.h,
+            page_size=self.view.msgs.h - 1,
             msgs_left_scroll_threshold=MSGS_LEFT_SCROLL_THRESHOLD,
         )
-        self.view.msgs.draw(current_msg_idx, msgs, MSGS_LEFT_SCROLL_THRESHOLD)
+        chat = self.model.chats.chats[self.model.current_chat]
+        self.view.msgs.draw(
+            current_msg_idx, msgs, MSGS_LEFT_SCROLL_THRESHOLD, chat
+        )
 
     def notify_for_message(self, chat_id: int, msg: MsgProxy):
         # do not notify, if muted
