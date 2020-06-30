@@ -39,8 +39,13 @@ class UserStatus(Enum):
 
 class Tdlib(Telegram):
     def download_file(
-        self, file_id, priority=16, offset=0, limit=0, synchronous=False,
-    ):
+        self,
+        file_id: int,
+        priority: int = 16,
+        offset: int = 0,
+        limit: int = 0,
+        synchronous: bool = False,
+    ) -> None:
         result = self.call_method(
             "downloadFile",
             params=dict(
@@ -124,8 +129,8 @@ class Tdlib(Telegram):
         return self._send_data(data)
 
     def send_voice(
-        self, file_path: str, chat_id: int, duration: int, waveform: int
-    ):
+        self, file_path: str, chat_id: int, duration: int, waveform: str
+    ) -> AsyncResult:
         data = {
             "@type": "sendMessage",
             "chat_id": chat_id,
@@ -138,7 +143,9 @@ class Tdlib(Telegram):
         }
         return self._send_data(data)
 
-    def edit_message_text(self, chat_id: int, message_id: int, text: str):
+    def edit_message_text(
+        self, chat_id: int, message_id: int, text: str
+    ) -> AsyncResult:
         data = {
             "@type": "editMessageText",
             "message_id": message_id,
@@ -172,7 +179,7 @@ class Tdlib(Telegram):
 
     def set_chat_nottification_settings(
         self, chat_id: int, notification_settings: dict
-    ):
+    ) -> AsyncResult:
         data = {
             "@type": "setChatNotificationSettings",
             "chat_id": chat_id,
