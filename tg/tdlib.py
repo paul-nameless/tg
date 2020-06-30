@@ -1,12 +1,51 @@
+from enum import Enum
 from typing import Any, Dict, List
 
 from telegram.client import AsyncResult, Telegram
 
 
+class ChatAction(Enum):
+    chatActionTyping = "typing"
+    chatActionCancel = "cancel"
+    chatActionRecordingVideo = "recording video"
+    chatActionUploadingVideo = "uploading video"
+    chatActionRecordingVoiceNote = "recording voice"
+    chatActionUploadingVoiceNote = "uploading voice"
+    chatActionUploadingPhoto = "uploading photo"
+    chatActionUploadingDocument = "uploading document"
+    chatActionChoosingLocation = "choosing location"
+    chatActionChoosingContact = "choosing contact"
+    chatActionStartPlayingGame = "start playing game"
+    chatActionRecordingVideoNote = "recording video"
+    chatActionUploadingVideoNote = "uploading video"
+
+
+class ChatType(Enum):
+    chatTypePrivate = "private"
+    chatTypeBasicGroup = "group"
+    chatTypeSupergroup = "supergroup"
+    channel = "channel"
+    chatTypeSecret = "secret"
+
+
+class UserStatus(Enum):
+    userStatusEmpty = ""
+    userStatusOnline = "online"
+    userStatusOffline = "offline"
+    userStatusRecently = "recently"
+    userStatusLastWeek = "last week"
+    userStatusLastMonth = "last month"
+
+
 class Tdlib(Telegram):
     def download_file(
-        self, file_id, priority=16, offset=0, limit=0, synchronous=False,
-    ):
+        self,
+        file_id: int,
+        priority: int = 16,
+        offset: int = 0,
+        limit: int = 0,
+        synchronous: bool = False,
+    ) -> None:
         result = self.call_method(
             "downloadFile",
             params=dict(
@@ -90,8 +129,8 @@ class Tdlib(Telegram):
         return self._send_data(data)
 
     def send_voice(
-        self, file_path: str, chat_id: int, duration: int, waveform: int
-    ):
+        self, file_path: str, chat_id: int, duration: int, waveform: str
+    ) -> AsyncResult:
         data = {
             "@type": "sendMessage",
             "chat_id": chat_id,
@@ -104,7 +143,9 @@ class Tdlib(Telegram):
         }
         return self._send_data(data)
 
-    def edit_message_text(self, chat_id: int, message_id: int, text: str):
+    def edit_message_text(
+        self, chat_id: int, message_id: int, text: str
+    ) -> AsyncResult:
         data = {
             "@type": "editMessageText",
             "message_id": message_id,
@@ -138,7 +179,7 @@ class Tdlib(Telegram):
 
     def set_chat_nottification_settings(
         self, chat_id: int, notification_settings: dict
-    ):
+    ) -> AsyncResult:
         data = {
             "@type": "setChatNotificationSettings",
             "chat_id": chat_id,
@@ -186,5 +227,29 @@ class Tdlib(Telegram):
             "send_copy": send_copy,
             "remove_caption": remove_caption,
             "options": options,
+        }
+        return self._send_data(data)
+
+    def get_basic_group(self, basic_group_id: int,) -> AsyncResult:
+        data = {
+            "@type": "getBasicGroup",
+            "basic_group_id": basic_group_id,
+        }
+        return self._send_data(data)
+
+    def get_supergroup(self, supergroup_id: int,) -> AsyncResult:
+        data = {
+            "@type": "getSupergroup",
+            "supergroup_id": supergroup_id,
+        }
+        return self._send_data(data)
+
+    def send_chat_action(
+        self, chat_id: int, action: ChatAction, progress: int = None
+    ) -> AsyncResult:
+        data = {
+            "@type": "sendChatAction",
+            "chat_id": chat_id,
+            "action": {"@type": action.name, "progress": progress},
         }
         return self._send_data(data)

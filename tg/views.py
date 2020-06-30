@@ -2,12 +2,22 @@ import curses
 import logging
 from _curses import window  # type: ignore
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from tg import config
-from tg.colors import blue, cyan, get_color, magenta, reverse, white, yellow
-from tg.models import Model, MsgModel, UserModel
+from tg.colors import (
+    blue,
+    bold,
+    cyan,
+    get_color,
+    magenta,
+    reverse,
+    white,
+    yellow,
+)
+from tg.models import Model
 from tg.msg import MsgProxy
+from tg.tdlib import ChatType
 from tg.utils import emoji_pattern, num, truncate_to_len
 
 log = logging.getLogger(__name__)
@@ -82,7 +92,7 @@ class StatusView:
         self.win = stdscr.subwin(self.h, self.w, self.y, self.x)
         self._refresh = self.win.refresh
 
-    def resize(self, rows: int, cols: int):
+    def resize(self, rows: int, cols: int) -> None:
         self.w = cols - 1
         self.y = rows - 1
         self.win.resize(self.h, self.w)
@@ -95,7 +105,7 @@ class StatusView:
         self.win.addstr(0, 0, msg[: self.w])
         self._refresh()
 
-    def get_input(self, msg="") -> str:
+    def get_input(self, msg: str = "") -> str:
         self.draw(msg)
         curses.curs_set(1)
 
@@ -126,7 +136,7 @@ class StatusView:
 
 
 class ChatView:
-    def __init__(self, stdscr: window, model: Model):
+    def __init__(self, stdscr: window, model: Model) -> None:
         self.stdscr = stdscr
         self.h = 0
         self.w = 0
@@ -161,19 +171,21 @@ class ChatView:
             return tuple(attr | reverse for attr in attrs)
         return attrs
 
-    def draw(self, current: int, chats: List[Dict[str, Any]]) -> None:
+    def draw(
+        self, current: int, chats: List[Dict[str, Any]], title: str = "Chats"
+    ) -> None:
         self.win.erase()
         line = curses.ACS_VLINE  # type: ignore
-        self.win.vline(0, self.w - 1, line, self.h)
-        for i, chat in enumerate(chats):
-            is_selected = i == current
-            unread_count = chat["unread_count"]
-            if chat["is_marked_as_unread"]:
-                unread_count = "unread"
+        width = self.w - 1
+        self.win.vline(0, width, line, self.h)
+        self.win.addstr(
+            0, 0, title.center(width)[:width], get_color(cyan, -1) | bold
+        )
 
+        for i, chat in enumerate(chats, 1):
+            is_selected = i == current + 1
             date = get_date(chat)
             title = chat["title"]
-            is_pinned = chat["is_pinned"]
             last_msg = get_last_msg(chat)
             offset = 0
             for attr, elem in zip(
@@ -182,7 +194,7 @@ class ChatView:
                 self.win.addstr(
                     i,
                     offset,
-                    truncate_to_len(elem, max(0, self.w - offset - 1)),
+                    truncate_to_len(elem, max(0, width - offset)),
                     attr,
                 )
                 offset += len(elem) + sum(
@@ -196,22 +208,20 @@ class ChatView:
                     i, offset, last_msg, self._msg_color(is_selected)
                 )
 
-            if flags := self._get_flags(unread_count, is_pinned, chat):
+            if flags := self._get_flags(chat):
                 flags_len = len(flags) + sum(
                     map(len, emoji_pattern.findall(flags))
                 )
                 self.win.addstr(
                     i,
-                    self.w - flags_len - 1,
-                    flags,
+                    max(0, width - flags_len),
+                    flags[-width:],
                     self._unread_color(is_selected),
                 )
 
         self._refresh()
 
-    def _get_flags(
-        self, unread_count: int, is_pinned: bool, chat: Dict[str, Any]
-    ) -> str:
+    def _get_flags(self, chat: Dict[str, Any]) -> str:
         flags = []
 
         msg = chat.get("last_message")
@@ -224,17 +234,22 @@ class ChatView:
             # last msg haven't been seen by recipient
             flags.append("unseen")
 
+        if action := self.model.users.get_action(chat["id"]):
+            flags.append(action)
+
         if self.model.users.is_online(chat["id"]):
             flags.append("online")
 
-        if is_pinned:
+        if chat["is_pinned"]:
             flags.append("pinned")
 
         if chat["notification_settings"]["mute_for"]:
             flags.append("muted")
 
-        if unread_count:
-            flags.append(str(unread_count))
+        if chat["is_marked_as_unread"]:
+            flags.append("unread")
+        elif chat["unread_count"]:
+            flags.append(str(chat["unread_count"]))
 
         label = " ".join(config.CHAT_FLAGS.get(flag, flag) for flag in flags)
         if label:
@@ -243,9 +258,7 @@ class ChatView:
 
 
 class MsgView:
-    def __init__(
-        self, stdscr: window, model: Model,
-    ):
+    def __init__(self, stdscr: window, model: Model,) -> None:
         self.model = model
         self.stdscr = stdscr
         self.h = 0
@@ -265,7 +278,7 @@ class MsgView:
         self.win.resize(self.h, self.w)
         self.win.mvwin(0, self.x)
 
-    def _get_flags(self, msg_proxy: MsgProxy):
+    def _get_flags(self, msg_proxy: MsgProxy) -> str:
         flags = []
         chat = self.model.chats.chats[self.model.current_chat]
 
@@ -314,7 +327,7 @@ class MsgView:
             msg = f"{reply_line}\n{msg}"
         return msg
 
-    def _format_url(self, msg_proxy: MsgProxy):
+    def _format_url(self, msg_proxy: MsgProxy) -> str:
         if not msg_proxy.is_text or "web_page" not in msg_proxy.msg["content"]:
             return ""
         web = msg_proxy.msg["content"]["web_page"]
@@ -425,6 +438,7 @@ class MsgView:
         current_msg_idx: int,
         msgs: List[Tuple[int, Dict[str, Any]]],
         min_msg_padding: int,
+        chat: Dict[str, Any],
     ) -> None:
         self.win.erase()
         msgs_to_draw = self._collect_msgs_to_draw(
@@ -459,7 +473,48 @@ class MsgView:
                     self.win.addstr(line_num, column, elem, attr)
                 column += len(elem)
 
+        self.win.addstr(
+            0, 0, self._msg_title(chat), get_color(cyan, -1) | bold
+        )
         self._refresh()
+
+    def _get_chat_type(self, chat: Dict[str, Any]) -> Optional[ChatType]:
+        try:
+            chat_type = ChatType[chat["type"]["@type"]]
+            if (
+                chat_type == ChatType.chatTypeSupergroup
+                and chat["type"]["is_channel"]
+            ):
+                chat_type = ChatType.channel
+            return chat_type
+        except KeyError:
+            log.error(f"ChatType {chat['type']} not implemented")
+        return None
+
+    def _msg_title(self, chat: Dict[str, Any]) -> str:
+        chat_type = self._get_chat_type(chat)
+        status = ""
+        if action := self.model.users.get_action(chat["id"]):
+            status = action
+        elif chat_type == ChatType.chatTypePrivate:
+            status = self.model.users.get_status(chat["id"])
+        elif chat_type == ChatType.chatTypeBasicGroup:
+            if group := self.model.users.get_group_info(
+                chat["type"]["basic_group_id"]
+            ):
+                status = f"{group['member_count']} members"
+        elif chat_type == ChatType.chatTypeSupergroup:
+            if supergroup := self.model.users.get_supergroup_info(
+                chat["type"]["supergroup_id"]
+            ):
+                status = f"{supergroup['member_count']} members"
+        elif chat_type == ChatType.channel:
+            if supergroup := self.model.users.get_supergroup_info(
+                chat["type"]["supergroup_id"]
+            ):
+                status = f"{supergroup['member_count']} subscribers"
+
+        return f"{chat['title']}: {status}".center(self.w)[: self.w]
 
     def _msg_attributes(self, is_selected: bool) -> Tuple[int, ...]:
         attrs = (
@@ -541,11 +596,11 @@ def format_bool(value: Optional[bool]) -> Optional[str]:
     return "yes" if value else "no"
 
 
-def get_download(local, size):
+def get_download(local: Dict[str, Union[str, bool, int]], size: int) -> str:
     if local["is_downloading_completed"]:
         return "yes"
     elif local["is_downloading_active"]:
-        d = local["downloaded_size"]
+        d = int(local["downloaded_size"])
         percent = int(d * 100 / size)
         return f"{percent}%"
     return "no"

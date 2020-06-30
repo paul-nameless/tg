@@ -32,7 +32,7 @@ class MsgProxy:
     }
 
     @classmethod
-    def get_doc(cls, msg, deep=10):
+    def get_doc(cls, msg: Dict[str, Any], deep: int = 10) -> Dict[str, Any]:
         doc = msg["content"]
         _type = doc["@type"]
         fields = cls.fields_mapping.get(_type)
@@ -48,13 +48,13 @@ class MsgProxy:
                 return {}
         return doc
 
-    def __init__(self, msg: Dict[str, Any]):
+    def __init__(self, msg: Dict[str, Any]) -> None:
         self.msg = msg
 
     def __getitem__(self, key: str) -> Any:
         return self.msg[key]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any) -> None:
         self.msg[key] = value
 
     @property
@@ -66,39 +66,39 @@ class MsgProxy:
         return datetime.fromtimestamp(self.msg["date"])
 
     @property
-    def is_message(self):
+    def is_message(self) -> bool:
         return self.type == "message"
 
     @property
-    def content_type(self):
+    def content_type(self) -> Optional[str]:
         return self.types.get(self.msg["content"]["@type"])
 
     @property
-    def size(self):
+    def size(self) -> int:
         doc = self.get_doc(self.msg)
         return doc["size"]
 
     @property
-    def human_size(self):
+    def human_size(self) -> str:
         doc = self.get_doc(self.msg)
         return utils.humanize_size(doc["size"])
 
     @property
-    def duration(self):
+    def duration(self) -> Optional[str]:
         if self.content_type not in ("audio", "voice", "video", "recording"):
             return None
         doc = self.get_doc(self.msg, deep=1)
         return utils.humanize_duration(doc["duration"])
 
     @property
-    def file_name(self):
+    def file_name(self) -> Optional[str]:
         if self.content_type not in ("audio", "document", "video"):
             return None
         doc = self.get_doc(self.msg, deep=1)
         return doc["file_name"]
 
     @property
-    def file_id(self):
+    def file_id(self) -> Optional[int]:
         if self.content_type not in (
             "audio",
             "document",
@@ -113,26 +113,26 @@ class MsgProxy:
         return doc["id"]
 
     @property
-    def local_path(self):
+    def local_path(self) -> Optional[str]:
         if self.msg["content"]["@type"] is None:
             return None
         doc = self.get_doc(self.msg)
         return doc["local"]["path"]
 
     @property
-    def local(self):
+    def local(self) -> Dict:
         doc = self.get_doc(self.msg)
         return doc["local"]
 
     @local.setter
-    def local(self, value):
+    def local(self, value: Dict) -> None:
         if self.msg["content"]["@type"] is None:
-            return None
+            return
         doc = self.get_doc(self.msg)
         doc["local"] = value
 
     @property
-    def is_text(self):
+    def is_text(self) -> bool:
         return self.msg["content"]["@type"] == "messageText"
 
     @property
@@ -140,7 +140,7 @@ class MsgProxy:
         return self.msg["content"]["text"]["text"]
 
     @property
-    def is_downloaded(self):
+    def is_downloaded(self) -> bool:
         doc = self.get_doc(self.msg)
         return doc["local"]["is_downloading_completed"]
 
@@ -151,7 +151,7 @@ class MsgProxy:
         return self.msg["content"]["is_listened"]
 
     @is_listened.setter
-    def is_listened(self, value: bool):
+    def is_listened(self, value: bool) -> None:
         if self.content_type == "voice":
             self.msg["content"]["is_listened"] = value
 
@@ -162,7 +162,7 @@ class MsgProxy:
         return self.msg["content"]["is_viewed"]
 
     @is_viewed.setter
-    def is_viewed(self, value: bool):
+    def is_viewed(self, value: bool) -> None:
         if self.content_type == "recording":
             self.msg["content"]["is_viewed"] = value
 
