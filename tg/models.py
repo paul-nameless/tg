@@ -315,6 +315,8 @@ class MsgModel:
         return False
 
     def get_message(self, chat_id: int, msg_id: int) -> Optional[Dict]:
+        if msg_id in self.not_found:
+            return None
         with self.lock:
             if index := self.msg_idx[chat_id].get(msg_id):
                 return self.msgs[chat_id][index]
