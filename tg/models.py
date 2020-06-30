@@ -547,12 +547,14 @@ class UserModel:
         self.users[user_id] = result.update
         return result.update
 
-    def get_group_info(self, group_id: int) -> None:
+    def get_group_info(self, group_id: int) -> Optional[Dict[str, Any]]:
         if group_id in self.groups:
             return self.groups[group_id]
         self.tg.get_basic_group(group_id)
+        return None
 
-    def get_supergroup_info(self, supergroup_id):
+    def get_supergroup_info(self, supergroup_id: int) -> Optional[Dict[str, Any]]:
         if supergroup_id in self.supergroups:
             return self.supergroups[supergroup_id]
         self.tg.get_supergroup(supergroup_id)
+        return None
