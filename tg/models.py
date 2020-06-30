@@ -547,7 +547,7 @@ class UserModel:
         self.users[user_id] = result.update
         return result.update
 
-    def get_group_info(self, group_id):
+    def get_group_info(self, group_id: int):
         if group_id in self.groups:
             return self.groups[group_id]
         self.tg.get_basic_group(group_id)

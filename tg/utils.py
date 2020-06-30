@@ -218,7 +218,7 @@ def set_shorter_esc_delay(delay=25):
     os.environ.setdefault("ESCDELAY", str(delay))
 
 
-def pretty_ts(ts):
+def pretty_ts(ts: int):
     now = datetime.utcnow()
     diff = now - datetime.utcfromtimestamp(ts)
     second_diff = diff.seconds

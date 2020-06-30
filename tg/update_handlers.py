@@ -1,5 +1,4 @@
 import logging
-import time
 from functools import wraps
 from typing import Any, Callable, Dict
 
@@ -77,7 +76,6 @@ def update_new_message(controller: Controller, update: Dict[str, Any]):
 
 @update_handler("updateChatOrder")
 def update_chat_order(controller: Controller, update: Dict[str, Any]):
-    log.info("Proccessing updateChatOrder")
     current_chat_id = controller.model.current_chat_id
     chat_id = update["chat_id"]
     order = update["order"]
@@ -88,7 +86,6 @@ def update_chat_order(controller: Controller, update: Dict[str, Any]):
 
 @update_handler("updateChatTitle")
 def update_chat_title(controller: Controller, update: Dict[str, Any]):
-    log.info("Proccessing updateChatTitle")
     chat_id = update["chat_id"]
     title = update["title"]
 
@@ -101,7 +98,6 @@ def update_chat_title(controller: Controller, update: Dict[str, Any]):
 def update_chat_is_marked_as_unread(
     controller: Controller, update: Dict[str, Any]
 ):
-    log.info("Proccessing updateChatIsMarkedAsUnread")
     chat_id = update["chat_id"]
     is_marked_as_unread = update["is_marked_as_unread"]
 
@@ -114,7 +110,6 @@ def update_chat_is_marked_as_unread(
 
 @update_handler("updateChatIsPinned")
 def update_chat_is_pinned(controller: Controller, update: Dict[str, Any]):
-    log.info("Proccessing updateChatIsPinned")
     chat_id = update["chat_id"]
     is_pinned = update["is_pinned"]
     order = update["order"]
@@ -128,7 +123,6 @@ def update_chat_is_pinned(controller: Controller, update: Dict[str, Any]):
 
 @update_handler("updateChatReadOutbox")
 def update_chat_read_outbox(controller: Controller, update: Dict[str, Any]):
-    log.info("Proccessing updateChatReadOutbox")
     chat_id = update["chat_id"]
     last_read_outbox_message_id = update["last_read_outbox_message_id"]
 
@@ -141,7 +135,6 @@ def update_chat_read_outbox(controller: Controller, update: Dict[str, Any]):
 
 @update_handler("updateChatReadInbox")
 def update_chat_read_inbox(controller: Controller, update: Dict[str, Any]):
-    log.info("Proccessing updateChatReadInbox")
     chat_id = update["chat_id"]
     last_read_inbox_message_id = update["last_read_inbox_message_id"]
     unread_count = update["unread_count"]
@@ -157,7 +150,6 @@ def update_chat_read_inbox(controller: Controller, update: Dict[str, Any]):
 
 @update_handler("updateChatDraftMessage")
 def update_chat_draft_message(controller: Controller, update: Dict[str, Any]):
-    log.info("Proccessing updateChatDraftMessage")
     chat_id = update["chat_id"]
     # FIXME: ignoring draft message itself for now because UI can't show it
     # draft_message = update["draft_message"]
@@ -170,7 +162,6 @@ def update_chat_draft_message(controller: Controller, update: Dict[str, Any]):
 
 @update_handler("updateChatLastMessage")
 def update_chat_last_message(controller: Controller, update: Dict[str, Any]):
-    log.info("Proccessing updateChatLastMessage")
     chat_id = update["chat_id"]
     last_message = update.get("last_message")
     if not last_message:
@@ -188,7 +179,6 @@ def update_chat_last_message(controller: Controller, update: Dict[str, Any]):
 
 @update_handler("updateChatNotificationSettings")
 def update_chat_notification_settings(controller: Controller, update):
-    log.info("Proccessing update_chat_notification_settings")
     chat_id = update["chat_id"]
     notification_settings = update["notification_settings"]
     if controller.model.chats.update_chat(
@@ -211,7 +201,6 @@ def update_message_send_succeeded(controller: Controller, update):
 
 @update_handler("updateFile")
 def update_file(controller: Controller, update):
-    log.info("update_file: %s", update)
     file_id = update["file"]["id"]
     local = update["file"]["local"]
     chat_id, msg_id = controller.model.downloads.get(file_id, (None, None))
@@ -252,13 +241,13 @@ def update_delete_messages(controller: Controller, update: Dict[str, Any]):
 
 @update_handler("updateConnectionState")
 def update_connection_state(controller: Controller, update: Dict[str, Any]):
-    log.info("state:: %s", update)
     state = update["state"]["@type"]
     states = {
         "connectionStateWaitingForNetwork": "Waiting for network...",
         "connectionStateConnectingToProxy": "Connecting to proxy...",
         "connectionStateConnecting": "Connecting...",
         "connectionStateUpdating": "Updating...",
+        # state exists, but when it's "Ready" we want to show "Chats"
         # "connectionStateReady": "Ready",
     }
     controller.model.chats.title = states.get(state, "Chats")
@@ -287,7 +276,6 @@ def update_supergroup(controller: Controller, update: Dict[str, Any]):
 
 @update_handler("updateUserChatAction")
 def update_user_chat_action(controller: Controller, update: Dict[str, Any]):
-    log.info("typing:: %s", update)
     chat_id = update["chat_id"]
     if update["action"]["@type"] == "chatActionCancel":
         controller.model.users.actions.pop(chat_id, None)
