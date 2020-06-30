@@ -491,7 +491,7 @@ class MsgView:
             log.error(f"ChatType {chat['type']} not implemented")
         return None
 
-    def _msg_title(self, chat: Dict[str, Any]):
+    def _msg_title(self, chat: Dict[str, Any]) -> str:
         chat_type = self._get_chat_type(chat)
         status = ""
         if action := self.model.users.get_action(chat["id"]):

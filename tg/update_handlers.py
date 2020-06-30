@@ -285,21 +285,23 @@ def update_user_status(controller: Controller, update: Dict[str, Any]) -> None:
 
 
 @update_handler("updateBasicGroup")
-def update_basic_group(controller: Controller, update: Dict[str, Any]):
+def update_basic_group(controller: Controller, update: Dict[str, Any]) -> None:
     basic_group = update["basic_group"]
     controller.model.users.groups[basic_group["id"]] = basic_group
     controller.render_msgs()
 
 
 @update_handler("updateSupergroup")
-def update_supergroup(controller: Controller, update: Dict[str, Any]):
+def update_supergroup(controller: Controller, update: Dict[str, Any]) -> None:
     supergroup = update["supergroup"]
     controller.model.users.supergroups[supergroup["id"]] = supergroup
     controller.render_msgs()
 
 
 @update_handler("updateUserChatAction")
-def update_user_chat_action(controller: Controller, update: Dict[str, Any]):
+def update_user_chat_action(
+    controller: Controller, update: Dict[str, Any]
+) -> None:
     chat_id = update["chat_id"]
     if update["action"]["@type"] == "chatActionCancel":
         controller.model.users.actions.pop(chat_id, None)

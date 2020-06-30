@@ -238,10 +238,10 @@ class Controller:
 
     @bind(msg_handler, ["a", "i"])
     def write_short_msg(self) -> None:
-        if not self.can_send_msg():
+        chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        if not self.can_send_msg() or chat_id is None:
             self.present_info("Can't send msg in this chat")
             return
-        chat_id = self.model.chats.id_by_index(self.model.current_chat)
         self.tg.send_chat_action(chat_id, ChatAction.chatActionTyping)
         if msg := self.view.status.get_input():
             self.model.send_message(text=msg)
@@ -252,13 +252,13 @@ class Controller:
 
     @bind(msg_handler, ["A", "I"])
     def write_long_msg(self) -> None:
-        if not self.can_send_msg():
+        chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        if not self.can_send_msg() or chat_id is None:
             self.present_info("Can't send msg in this chat")
             return
         with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(
             self.view
         ) as s:
-            chat_id = self.model.chats.id_by_index(self.model.current_chat)
             self.tg.send_chat_action(chat_id, ChatAction.chatActionTyping)
             s.call(config.LONG_MSG_CMD.format(file_path=shlex.quote(f.name)))
             with open(f.name) as f:
