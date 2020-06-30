@@ -360,7 +360,9 @@ class MsgModel:
             # that is the last case to implement
             # https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1update_message_content_opened.html
 
-    def update_msg(self, chat_id: int, msg_id: int, **fields: Dict[str, Any]) -> None:
+    def update_msg(
+        self, chat_id: int, msg_id: int, **fields: Dict[str, Any]
+    ) -> None:
         with self.lock:
             index = self.msg_idx[chat_id][msg_id]
             msg = self.msgs[chat_id][index]
