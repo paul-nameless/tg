@@ -553,7 +553,9 @@ class UserModel:
         self.tg.get_basic_group(group_id)
         return None
 
-    def get_supergroup_info(self, supergroup_id: int) -> Optional[Dict[str, Any]]:
+    def get_supergroup_info(
+        self, supergroup_id: int
+    ) -> Optional[Dict[str, Any]]:
         if supergroup_id in self.supergroups:
             return self.supergroups[supergroup_id]
         self.tg.get_supergroup(supergroup_id)
