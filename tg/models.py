@@ -4,8 +4,8 @@ from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from tg.msg import MsgProxy
-from tg.tdlib import Tdlib
-from tg.utils import copy_to_clipboard
+from tg.tdlib import ChatAction, Tdlib, UserStatus
+from tg.utils import copy_to_clipboard, pretty_ts
 
 log = logging.getLogger(__name__)
 
@@ -208,6 +208,7 @@ class ChatModel:
         self.chats: List[Dict[str, Any]] = []
         self.chat_ids: List[int] = []
         self.have_full_chat_list = False
+        self.title: str = "Chats"
 
     def id_by_index(self, index: int) -> Optional[int]:
         if index >= len(self.chats):
@@ -458,15 +459,6 @@ class MsgModel:
 
 class UserModel:
 
-    statuses = {
-        "userStatusEmpty": "",
-        "userStatusOnline": "online",
-        "userStatusOffline": "offline",
-        "userStatusRecently": "recently",
-        "userStatusLastWeek": "last week",
-        "userStatusLastMonth": "last month",
-    }
-
     types = {
         "userTypeUnknown": "unknown",
         "userTypeBot": "bot",
@@ -478,6 +470,9 @@ class UserModel:
         self.tg = tg
         self.me: Dict[str, Any] = {}
         self.users: Dict[int, Dict] = {}
+        self.groups: Dict[int, Dict] = {}
+        self.supergroups: Dict[int, Dict] = {}
+        self.actions: Dict[int, Dict] = {}
         self.not_found: Set[int] = set()
 
     def get_me(self) -> Dict[str, Any]:
@@ -491,10 +486,45 @@ class UserModel:
         self.me = result.update
         return self.me
 
+    def get_action(self, chat_id: int) -> Optional[str]:
+        action = self.actions.get(chat_id)
+        if action is None:
+            return None
+        action_type = action["action"]["@type"]
+        try:
+            return ChatAction[action_type].value + "..."
+        except KeyError:
+            log.error(f"ChatAction type {action_type} not implemented")
+        return None
+
     def set_status(self, user_id: int, status: Dict[str, Any]) -> None:
         if user_id not in self.users:
             self.get_user(user_id)
         self.users[user_id]["status"] = status
+
+    def get_status(self, user_id: int) -> str:
+        if user_id not in self.users:
+            return ""
+        user_status = self.users[user_id]["status"]
+
+        try:
+            status = UserStatus[user_status["@type"]]
+        except KeyError:
+            log.error(f"UserStatus type {user_status} not implemented")
+            return ""
+
+        if status == UserStatus.userStatusEmpty:
+            return ""
+        elif status == UserStatus.userStatusOnline:
+            expires = user_status["expires"]
+            if expires < time.time():
+                return ""
+            return status.value
+        elif status == UserStatus.userStatusOffline:
+            was_online = user_status["was_online"]
+            ago = pretty_ts(was_online)
+            return f"last seen {ago}"
+        return f"last seen {status.value}"
 
     def is_online(self, user_id: int) -> bool:
         user = self.get_user(user_id)
@@ -520,3 +550,17 @@ class UserModel:
             return {}
         self.users[user_id] = result.update
         return result.update
+
+    def get_group_info(self, group_id: int) -> Optional[Dict[str, Any]]:
+        if group_id in self.groups:
+            return self.groups[group_id]
+        self.tg.get_basic_group(group_id)
+        return None
+
+    def get_supergroup_info(
+        self, supergroup_id: int
+    ) -> Optional[Dict[str, Any]]:
+        if supergroup_id in self.supergroups:
+            return self.supergroups[supergroup_id]
+        self.tg.get_supergroup(supergroup_id)
+        return None

@@ -1,6 +1,40 @@
+from enum import Enum
 from typing import Any, Dict, List
 
 from telegram.client import AsyncResult, Telegram
+
+
+class ChatAction(Enum):
+    chatActionTyping = "typing"
+    chatActionCancel = "cancel"
+    chatActionRecordingVideo = "recording video"
+    chatActionUploadingVideo = "uploading video"
+    chatActionRecordingVoiceNote = "recording voice"
+    chatActionUploadingVoiceNote = "uploading voice"
+    chatActionUploadingPhoto = "uploading photo"
+    chatActionUploadingDocument = "uploading document"
+    chatActionChoosingLocation = "choosing location"
+    chatActionChoosingContact = "choosing contact"
+    chatActionStartPlayingGame = "start playing game"
+    chatActionRecordingVideoNote = "recording video"
+    chatActionUploadingVideoNote = "uploading video"
+
+
+class ChatType(Enum):
+    chatTypePrivate = "private"
+    chatTypeBasicGroup = "group"
+    chatTypeSupergroup = "supergroup"
+    channel = "channel"
+    chatTypeSecret = "secret"
+
+
+class UserStatus(Enum):
+    userStatusEmpty = ""
+    userStatusOnline = "online"
+    userStatusOffline = "offline"
+    userStatusRecently = "recently"
+    userStatusLastWeek = "last week"
+    userStatusLastMonth = "last month"
 
 
 class Tdlib(Telegram):
@@ -193,5 +227,29 @@ class Tdlib(Telegram):
             "send_copy": send_copy,
             "remove_caption": remove_caption,
             "options": options,
+        }
+        return self._send_data(data)
+
+    def get_basic_group(self, basic_group_id: int,) -> AsyncResult:
+        data = {
+            "@type": "getBasicGroup",
+            "basic_group_id": basic_group_id,
+        }
+        return self._send_data(data)
+
+    def get_supergroup(self, supergroup_id: int,) -> AsyncResult:
+        data = {
+            "@type": "getSupergroup",
+            "supergroup_id": supergroup_id,
+        }
+        return self._send_data(data)
+
+    def send_chat_action(
+        self, chat_id: int, action: ChatAction, progress: int = None
+    ) -> AsyncResult:
+        data = {
+            "@type": "sendChatAction",
+            "chat_id": chat_id,
+            "action": {"@type": action.name, "progress": progress},
         }
         return self._send_data(data)
