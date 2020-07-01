@@ -256,9 +256,10 @@ def pretty_ts(ts: int) -> str:
     return f"{int(day_diff / 365)} years ago"
 
 
-@lru_cache(maxsize=128)
+@lru_cache(maxsize=256)
 def get_color_by_user(user: str) -> int:
-    index = int(hashlib.sha1(user.encode()).hexdigest(), 16) % len(
-        colors.user_colors
+    if config.USERS_COLORS <= 1:
+        return colors.blue
+    return (
+        int(hashlib.sha1(user.encode()).hexdigest(), 16) % config.USERS_COLORS
     )
-    return colors.user_colors[index]

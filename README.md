@@ -142,6 +142,12 @@ MSG_FLAGS = {
 
 # use this app to open url when there are multiple
 URL_VIEW = 'urlview'
+
+# Use 256, 16, 8 or 1
+# - 1: means there is always will be returned only 1 color
+# - 8, 16, 256: range of colors to use
+# 233 is recommended and default, because it excludes gray
+USERS_COLORS = 233
 ```
 
 ### Mailcap file
