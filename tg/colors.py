@@ -16,7 +16,6 @@ white = curses.COLOR_WHITE
 yellow = curses.COLOR_YELLOW
 default = -1
 
-
 # modes
 normal = curses.A_NORMAL
 bold = curses.A_BOLD
