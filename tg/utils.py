@@ -162,7 +162,7 @@ def notify(
         subtitle=shlex.quote(subtitle),
         msg=shlex.quote(msg),
     )
-    os.system(notify_cmd)
+    subprocess.Popen(notify_cmd, shell=True)
 
 
 def truncate_to_len(s: str, target_len: int) -> str:
@@ -274,4 +274,4 @@ def cleanup_cache() -> None:
         f"{config.KEEP_MEDIA} days at: {files_path}",
     )
     cmd = f"find {files_path} -type f -mtime +{config.KEEP_MEDIA} -delete"
-    os.system(cmd)
+    subprocess.Popen(cmd, shell=True)
