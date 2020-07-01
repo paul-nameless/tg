@@ -336,7 +336,7 @@ class MsgModel:
         ]
         msg_set = self.msg_ids[chat_id]
         for msg_id in msg_ids:
-            msg_set.remove(msg_id)
+            msg_set.discard(msg_id)
 
     def update_msg_content_opened(self, chat_id: int, msg_id: int) -> None:
         for message in self.msgs[chat_id]:
