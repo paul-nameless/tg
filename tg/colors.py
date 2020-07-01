@@ -17,7 +17,7 @@ yellow = curses.COLOR_YELLOW
 default = -1
 
 
-user_colors = list(c for c in range(0, 16) if c not in (black, white))
+user_colors = list(c for c in range(0, 16) if c not in (black, white, 8))
 
 # modes
 normal = curses.A_NORMAL
