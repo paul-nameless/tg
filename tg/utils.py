@@ -258,8 +258,7 @@ def pretty_ts(ts: int) -> str:
 
 @lru_cache(maxsize=256)
 def get_color_by_user(user: str) -> int:
-    if config.USERS_COLORS <= 1:
-        return colors.blue
-    return (
-        int(hashlib.sha1(user.encode()).hexdigest(), 16) % config.USERS_COLORS
+    index = int(hashlib.sha1(user.encode()).hexdigest(), 16) % len(
+        config.USERS_COLORS
     )
+    return config.USERS_COLORS[index]

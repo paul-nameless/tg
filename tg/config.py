@@ -67,7 +67,7 @@ ICON_PATH = os.path.join(os.path.dirname(__file__), "resources", "tg.png")
 
 URL_VIEW = "urlview"
 
-USERS_COLORS = 234
+USERS_COLORS = tuple(range(233))
 
 if os.path.isfile(CONFIG_FILE):
     config_params = runpy.run_path(CONFIG_FILE)

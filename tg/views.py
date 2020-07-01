@@ -161,9 +161,12 @@ class ChatView:
             return color | reverse
         return color
 
-    def _chat_attributes(self, is_selected: bool = False) -> Tuple[int, ...]:
+    def _chat_attributes(
+        self, is_selected: bool, title: str
+    ) -> Tuple[int, ...]:
         attrs = (
             get_color(cyan, -1),
+            get_color(get_color_by_user(title), -1),
             get_color(blue, -1),
             self._msg_color(is_selected),
         )
@@ -189,7 +192,7 @@ class ChatView:
             last_msg = get_last_msg(chat)
             offset = 0
             for attr, elem in zip(
-                self._chat_attributes(is_selected), [f"{date} ", title]
+                self._chat_attributes(is_selected, title), [f"{date} ", title]
             ):
                 self.win.addstr(
                     i,
