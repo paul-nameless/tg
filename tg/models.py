@@ -336,7 +336,10 @@ class MsgModel:
         ]
         msg_set = self.msg_ids[chat_id]
         for msg_id in msg_ids:
-            msg_set.remove(msg_id)
+            try:
+                msg_set.remove(msg_id)
+            except KeyError:
+                continue
 
     def update_msg_content_opened(self, chat_id: int, msg_id: int) -> None:
         for message in self.msgs[chat_id]:
