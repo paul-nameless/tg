@@ -18,7 +18,7 @@ from tg.colors import (
 from tg.models import Model
 from tg.msg import MsgProxy
 from tg.tdlib import ChatType
-from tg.utils import emoji_pattern, num, truncate_to_len
+from tg.utils import emoji_pattern, get_color_by_user, num, truncate_to_len
 
 log = logging.getLogger(__name__)
 
@@ -452,7 +452,10 @@ class MsgView:
 
         for elements, selected, line_num in msgs_to_draw:
             column = 0
-            for attr, elem in zip(self._msg_attributes(selected), elements):
+            user = elements[1]
+            for attr, elem in zip(
+                self._msg_attributes(selected, user), elements
+            ):
                 if not elem:
                     continue
                 lines = (column + len(elem)) // self.w
@@ -518,10 +521,10 @@ class MsgView:
 
         return f"{chat['title']}: {status}".center(self.w)[: self.w]
 
-    def _msg_attributes(self, is_selected: bool) -> Tuple[int, ...]:
+    def _msg_attributes(self, is_selected: bool, user: str) -> Tuple[int, ...]:
         attrs = (
             get_color(cyan, -1),
-            get_color(blue, -1),
+            get_color(get_color_by_user(user), -1),
             get_color(yellow, -1),
             get_color(white, -1),
         )

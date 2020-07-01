@@ -1,5 +1,6 @@
 import base64
 import curses
+import hashlib
 import logging
 import mailcap
 import math
@@ -12,11 +13,12 @@ import struct
 import subprocess
 import sys
 from datetime import datetime
+from functools import lru_cache
 from logging.handlers import RotatingFileHandler
 from types import TracebackType
 from typing import Any, Optional, Tuple, Type
 
-from tg import config
+from tg import colors, config
 
 log = logging.getLogger(__name__)
 emoji_pattern = re.compile(
@@ -252,3 +254,11 @@ def pretty_ts(ts: int) -> str:
     if day_diff < 365:
         return f"{int(day_diff / 30)} months ago"
     return f"{int(day_diff / 365)} years ago"
+
+
+@lru_cache(maxsize=128)
+def get_color_by_user(user: str) -> int:
+    index = int(hashlib.sha1(user.encode()).hexdigest(), 16) % len(
+        colors.user_colors
+    )
+    return colors.user_colors[index]
