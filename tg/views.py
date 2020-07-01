@@ -18,7 +18,7 @@ from tg.colors import (
 from tg.models import Model
 from tg.msg import MsgProxy
 from tg.tdlib import ChatType
-from tg.utils import emoji_pattern, num, truncate_to_len
+from tg.utils import emoji_pattern, get_color_by_str, num, truncate_to_len
 
 log = logging.getLogger(__name__)
 
@@ -161,9 +161,12 @@ class ChatView:
             return color | reverse
         return color
 
-    def _chat_attributes(self, is_selected: bool = False) -> Tuple[int, ...]:
+    def _chat_attributes(
+        self, is_selected: bool, title: str
+    ) -> Tuple[int, ...]:
         attrs = (
             get_color(cyan, -1),
+            get_color(get_color_by_str(title), -1),
             get_color(blue, -1),
             self._msg_color(is_selected),
         )
@@ -189,7 +192,7 @@ class ChatView:
             last_msg = get_last_msg(chat)
             offset = 0
             for attr, elem in zip(
-                self._chat_attributes(is_selected), [f"{date} ", title]
+                self._chat_attributes(is_selected, title), [f"{date} ", title]
             ):
                 self.win.addstr(
                     i,
@@ -452,7 +455,10 @@ class MsgView:
 
         for elements, selected, line_num in msgs_to_draw:
             column = 0
-            for attr, elem in zip(self._msg_attributes(selected), elements):
+            user = elements[1]
+            for attr, elem in zip(
+                self._msg_attributes(selected, user), elements
+            ):
                 if not elem:
                     continue
                 lines = (column + len(elem)) // self.w
@@ -518,10 +524,10 @@ class MsgView:
 
         return f"{chat['title']}: {status}".center(self.w)[: self.w]
 
-    def _msg_attributes(self, is_selected: bool) -> Tuple[int, ...]:
+    def _msg_attributes(self, is_selected: bool, user: str) -> Tuple[int, ...]:
         attrs = (
             get_color(cyan, -1),
-            get_color(blue, -1),
+            get_color(get_color_by_str(user), -1),
             get_color(yellow, -1),
             get_color(white, -1),
         )
