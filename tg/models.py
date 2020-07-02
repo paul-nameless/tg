@@ -292,6 +292,12 @@ class MsgModel:
         self.not_found: Set[int] = set()
         self.msg_idx: Dict[int, Dict[int, int]] = defaultdict(dict)
 
+    def jump_to_msg_by_id(self, chat_id: int, msg_id: int) -> bool:
+        if index := self.msg_idx[chat_id].get(msg_id):
+            self.current_msgs[chat_id] = index
+            return True
+        return False
+
     def next_msg(self, chat_id: int, step: int = 1) -> bool:
         current_msg = self.current_msgs[chat_id]
         if current_msg == 0:

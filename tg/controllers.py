@@ -55,6 +55,9 @@ def bind(
             return fun(self)
 
         for key in keys:
+            assert (
+                key not in binding
+            ), f"Key {key} already binded to {binding[key]}"
             binding[key] = fun if repeat_factor else _no_repeat_factor
 
         return wrapper
@@ -130,6 +133,17 @@ class Controller:
     @bind(msg_handler, ["h", "^D"])
     def back(self) -> str:
         return "BACK"
+
+    @bind(msg_handler, ["m"])
+    def jump_to_reply_msg(self) -> None:
+        chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        if not chat_id:
+            return
+        msg = MsgProxy(self.model.current_msg)
+        if msg_id := msg.reply_msg_id:
+            if self.model.msgs.jump_to_msg_by_id(chat_id, msg_id):
+                return self.render_msgs()
+        self.present_error("Can't jump to reply msg: it's not preloaded")
 
     @bind(msg_handler, ["p"])
     def forward_msgs(self) -> None:
