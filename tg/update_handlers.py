@@ -24,15 +24,14 @@ def update_handler(
             update_type not in handlers
         ), f"Update type <{update_type}> already has handler: {handlers[update_type]}"
 
-        handlers[update_type] = fun
-
         @wraps(fun)
         def wrapper(controller: Controller, update: Dict[str, Any]) -> None:
             try:
-                return fun(controller, update)
+                fun(controller, update)
             except Exception:
-                log.exception("Error happened in %s handler", fun.__name__)
+                log.exception("Error happened in handler: %s", update_type)
 
+        handlers[update_type] = wrapper
         return wrapper
 
     return decorator

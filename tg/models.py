@@ -342,6 +342,7 @@ class MsgModel:
     def add_message(self, chat_id: int, msg: Dict[str, Any]) -> None:
         with self.lock:
             log.info(f"adding {msg=}")
+            # TODO: do not sort msgs
             self.msgs[chat_id].append(msg)
             self.msgs[chat_id] = sorted(
                 self.msgs[chat_id], key=lambda d: d["id"], reverse=True,
