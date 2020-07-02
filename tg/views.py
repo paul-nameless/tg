@@ -17,7 +17,7 @@ from tg.colors import (
 )
 from tg.models import Model, UserModel
 from tg.msg import MsgProxy
-from tg.tdlib import ChatType
+from tg.tdlib import ChatType, get_chat_type
 from tg.utils import emoji_pattern, get_color_by_str, num, truncate_to_len
 
 log = logging.getLogger(__name__)
@@ -31,35 +31,6 @@ MULTICHAR_KEYBINDINGS = (
     "sv",
     "bp",
 )
-
-
-def _get_chat_type(chat: Dict[str, Any]) -> Optional[ChatType]:
-    try:
-        chat_type = ChatType[chat["type"]["@type"]]
-        if (
-            chat_type == ChatType.chatTypeSupergroup
-            and chat["type"]["is_channel"]
-        ):
-            chat_type = ChatType.channel
-        return chat_type
-    except KeyError:
-        log.error(f"ChatType {chat['type']} not implemented")
-    return None
-
-
-def _get_user_by_id(users: UserModel, user_id: int) -> str:
-    if user_id == 0:
-        return ""
-    user = users.get_user(user_id)
-    if user["first_name"] and user["last_name"]:
-        return f'{user["first_name"]} {user["last_name"]}'[:20]
-
-    if user["first_name"]:
-        return f'{user["first_name"]}'[:20]
-
-    if user.get("username"):
-        return "@" + user["username"]
-    return "Unknown?"
 
 
 class View:
@@ -191,12 +162,12 @@ class ChatView:
         return color
 
     def _chat_attributes(
-        self, is_selected: bool, title: str
+        self, is_selected: bool, title: str, user: str
     ) -> Tuple[int, ...]:
         attrs = (
             get_color(cyan, -1),
             get_color(get_color_by_str(title), -1),
-            get_color(blue, -1),
+            get_color(get_color_by_str(user), -1),
             self._msg_color(is_selected),
         )
         if is_selected:
@@ -218,41 +189,32 @@ class ChatView:
             is_selected = i == current + 1
             date = get_date(chat)
             title = chat["title"]
-            user, last_msg = get_last_msg(chat)
-            sender_name = None
-            if user:
-                reply_sender = _get_user_by_id(self.model.users, user)
-                chat_type = _get_chat_type(chat)
-                if chat_type in (
-                    ChatType.chatTypeSupergroup,
-                    ChatType.chatTypeBasicGroup,
-                ):
-                    sender_name = f" {reply_sender}:" if reply_sender else ""
             offset = 0
+            user, last_msg = get_last_msg(chat)
+            last_msg_sender = sender_label = ""
+            if user:
+                last_msg_sender = _get_user_label(self.model.users, user)
+                chat_type = get_chat_type(chat)
+                if chat_type and chat_type.is_group(chat_type):
+                    sender_label = f" {last_msg_sender}:"
+
+            last_msg = last_msg.replace("\n", " ")
+            last_msg = truncate_to_len(last_msg, max(0, self.w - offset))
+
             for attr, elem in zip(
-                self._chat_attributes(is_selected, title),
-                [f"{date} ", title, sender_name],
+                self._chat_attributes(is_selected, title, last_msg_sender),
+                [f"{date} ", title, sender_label, f" {last_msg}"],
             ):
-                if elem is None:
+                if not elem:
                     continue
                 item = truncate_to_len(elem, max(0, width - offset))
                 if len(item) > 1:
                     self.win.addstr(
-                        i,
-                        offset,
-                        item,
-                        attr,
+                        i, offset, item, attr,
                     )
                     offset += len(elem) + sum(
                         map(len, emoji_pattern.findall(elem))
                     )
-
-            last_msg = " " + last_msg.replace("\n", " ")
-            last_msg = truncate_to_len(last_msg, max(0, self.w - offset))
-            if last_msg.strip():
-                self.win.addstr(
-                    i, offset, last_msg, self._msg_color(is_selected)
-                )
 
             if flags := self._get_flags(chat):
                 flags_len = len(flags) + sum(
@@ -365,7 +327,9 @@ class MsgView:
         reply_msg = MsgProxy(_msg)
         if reply_msg_content := self._parse_msg(reply_msg):
             reply_msg_content = reply_msg_content.replace("\n", " ")
-            reply_sender = _get_user_by_id(self.model.users, reply_msg.sender_id)
+            reply_sender = _get_user_label(
+                self.model.users, reply_msg.sender_id
+            )
             sender_name = f" {reply_sender}:" if reply_sender else ""
             reply_line = f">{sender_name} {reply_msg_content}"
             if len(reply_line) >= width_limit:
@@ -426,7 +390,7 @@ class MsgView:
                 dt = msg_proxy.date.strftime("%H:%M:%S")
                 user_id_item = msg_proxy.sender_id
 
-                user_id = _get_user_by_id(self.model.users, user_id_item)
+                user_id = _get_user_label(self.model.users, user_id_item)
                 flags = self._get_flags(msg_proxy)
                 if user_id and flags:
                     # if not channel add space between name and flags
@@ -530,7 +494,7 @@ class MsgView:
         self._refresh()
 
     def _msg_title(self, chat: Dict[str, Any]) -> str:
-        chat_type = _get_chat_type(chat)
+        chat_type = get_chat_type(chat)
         status = ""
         if action := self.model.users.get_action(chat["id"]):
             status = action
@@ -628,3 +592,18 @@ def get_download(local: Dict[str, Union[str, bool, int]], size: int) -> str:
         percent = int(d * 100 / size)
         return f"{percent}%"
     return "no"
+
+
+def _get_user_label(users: UserModel, user_id: int) -> str:
+    if user_id == 0:
+        return ""
+    user = users.get_user(user_id)
+    if user["first_name"] and user["last_name"]:
+        return f'{user["first_name"]} {user["last_name"]}'[:20]
+
+    if user["first_name"]:
+        return f'{user["first_name"]}'[:20]
+
+    if user.get("username"):
+        return "@" + user["username"]
+    return "Unknown?"
