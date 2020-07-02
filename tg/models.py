@@ -244,17 +244,12 @@ class ChatModel:
             log.error(f"get chat ids error: {result.error_info}")
             return None
 
-        chats = result.update["chat_ids"]
-        if not chats:
+        chat_ids = result.update["chat_ids"]
+        if not chat_ids:
             self.have_full_chat_list = True
-            return chats
+            return chat_ids
 
-        for chat_id in chats:
-            # TODO: fix this, we shouldn't have any duplicates
-            if chat_id not in self.chat_ids:
-                self.chat_ids.append(chat_id)
-                chat = self.fetch_chat(chat_id)
-                self.chats.append(chat)
+        self.add_chats(chat_ids)
 
     def fetch_chat(self, chat_id: int) -> Dict[str, Any]:
         result = self.tg.get_chat(chat_id)
@@ -265,18 +260,39 @@ class ChatModel:
             return {}
         return result.update
 
+    def add_chats(
+        self,
+        chat_ids: Optional[List[int]] = None,
+        chats: Optional[List[Dict[str, Any]]] = None,
+    ) -> None:
+        if chats is None:
+            chats = []
+        if chat_ids and not chats:
+            chats = [self.fetch_chat(chat_id) for chat_id in chat_ids]
+
+        for chat in chats:
+            chat_id = int(chat["id"])
+            if chat_id in self.chat_ids:
+                continue
+            self.chat_ids.append(chat_id)
+            self.chats.append(chat)
+        self._sort_chats()
+
+    def _sort_chats(self) -> None:
+        self.chats = sorted(
+            self.chats,
+            # recommended chat order, for more info see
+            # https://core.telegram.org/tdlib/getting-started#getting-the-lists-of-chats
+            key=lambda it: (it["order"], it["id"]),
+            reverse=True,
+        )
+
     def update_chat(self, chat_id: int, **updates: Dict[str, Any]) -> bool:
         for i, c in enumerate(self.chats):
             if c["id"] != chat_id:
                 continue
             self.chats[i].update(updates)
-            self.chats = sorted(
-                self.chats,
-                # recommended chat order, for more info see
-                # https://core.telegram.org/tdlib/getting-started#getting-the-lists-of-chats
-                key=lambda it: (it["order"], it["id"]),
-                reverse=True,
-            )
+            self._sort_chats()
             log.info(f"Updated chat with keys {list(updates)}")
             return True
         else:
