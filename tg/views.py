@@ -162,12 +162,12 @@ class ChatView:
         return color
 
     def _chat_attributes(
-        self, is_selected: bool, title: str, user: str
+        self, is_selected: bool, title: str, user: Optional[str]
     ) -> Tuple[int, ...]:
         attrs = (
             get_color(cyan, -1),
             get_color(get_color_by_str(title), -1),
-            get_color(get_color_by_str(user), -1),
+            get_color(get_color_by_str(user or ""), -1),
             self._msg_color(is_selected),
         )
         if is_selected:
@@ -190,16 +190,9 @@ class ChatView:
             date = get_date(chat)
             title = chat["title"]
             offset = 0
-            user, last_msg = get_last_msg(chat)
-            last_msg_sender = sender_label = ""
-            if user:
-                last_msg_sender = _get_user_label(self.model.users, user)
-                chat_type = get_chat_type(chat)
-                if chat_type and chat_type.is_group(chat_type):
-                    sender_label = f" {last_msg_sender}:"
 
-            last_msg = last_msg.replace("\n", " ")
-            last_msg = truncate_to_len(last_msg, max(0, self.w - offset))
+            last_msg_sender, last_msg = self._get_last_msg_data(chat)
+            sender_label = f" {last_msg_sender}:" if last_msg_sender else ""
 
             for attr, elem in zip(
                 self._chat_attributes(is_selected, title, last_msg_sender),
@@ -228,6 +221,19 @@ class ChatView:
                 )
 
         self._refresh()
+
+    def _get_last_msg_data(
+        self, chat: Dict[str, Any]
+    ) -> Tuple[Optional[str], Optional[str]]:
+        user, last_msg = get_last_msg(chat)
+        last_msg = last_msg.replace("\n", " ")
+        if user:
+            last_msg_sender = _get_user_label(self.model.users, user)
+            chat_type = get_chat_type(chat)
+            if chat_type and chat_type.is_group(chat_type):
+                return last_msg_sender, last_msg
+
+        return None, None
 
     def _get_flags(self, chat: Dict[str, Any]) -> str:
         flags = []
