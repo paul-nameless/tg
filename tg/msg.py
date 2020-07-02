@@ -17,7 +17,7 @@ class MsgProxy:
         "messageAudio": ("audio", "audio"),
         "messageVideo": ("video", "video"),
         "messageVideoNote": ("video_note", "video"),
-        "messageSticker": ("sticker", "sticker"),
+        "messageSticker": ("sticker", "thumbnail", "photo"),
     }
 
     types = {
@@ -114,7 +114,7 @@ class MsgProxy:
 
     @property
     def local_path(self) -> Optional[str]:
-        if self.msg["content"]["@type"] is None:
+        if self.content_type is None:
             return None
         doc = self.get_doc(self.msg)
         return doc["local"]["path"]
@@ -196,3 +196,9 @@ class MsgProxy:
         if not caption:
             return None
         return caption["text"]
+
+    @property
+    def sticker_emoji(self) -> Optional[str]:
+        if self.content_type != "sticker":
+            return None
+        return self.msg["content"].get("sticker", {}).get("emoji")
