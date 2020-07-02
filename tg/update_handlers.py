@@ -27,7 +27,8 @@ def update_handler(
         @wraps(fun)
         def wrapper(controller: Controller, update: Dict[str, Any]) -> None:
             try:
-                fun(controller, update)
+                with controller.lock:
+                    fun(controller, update)
             except Exception:
                 log.exception("Error happened in handler: %s", update_type)
 
