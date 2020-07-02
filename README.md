@@ -155,6 +155,9 @@ USERS_COLORS = tuple(range(2, 16))
 # to make one color for all users
 # USERS_COLORS = (4,)
 
+# cleanup cache
+# Values: N days, None (never)
+KEEP_MEDIA = 7
 ```
 
 ### Mailcap file

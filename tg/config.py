@@ -69,6 +69,8 @@ URL_VIEW = "urlview"
 
 USERS_COLORS = tuple(range(2, 16))
 
+KEEP_MEDIA = 7
+
 
 if os.path.isfile(CONFIG_FILE):
     config_params = runpy.run_path(CONFIG_FILE)

@@ -162,7 +162,7 @@ def notify(
         subtitle=shlex.quote(subtitle),
         msg=shlex.quote(msg),
     )
-    os.system(notify_cmd)
+    subprocess.Popen(notify_cmd, shell=True)
 
 
 def truncate_to_len(s: str, target_len: int) -> str:
@@ -262,3 +262,11 @@ def get_color_by_str(user: str) -> int:
         config.USERS_COLORS
     )
     return config.USERS_COLORS[index]
+
+
+def cleanup_cache() -> None:
+    if not config.KEEP_MEDIA:
+        return
+    files_path = os.path.join(config.FILES_DIR, "files")
+    cmd = f"find {files_path} -type f -mtime +{config.KEEP_MEDIA} -delete"
+    subprocess.Popen(cmd, shell=True)
