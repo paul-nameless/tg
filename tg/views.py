@@ -15,7 +15,7 @@ from tg.colors import (
     white,
     yellow,
 )
-from tg.models import Model
+from tg.models import Model, UserModel
 from tg.msg import MsgProxy
 from tg.tdlib import ChatType
 from tg.utils import emoji_pattern, get_color_by_str, num, truncate_to_len
@@ -31,6 +31,35 @@ MULTICHAR_KEYBINDINGS = (
     "sv",
     "bp",
 )
+
+
+def _get_chat_type(chat: Dict[str, Any]) -> Optional[ChatType]:
+    try:
+        chat_type = ChatType[chat["type"]["@type"]]
+        if (
+            chat_type == ChatType.chatTypeSupergroup
+            and chat["type"]["is_channel"]
+        ):
+            chat_type = ChatType.channel
+        return chat_type
+    except KeyError:
+        log.error(f"ChatType {chat['type']} not implemented")
+    return None
+
+
+def _get_user_by_id(users: UserModel, user_id: int) -> str:
+    if user_id == 0:
+        return ""
+    user = users.get_user(user_id)
+    if user["first_name"] and user["last_name"]:
+        return f'{user["first_name"]} {user["last_name"]}'[:20]
+
+    if user["first_name"]:
+        return f'{user["first_name"]}'[:20]
+
+    if user.get("username"):
+        return "@" + user["username"]
+    return "Unknown?"
 
 
 class View:
@@ -189,20 +218,34 @@ class ChatView:
             is_selected = i == current + 1
             date = get_date(chat)
             title = chat["title"]
-            last_msg = get_last_msg(chat)
+            user, last_msg = get_last_msg(chat)
+            sender_name = None
+            if user:
+                reply_sender = _get_user_by_id(self.model.users, user)
+                chat_type = _get_chat_type(chat)
+                if chat_type in (
+                    ChatType.chatTypeSupergroup,
+                    ChatType.chatTypeBasicGroup,
+                ):
+                    sender_name = f" {reply_sender}:" if reply_sender else ""
             offset = 0
             for attr, elem in zip(
-                self._chat_attributes(is_selected, title), [f"{date} ", title]
+                self._chat_attributes(is_selected, title),
+                [f"{date} ", title, sender_name],
             ):
-                self.win.addstr(
-                    i,
-                    offset,
-                    truncate_to_len(elem, max(0, width - offset)),
-                    attr,
-                )
-                offset += len(elem) + sum(
-                    map(len, emoji_pattern.findall(elem))
-                )
+                if elem is None:
+                    continue
+                item = truncate_to_len(elem, max(0, width - offset))
+                if len(item) > 1:
+                    self.win.addstr(
+                        i,
+                        offset,
+                        item,
+                        attr,
+                    )
+                    offset += len(elem) + sum(
+                        map(len, emoji_pattern.findall(elem))
+                    )
 
             last_msg = " " + last_msg.replace("\n", " ")
             last_msg = truncate_to_len(last_msg, max(0, self.w - offset))
@@ -322,7 +365,7 @@ class MsgView:
         reply_msg = MsgProxy(_msg)
         if reply_msg_content := self._parse_msg(reply_msg):
             reply_msg_content = reply_msg_content.replace("\n", " ")
-            reply_sender = self._get_user_by_id(reply_msg.sender_id)
+            reply_sender = _get_user_by_id(self.model.users, reply_msg.sender_id)
             sender_name = f" {reply_sender}:" if reply_sender else ""
             reply_line = f">{sender_name} {reply_msg_content}"
             if len(reply_line) >= width_limit:
@@ -383,7 +426,7 @@ class MsgView:
                 dt = msg_proxy.date.strftime("%H:%M:%S")
                 user_id_item = msg_proxy.sender_id
 
-                user_id = self._get_user_by_id(user_id_item)
+                user_id = _get_user_by_id(self.model.users, user_id_item)
                 flags = self._get_flags(msg_proxy)
                 if user_id and flags:
                     # if not channel add space between name and flags
@@ -486,21 +529,8 @@ class MsgView:
         )
         self._refresh()
 
-    def _get_chat_type(self, chat: Dict[str, Any]) -> Optional[ChatType]:
-        try:
-            chat_type = ChatType[chat["type"]["@type"]]
-            if (
-                chat_type == ChatType.chatTypeSupergroup
-                and chat["type"]["is_channel"]
-            ):
-                chat_type = ChatType.channel
-            return chat_type
-        except KeyError:
-            log.error(f"ChatType {chat['type']} not implemented")
-        return None
-
     def _msg_title(self, chat: Dict[str, Any]) -> str:
-        chat_type = self._get_chat_type(chat)
+        chat_type = _get_chat_type(chat)
         status = ""
         if action := self.model.users.get_action(chat["id"]):
             status = action
@@ -536,20 +566,6 @@ class MsgView:
             return tuple(attr | reverse for attr in attrs)
         return attrs
 
-    def _get_user_by_id(self, user_id: int) -> str:
-        if user_id == 0:
-            return ""
-        user = self.model.users.get_user(user_id)
-        if user["first_name"] and user["last_name"]:
-            return f'{user["first_name"]} {user["last_name"]}'[:20]
-
-        if user["first_name"]:
-            return f'{user["first_name"]}'[:20]
-
-        if user.get("username"):
-            return "@" + user["username"]
-        return "Unknown?"
-
     def _parse_msg(self, msg: MsgProxy) -> str:
         if msg.is_message:
             return parse_content(msg["content"])
@@ -557,12 +573,12 @@ class MsgView:
         return "unknown msg type: " + str(msg["content"])
 
 
-def get_last_msg(chat: Dict[str, Any]) -> str:
+def get_last_msg(chat: Dict[str, Any]) -> Tuple[Optional[int], str]:
     last_msg = chat.get("last_message")
     if not last_msg:
-        return "<No messages yet>"
+        return None, "<No messages yet>"
     content = last_msg["content"]
-    return parse_content(content)
+    return last_msg["sender_user_id"], parse_content(content)
 
 
 def get_date(chat: Dict[str, Any]) -> str:
