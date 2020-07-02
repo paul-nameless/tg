@@ -242,8 +242,11 @@ class ChatView:
             # last msg haven't been seen by recipient
             flags.append("unseen")
 
-        if action := self.model.users.get_action(chat["id"]):
-            flags.append(action)
+        actioner, action = self.model.users.get_user_action(chat["id"])
+        if actioner and action:
+            user_label = _get_user_label(self.model.users, actioner)
+            flag = f"{user_label} is {action}"
+            flags.append(flag)
 
         if self.model.users.is_online(chat["id"]):
             flags.append("online")
@@ -496,8 +499,10 @@ class MsgView:
     def _msg_title(self, chat: Dict[str, Any]) -> str:
         chat_type = get_chat_type(chat)
         status = ""
-        if action := self.model.users.get_action(chat["id"]):
-            status = action
+        actioner, action = self.model.users.get_user_action(chat["id"])
+        if action and actioner:
+            user_label = _get_user_label(self.model.users, actioner)
+            status = f"{user_label} is {action}"
         elif chat_type == ChatType.chatTypePrivate:
             status = self.model.users.get_status(chat["id"])
         elif chat_type == ChatType.chatTypeBasicGroup:
