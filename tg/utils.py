@@ -266,12 +266,7 @@ def get_color_by_str(user: str) -> int:
 
 def cleanup_cache() -> None:
     if not config.KEEP_MEDIA:
-        print("Skipping cleaning cache...")
         return
     files_path = os.path.join(config.FILES_DIR, "files")
-    print(
-        "Cleaning up cache files older than "
-        f"{config.KEEP_MEDIA} days at: {files_path}",
-    )
     cmd = f"find {files_path} -type f -mtime +{config.KEEP_MEDIA} -delete"
     subprocess.Popen(cmd, shell=True)
