@@ -486,14 +486,16 @@ class UserModel:
         self.me = result.update
         return self.me
 
-    def get_user_action(self, chat_id: int) -> Tuple[Optional[int], Optional[str]]:
+    def get_user_action(
+        self, chat_id: int
+    ) -> Tuple[Optional[int], Optional[str]]:
         action = self.actions.get(chat_id)
         if action is None:
             return None, None
         action_type = action["action"]["@type"]
         user_id = action["user_id"]
         try:
-            return user_id, ChatAction[action_type].value + "..."
+            return user_id, ChatAction[action_type].value
         except KeyError:
             log.error(f"ChatAction type {action_type} not implemented")
         return None, None
