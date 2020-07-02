@@ -192,7 +192,7 @@ class ChatView:
             offset = 0
 
             last_msg_sender, last_msg = self._get_last_msg_data(chat)
-            sender_label = f" {last_msg_sender}:" if last_msg_sender else ""
+            sender_label = f" {last_msg_sender}" if last_msg_sender else ""
 
             for attr, elem in zip(
                 self._chat_attributes(is_selected, title, last_msg_sender),
@@ -202,9 +202,7 @@ class ChatView:
                     continue
                 item = truncate_to_len(elem, max(0, width - offset))
                 if len(item) > 1:
-                    self.win.addstr(
-                        i, offset, item, attr,
-                    )
+                    self.win.addstr(i, offset, item, attr)
                     offset += len(elem) + sum(
                         map(len, emoji_pattern.findall(elem))
                     )
