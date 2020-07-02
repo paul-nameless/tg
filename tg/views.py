@@ -242,11 +242,8 @@ class ChatView:
             # last msg haven't been seen by recipient
             flags.append("unseen")
 
-        actioner, action = self.model.users.get_user_action(chat["id"])
-        if actioner and action:
-            user_label = _get_user_label(self.model.users, actioner)
-            flag = f"{user_label} is {action}"
-            flags.append(flag)
+        if action_label := _get_action_label(self.model.users, chat["id"]):
+            flags.append(action_label)
 
         if self.model.users.is_online(chat["id"]):
             flags.append("online")
@@ -499,10 +496,9 @@ class MsgView:
     def _msg_title(self, chat: Dict[str, Any]) -> str:
         chat_type = get_chat_type(chat)
         status = ""
-        actioner, action = self.model.users.get_user_action(chat["id"])
-        if action and actioner:
-            user_label = _get_user_label(self.model.users, actioner)
-            status = f"{user_label} is {action}"
+
+        if action_label := _get_action_label(self.model.users, chat["id"]):
+            status = action_label
         elif chat_type == ChatType.chatTypePrivate:
             status = self.model.users.get_status(chat["id"])
         elif chat_type == ChatType.chatTypeBasicGroup:
@@ -612,3 +608,11 @@ def _get_user_label(users: UserModel, user_id: int) -> str:
     if user.get("username"):
         return "@" + user["username"]
     return "Unknown?"
+
+
+def _get_action_label(users: UserModel, chat_id: int) -> Optional[str]:
+    actioner, action = users.get_user_action(chat_id)
+    if actioner and action:
+        user_label = _get_user_label(users, actioner)
+        return f"{user_label} is {action}..."
+    return None
