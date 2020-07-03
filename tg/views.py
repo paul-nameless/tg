@@ -223,7 +223,6 @@ class ChatView:
         self, chat: Dict[str, Any]
     ) -> Tuple[Optional[str], Optional[str]]:
         user, last_msg = get_last_msg(chat)
-        last_msg = last_msg.replace("\n", " ")
         if user:
             last_msg_sender = _get_user_label(self.model.users, user)
             chat_type = get_chat_type(chat)
@@ -329,7 +328,6 @@ class MsgView:
             return msg
         reply_msg = MsgProxy(_msg)
         if reply_msg_content := self._parse_msg(reply_msg):
-            reply_msg_content = reply_msg_content.replace("\n", " ")
             reply_sender = _get_user_label(
                 self.model.users, reply_msg.sender_id
             )
@@ -566,16 +564,14 @@ def parse_content(content: Dict[str, Any]) -> str:
     if msg.is_text:
         return content["text"]["text"].replace("\n", " ")
 
-    if content["@type"] == "messagePoll":
-        question = content["poll"]["question"]
-        status = "Closed " if content["poll"]["is_closed"] else ""
-        rv = f"📊 {status}Poll\n {question}"
-        options = content["poll"]["options"]
-        for option in options:
+    elif msg.is_poll:
+        status = "Closed " if msg.is_closed_poll else ""
+        rv = f"📊 {status}Poll\n {msg.poll_question}"
+        for option in msg.poll_options:
             rv += f"\n * {option['voter_count']} ({option['vote_percentage']}%) | {option['text']}"
         return rv
 
-    if not msg.content_type:
+    elif not msg.content_type:
         # not implemented
         _type = content["@type"]
         return f"[{_type}]"

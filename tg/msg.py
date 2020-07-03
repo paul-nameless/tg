@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 
 from tg import utils
 
@@ -29,6 +29,7 @@ class MsgProxy:
         "messageVideo": "video",
         "messageVideoNote": "recording",
         "messageSticker": "sticker",
+        "messagePoll": "poll",
     }
 
     @classmethod
@@ -134,6 +135,25 @@ class MsgProxy:
     @property
     def is_text(self) -> bool:
         return self.msg["content"]["@type"] == "messageText"
+
+    @property
+    def is_poll(self) -> bool:
+        return self.msg["content"]["@type"] == "messagePoll"
+
+    @property
+    def poll_question(self) -> str:
+        assert self.is_poll
+        return self.msg["content"]["poll"]["question"]
+
+    @property
+    def poll_options(self) -> List[Dict]:
+        assert self.is_poll
+        return self.msg["content"]["poll"]["options"]
+
+    @property
+    def is_closed_poll(self) -> bool:
+        assert self.is_poll
+        return self.msg["content"]["poll"]["is_closed"]
 
     @property
     def text_content(self) -> str:
