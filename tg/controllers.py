@@ -169,8 +169,7 @@ class Controller:
         self.model.copy_msgs_text()
         self.present_info(f"Copied {len(msg_ids)} msg(s)")
 
-    @bind(msg_handler, [" "])
-    def toggle_select_msg(self) -> None:
+    def _toggle_select_msg(self) -> None:
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
         if not chat_id:
             return
@@ -180,7 +179,19 @@ class Controller:
             self.model.selected[chat_id].remove(msg.msg_id)
         else:
             self.model.selected[chat_id].append(msg.msg_id)
+
+    @bind(msg_handler, [" "])
+    def toggle_select_msg_down(self) -> None:
+        """Select and jump to next msg with <space>"""
+        self._toggle_select_msg()
         self.model.next_msg()
+        self.render_msgs()
+
+    @bind(msg_handler, ["^@"])
+    def toggle_select_msg_up(self) -> None:
+        """Select and jump to previous msg with ctrl+<space>"""
+        self._toggle_select_msg()
+        self.model.prev_msg()
         self.render_msgs()
 
     @bind(msg_handler, ["^G", "^["])
