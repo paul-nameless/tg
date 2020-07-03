@@ -1,7 +1,7 @@
 import logging
 import time
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from tg.msg import MsgProxy
 from tg.tdlib import ChatAction, Tdlib, UserStatus
@@ -290,7 +290,7 @@ class MsgModel:
         self.msgs: Dict[int, List[Dict]] = defaultdict(list)
         self.current_msgs: Dict[int, int] = defaultdict(int)
         self.not_found: Set[int] = set()
-        self.msg_ids: Dict[int, Set[int]] = defaultdict(set)
+        self.msg_idx: Dict[int, Dict[int, int]] = defaultdict(dict)
 
     def next_msg(self, chat_id: int, step: int = 1) -> bool:
         current_msg = self.current_msgs[chat_id]
@@ -310,77 +310,57 @@ class MsgModel:
         if new_idx < len(self.msgs[chat_id]):
             self.current_msgs[chat_id] = new_idx
             return True
-
         return False
 
     def get_message(self, chat_id: int, msg_id: int) -> Optional[Dict]:
         if msg_id in self.not_found:
             return None
-        msg_set = self.msg_ids[chat_id]
-        if msg_id not in msg_set:
-            # we are not storing any out of ordres old msgs
-            # just fetching then on demand
-            result = self.tg.get_message(chat_id, msg_id)
-            result.wait()
-            if result.error:
-                self.not_found.add(msg_id)
-                return None
-            return result.update
-        return next(iter(m for m in self.msgs[chat_id] if m["id"] == msg_id))
+        if index := self.msg_idx[chat_id].get(msg_id):
+            return self.msgs[chat_id][index]
+        # we are not storing any out of ordres old msgs
+        # just fetching them on demand
+        result = self.tg.get_message(chat_id, msg_id)
+        result.wait()
+        if result.error:
+            self.not_found.add(msg_id)
+            return None
+        return result.update
 
-    def remove_messages(self, chat_id: int, msg_ids: List[int]) -> None:
-        log.info(f"removing msgs {msg_ids=}")
-        # FIXME: potential bottleneck, replace with constan time operation
+    def remove_messages(self, chat_id: int, msg_idx: List[int]) -> None:
+        log.info(f"removing msg {msg_idx=}")
         self.msgs[chat_id] = [
-            m for m in self.msgs[chat_id] if m["id"] not in msg_ids
+            m for m in self.msgs[chat_id] if m["id"] not in msg_idx
         ]
-        msg_set = self.msg_ids[chat_id]
-        for msg_id in msg_ids:
-            msg_set.discard(msg_id)
+        self.msg_idx[chat_id] = {
+            msg["id"]: i for i, msg in enumerate(self.msgs[chat_id])
+        }
+
+    def add_message(self, chat_id: int, msg: Dict[str, Any]) -> None:
+        log.info(f"adding {msg=}")
+        self.msgs[chat_id] = sorted(
+            self.msgs[chat_id] + [msg], key=lambda d: d["id"], reverse=True,
+        )
+        self.msg_idx[chat_id] = {
+            msg["id"]: i for i, msg in enumerate(self.msgs[chat_id])
+        }
 
     def update_msg_content_opened(self, chat_id: int, msg_id: int) -> None:
-        for message in self.msgs[chat_id]:
-            if message["id"] != msg_id:
-                continue
-            msg = MsgProxy(message)
-            if msg.content_type == "voice":
-                msg.is_listened = True
-            elif msg.content_type == "recording":
-                msg.is_viewed = True
-            # TODO: start the TTL timer for self-destructing messages
-            # that is the last case to implement
-            # https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1update_message_content_opened.html
-            return
+        index = self.msg_idx[chat_id][msg_id]
+        msg = MsgProxy(self.msgs[chat_id][index])
+        if msg.content_type == "voice":
+            msg.is_listened = True
+        elif msg.content_type == "recording":
+            msg.is_viewed = True
+        # TODO: start the TTL timer for self-destructing messages
+        # that is the last case to implement
+        # https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1update_message_content_opened.html
 
     def update_msg(
         self, chat_id: int, msg_id: int, **fields: Dict[str, Any]
-    ) -> bool:
-        msg = None
-        for message in self.msgs[chat_id]:
-            if message["id"] == msg_id:
-                msg = message
-                break
-        if not msg:
-            return False
+    ) -> None:
+        index = self.msg_idx[chat_id][msg_id]
+        msg = self.msgs[chat_id][index]
         msg.update(fields)
-        return True
-
-    def add_message(self, chat_id: int, message: Dict[str, Any]) -> bool:
-        msg_id = message["id"]
-        msg_set = self.msg_ids[chat_id]
-        if msg_id in msg_set:
-            log.warning(
-                f"message {msg_id} was added earlier. probably, inaccurate "
-                "usage of the tdlib lead to unnecessary requests"
-            )
-            return False
-        log.info(f"adding {msg_id=} {message}")
-        self.msgs[chat_id].append(message)
-        msg_set.add(msg_id)
-        self.msgs[chat_id] = sorted(
-            self.msgs[chat_id], key=lambda d: d["id"], reverse=True
-        )
-        return True
 
     def _fetch_msgs_until_limit(
         self, chat_id: int, offset: int = 0, limit: int = 10
@@ -422,10 +402,10 @@ class MsgModel:
         self, chat_id: int, offset: int = 0, limit: int = 10
     ) -> List[Tuple[int, Dict[str, Any]]]:
         if offset + limit > len(self.msgs[chat_id]):
-            messages = self._fetch_msgs_until_limit(
+            msgs = self._fetch_msgs_until_limit(
                 chat_id, offset, offset + limit
             )
-            for msg in messages:
+            for msg in msgs:
                 self.add_message(chat_id, msg)
 
         return [
