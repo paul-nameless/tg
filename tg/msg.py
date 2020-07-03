@@ -202,3 +202,9 @@ class MsgProxy:
         if self.content_type != "sticker":
             return None
         return self.msg["content"].get("sticker", {}).get("emoji")
+
+    @property
+    def is_animated(self) -> bool:
+        if self.content_type != "sticker":
+            return False
+        return self.msg["content"].get("sticker", {}).get("is_animated")
