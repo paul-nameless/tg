@@ -2,7 +2,6 @@ import curses
 import logging
 import os
 import shlex
-import threading
 from datetime import datetime
 from functools import partial, wraps
 from queue import Queue
@@ -70,7 +69,6 @@ class Controller:
         self.is_running = True
         self.tg = tg
         self.chat_size = 0.5
-        self.lock = threading.Lock()
 
     @bind(msg_handler, ["o"])
     def open_url(self) -> None:
