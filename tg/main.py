@@ -44,6 +44,7 @@ def run(tg: Tdlib, stdscr: window) -> None:
 
 
 def main() -> None:
+    utils.cleanup_cache()
     tg = Tdlib(
         api_id=config.API_ID,
         api_hash=config.API_HASH,

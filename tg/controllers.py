@@ -140,10 +140,13 @@ class Controller:
         if not chat_id:
             return
         msg = MsgProxy(self.model.current_msg)
-        if msg_id := msg.reply_msg_id:
-            if self.model.msgs.jump_to_msg_by_id(chat_id, msg_id):
-                return self.render_msgs()
-        self.present_error("Can't jump to reply msg: it's not preloaded")
+        if not msg.reply_msg_id:
+            return self.present_error("This msg does not reply")
+        if not self.model.msgs.jump_to_msg_by_id(chat_id, msg.reply_msg_id):
+            return self.present_error(
+                "Can't jump to reply msg: it's not preloaded or deleted"
+            )
+        return self.render_msgs()
 
     @bind(msg_handler, ["p"])
     def forward_msgs(self) -> None:
