@@ -260,19 +260,12 @@ class ChatModel:
             return {}
         return result.update
 
-    def add_chats(
-        self,
-        chat_ids: Optional[List[int]] = None,
-        chats: Optional[List[Dict[str, Any]]] = None,
-    ) -> None:
-        if chats is None:
-            chats = []
-        if chat_ids and not chats:
-            chats = [self.fetch_chat(chat_id) for chat_id in chat_ids]
+    def add_chats(self, chat_ids: List[int]) -> None:
+        chats = (self.fetch_chat(chat_id) for chat_id in chat_ids)
 
         for chat in chats:
             chat_id = int(chat["id"])
-            if chat_id in self.chat_ids:
+            if int(chat["order"]) == 0 or chat_id in self.chat_ids:
                 continue
             self.chat_ids.append(chat_id)
             self.chats.append(chat)
@@ -414,9 +407,10 @@ class MsgModel:
                 limit=len(self.msgs[chat_id]) + limit,
             )
         result.wait()
+        if not result or not result.update["messages"]:
+            return []
+
         messages = result.update["messages"]
-        if not messages:
-            return messages
 
         # tdlib could doesn't guarantee number of messages, so we need to
         # send another request on demand

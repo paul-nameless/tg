@@ -116,7 +116,7 @@ def update_chat_is_marked_as_unread(
 @update_handler("updateNewChat")
 def update_new_chat(controller: Controller, update: Dict[str, Any]) -> None:
     chat = update["chat"]
-    controller.model.chats.add_chats(chats=[chat])
+    controller.model.chats.add_chats([chat["id"]])
 
 
 @update_handler("updateChatIsPinned")
