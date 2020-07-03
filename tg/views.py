@@ -552,11 +552,14 @@ def get_last_msg(chat: Dict[str, Any]) -> Tuple[Optional[int], str]:
 def get_date(chat: Dict[str, Any]) -> str:
     last_msg = chat.get("last_message")
     if not last_msg:
-        return "<NA>"
+        return "<No date>"
     dt = datetime.fromtimestamp(last_msg["date"])
+    date_fmt = "%d %b %y"
     if datetime.today().date() == dt.date():
-        return dt.strftime("%H:%M")
-    return dt.strftime("%d %b %y")
+        date_fmt = "%H:%M"
+    elif datetime.today().year == dt.year:
+        date_fmt = "%d %b"
+    return dt.strftime(date_fmt)
 
 
 def parse_content(content: Dict[str, Any]) -> str:
