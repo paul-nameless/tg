@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Union
 
 from telegram.client import AsyncResult, Telegram
 
@@ -26,6 +26,9 @@ class ChatType(Enum):
     chatTypeSupergroup = "supergroup"
     channel = "channel"
     chatTypeSecret = "secret"
+
+    def is_group(self, chat_type: "Union[str, ChatType]") -> bool:
+        return chat_type in (self.chatTypeSupergroup, self.chatTypeBasicGroup)
 
 
 class UserStatus(Enum):
@@ -253,3 +256,17 @@ class Tdlib(Telegram):
             "action": {"@type": action.name, "progress": progress},
         }
         return self._send_data(data)
+
+
+def get_chat_type(chat: Dict[str, Any]) -> Optional[ChatType]:
+    try:
+        chat_type = ChatType[chat["type"]["@type"]]
+        if (
+            chat_type == ChatType.chatTypeSupergroup
+            and chat["type"]["is_channel"]
+        ):
+            chat_type = ChatType.channel
+        return chat_type
+    except KeyError:
+        pass
+    return None

@@ -54,6 +54,9 @@ def bind(
             return fun(self)
 
         for key in keys:
+            assert (
+                key not in binding
+            ), f"Key {key} already binded to {binding[key]}"
             binding[key] = fun if repeat_factor else _no_repeat_factor
 
         return wrapper
@@ -129,6 +132,20 @@ class Controller:
     def back(self) -> str:
         return "BACK"
 
+    @bind(msg_handler, ["m"])
+    def jump_to_reply_msg(self) -> None:
+        chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        if not chat_id:
+            return
+        msg = MsgProxy(self.model.current_msg)
+        if not msg.reply_msg_id:
+            return self.present_error("This msg does not reply")
+        if not self.model.msgs.jump_to_msg_by_id(chat_id, msg.reply_msg_id):
+            return self.present_error(
+                "Can't jump to reply msg: it's not preloaded or deleted"
+            )
+        return self.render_msgs()
+
     @bind(msg_handler, ["p"])
     def forward_msgs(self) -> None:
         """Paste yanked msgs"""
@@ -152,8 +169,7 @@ class Controller:
         self.model.copy_msgs_text()
         self.present_info(f"Copied {len(msg_ids)} msg(s)")
 
-    @bind(msg_handler, [" "])
-    def toggle_select_msg(self) -> None:
+    def _toggle_select_msg(self) -> None:
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
         if not chat_id:
             return
@@ -163,7 +179,19 @@ class Controller:
             self.model.selected[chat_id].remove(msg.msg_id)
         else:
             self.model.selected[chat_id].append(msg.msg_id)
+
+    @bind(msg_handler, [" "])
+    def toggle_select_msg_down(self) -> None:
+        """Select and jump to next msg with <space>"""
+        self._toggle_select_msg()
         self.model.next_msg()
+        self.render_msgs()
+
+    @bind(msg_handler, ["^@"])
+    def toggle_select_msg_up(self) -> None:
+        """Select and jump to previous msg with ctrl+<space>"""
+        self._toggle_select_msg()
+        self.model.prev_msg()
         self.render_msgs()
 
     @bind(msg_handler, ["^G", "^["])
