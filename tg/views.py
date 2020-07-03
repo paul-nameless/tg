@@ -356,7 +356,6 @@ class MsgView:
         self, msg_proxy: MsgProxy, user_id_item: int, width_limit: int
     ) -> str:
         msg = self._parse_msg(msg_proxy)
-        msg = msg.replace("\n", " ")
         if caption := msg_proxy.caption:
             msg += "\n" + caption.replace("\n", " ")
         msg += self._format_url(msg_proxy)
@@ -565,7 +564,16 @@ def get_date(chat: Dict[str, Any]) -> str:
 def parse_content(content: Dict[str, Any]) -> str:
     msg = MsgProxy({"content": content})
     if msg.is_text:
-        return content["text"]["text"]
+        return content["text"]["text"].replace("\n", " ")
+
+    if content["@type"] == "messagePoll":
+        question = content["poll"]["question"]
+        status = "Closed " if content["poll"]["is_closed"] else ""
+        rv = f"📊 {status}Poll\n {question}"
+        options = content["poll"]["options"]
+        for option in options:
+            rv += f"\n * {option['voter_count']} ({option['vote_percentage']}%) | {option['text']}"
+        return rv
 
     if not msg.content_type:
         # not implemented
