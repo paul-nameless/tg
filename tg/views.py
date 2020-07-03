@@ -111,7 +111,6 @@ class StatusView:
 
         buff = ""
         while True:
-            log.info("here:")
             key = self.win.get_wch(0, min(len(buff) + len(msg), self.w - 1))
             key = ord(key)
             if key == 10:  # return
@@ -592,6 +591,8 @@ def parse_content(content: Dict[str, Any]) -> str:
         duration=msg.duration,
         listened=format_bool(msg.is_listened),
         viewed=format_bool(msg.is_viewed),
+        animated=msg.is_animated,
+        emoji=msg.sticker_emoji,
     )
     info = ", ".join(f"{k}={v}" for k, v in fields.items() if v)
 
