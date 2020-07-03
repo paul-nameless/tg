@@ -231,7 +231,7 @@ class ChatView:
             if chat_type and chat_type.is_group(chat_type):
                 return last_msg_sender, last_msg
 
-        return None, None
+        return None, last_msg
 
     def _get_flags(self, chat: Dict[str, Any]) -> str:
         flags = []
