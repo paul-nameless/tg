@@ -567,9 +567,15 @@ def parse_content(content: Dict[str, Any]) -> str:
     if msg.is_text:
         return content["text"]["text"]
 
+    _type = content["@type"]
+
+    if _type == "messageBasicGroupChatCreate":
+        return "[created the group]"
+    if _type == "messageChatAddMembers":
+        return "[joined the group]"
+
     if not msg.content_type:
         # not implemented
-        _type = content["@type"]
         return f"[{_type}]"
 
     fields = dict(
