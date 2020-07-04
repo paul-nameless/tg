@@ -423,6 +423,7 @@ class Controller:
 
     @bind(msg_handler, ["l", "^J"])
     def open_current_msg(self) -> None:
+        """Open msg or file with cmd in mailcap"""
         msg = MsgProxy(self.model.current_msg)
         self._open_msg(msg)
 

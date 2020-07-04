@@ -64,7 +64,7 @@ def setup_log() -> None:
         handlers.append(handler)
 
     logging.basicConfig(
-        format="%(levelname)-8s [%(asctime)s] %(name)s %(message)s",
+        format="%(levelname)s [%(asctime)s] %(filename)s:%(lineno)s - %(funcName)s | %(message)s",
         handlers=handlers,
     )
     logging.getLogger().setLevel(config.LOG_LEVEL)
@@ -200,7 +200,9 @@ class suspend:
 
         proc = self.call(cmd)
         if proc.returncode:
-            return proc.stderr.decode()
+            stderr = proc.stderr.decode()
+            log.error("Error happened executing <%s>:\n%s", cmd, stderr)
+            return stderr
         return ""
 
     def __enter__(self) -> "suspend":
