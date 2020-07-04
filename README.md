@@ -230,3 +230,4 @@ For navigation arrow keys also can be used.
 - `]`: next chat
 - `[`: prev chat
 - `?`: show help
+- `!`: open msg with custom cmd

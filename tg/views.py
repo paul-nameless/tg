@@ -102,7 +102,7 @@ class StatusView:
         self.win.clear()
         if not msg:
             return
-        self.win.addstr(0, 0, msg[: self.w])
+        self.win.addstr(0, 0, msg.replace("\n", " ")[: self.w])
         self._refresh()
 
     def get_input(self, msg: str = "") -> str:
@@ -564,9 +564,15 @@ def parse_content(content: Dict[str, Any]) -> str:
     if msg.is_text:
         return content["text"]["text"].replace("\n", " ")
 
-    elif not msg.content_type:
+    _type = content["@type"]
+
+    if _type == "messageBasicGroupChatCreate":
+        return "[created the group]"
+    if _type == "messageChatAddMembers":
+        return "[joined the group]"
+
+    if not msg.content_type:
         # not implemented
-        _type = content["@type"]
         return f"[{_type}]"
 
     content_text = ""
