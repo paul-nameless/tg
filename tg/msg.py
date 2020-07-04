@@ -18,6 +18,7 @@ class MsgProxy:
         "messageVideo": ("video", "video"),
         "messageVideoNote": ("video_note", "video"),
         "messageSticker": ("sticker", "thumbnail", "photo"),
+        "messagePoll": (),
     }
 
     types = {
@@ -75,14 +76,14 @@ class MsgProxy:
         return self.types.get(self.msg["content"]["@type"])
 
     @property
-    def size(self) -> int:
+    def size(self) -> Optional[int]:
         doc = self.get_doc(self.msg)
-        return doc["size"]
+        return doc.get("size")
 
     @property
-    def human_size(self) -> str:
-        doc = self.get_doc(self.msg)
-        return utils.humanize_size(doc["size"])
+    def human_size(self) -> Optional[str]:
+        if self.size:
+            return utils.humanize_size(self.size)
 
     @property
     def duration(self) -> Optional[str]:
@@ -123,7 +124,7 @@ class MsgProxy:
     @property
     def local(self) -> Dict:
         doc = self.get_doc(self.msg)
-        return doc["local"]
+        return doc.get("local", {})
 
     @local.setter
     def local(self, value: Dict) -> None:
@@ -151,8 +152,9 @@ class MsgProxy:
         return self.msg["content"]["poll"]["options"]
 
     @property
-    def is_closed_poll(self) -> bool:
-        assert self.is_poll
+    def is_closed_poll(self) -> Optional[bool]:
+        if not self.is_poll:
+            return None
         return self.msg["content"]["poll"]["is_closed"]
 
     @property
@@ -224,7 +226,7 @@ class MsgProxy:
         return self.msg["content"].get("sticker", {}).get("emoji")
 
     @property
-    def is_animated(self) -> bool:
+    def is_animated(self) -> Optional[bool]:
         if self.content_type != "sticker":
-            return False
+            return None
         return self.msg["content"].get("sticker", {}).get("is_animated")

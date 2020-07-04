@@ -564,17 +564,16 @@ def parse_content(content: Dict[str, Any]) -> str:
     if msg.is_text:
         return content["text"]["text"].replace("\n", " ")
 
-    elif msg.is_poll:
-        status = "Closed " if msg.is_closed_poll else ""
-        rv = f"📊 {status}Poll\n {msg.poll_question}"
-        for option in msg.poll_options:
-            rv += f"\n * {option['voter_count']} ({option['vote_percentage']}%) | {option['text']}"
-        return rv
-
     elif not msg.content_type:
         # not implemented
         _type = content["@type"]
         return f"[{_type}]"
+
+    content_text = ""
+    if msg.is_poll:
+        content_text = f"\n {msg.poll_question}"
+        for option in msg.poll_options:
+            content_text += f"\n * {option['voter_count']} ({option['vote_percentage']}%) | {option['text']}"
 
     fields = dict(
         name=msg.file_name,
@@ -585,10 +584,11 @@ def parse_content(content: Dict[str, Any]) -> str:
         viewed=format_bool(msg.is_viewed),
         animated=msg.is_animated,
         emoji=msg.sticker_emoji,
+        poll_closed=msg.is_closed_poll,
     )
-    info = ", ".join(f"{k}={v}" for k, v in fields.items() if v)
+    info = ", ".join(f"{k}={v}" for k, v in fields.items() if v is not None)
 
-    return f"[{msg.content_type}: {info}]"
+    return f"[{msg.content_type}: {info}]{content_text}"
 
 
 def format_bool(value: Optional[bool]) -> Optional[str]:
@@ -597,8 +597,12 @@ def format_bool(value: Optional[bool]) -> Optional[str]:
     return "yes" if value else "no"
 
 
-def get_download(local: Dict[str, Union[str, bool, int]], size: int) -> str:
-    if local["is_downloading_completed"]:
+def get_download(
+    local: Dict[str, Union[str, bool, int]], size: Optional[int]
+) -> Optional[str]:
+    if not size:
+        return None
+    elif local["is_downloading_completed"]:
         return "yes"
     elif local["is_downloading_active"]:
         d = int(local["downloaded_size"])
