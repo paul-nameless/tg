@@ -102,7 +102,7 @@ class StatusView:
         self.win.clear()
         if not msg:
             return
-        self.win.addstr(0, 0, msg[: self.w])
+        self.win.addstr(0, 0, msg.replace("\n", " ")[: self.w])
         self._refresh()
 
     def get_input(self, msg: str = "") -> str:
