@@ -15,6 +15,7 @@ import sys
 from datetime import datetime
 from functools import lru_cache
 from logging.handlers import RotatingFileHandler
+from subprocess import CompletedProcess
 from types import TracebackType
 from typing import Any, Optional, Tuple, Type
 
@@ -63,7 +64,7 @@ def setup_log() -> None:
         handlers.append(handler)
 
     logging.basicConfig(
-        format="%(levelname)-8s [%(asctime)s] %(name)s %(message)s",
+        format="%(levelname)s [%(asctime)s] %(filename)s:%(lineno)s - %(funcName)s | %(message)s",
         handlers=handlers,
     )
     logging.getLogger().setLevel(config.LOG_LEVEL)
@@ -71,10 +72,11 @@ def setup_log() -> None:
     logging.captureWarnings(True)
 
 
-def get_file_handler(file_path: str, default: str = None) -> Optional[str]:
+def get_file_handler(file_path: str) -> str:
     mtype, _ = mimetypes.guess_type(file_path)
     if not mtype:
-        return default
+        return config.DEFAULT_OPEN.format(file_path=shlex.quote(file_path))
+
     caps = mailcap.getcaps()
     handler, view = mailcap.findmatch(caps, mtype, filename=file_path)
     if not handler:
@@ -181,17 +183,27 @@ class suspend:
     def __init__(self, view: Any) -> None:
         self.view = view
 
-    def call(self, cmd: str) -> None:
-        subprocess.call(cmd, shell=True)
+    def call(self, cmd: str) -> CompletedProcess:
+        return subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
 
     def run_with_input(self, cmd: str, text: str) -> None:
         subprocess.run(cmd, universal_newlines=True, input=text, shell=True)
 
-    def open_file(self, file_path: str) -> None:
-        cmd = get_file_handler(file_path)
-        if not cmd:
-            return
-        self.call(cmd)
+    def open_file(self, file_path: str, cmd: str = None) -> str:
+        if cmd:
+            try:
+                cmd = cmd % shlex.quote(file_path)
+            except TypeError:
+                return "command should contain <%s> which will be replaced by file path"
+        else:
+            cmd = get_file_handler(file_path)
+
+        proc = self.call(cmd)
+        if proc.returncode:
+            stderr = proc.stderr.decode()
+            log.error("Error happened executing <%s>:\n%s", cmd, stderr)
+            return stderr
+        return ""
 
     def __enter__(self) -> "suspend":
         for view in (self.view.chats, self.view.msgs, self.view.status):
