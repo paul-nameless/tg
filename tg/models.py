@@ -27,9 +27,6 @@ class Model:
     def is_me(self, user_id: int) -> bool:
         return self.get_me()["id"] == user_id
 
-    def get_user(self, user_id: int) -> Dict:
-        return self.users.get_user(user_id)
-
     @property
     def current_chat_id(self) -> Optional[int]:
         return self.chats.id_by_index(self.current_chat)
@@ -464,6 +461,7 @@ class UserModel:
         self.supergroups: Dict[int, Dict] = {}
         self.actions: Dict[int, Dict] = {}
         self.not_found: Set[int] = set()
+        self.contacts: Dict[str, Any] = {}
 
     def get_me(self) -> Dict[str, Any]:
         if self.me:
@@ -557,3 +555,16 @@ class UserModel:
             return self.supergroups[supergroup_id]
         self.tg.get_supergroup(supergroup_id)
         return None
+
+    def get_contacts(self) -> Optional[Dict[str, Any]]:
+        if self.contacts:
+            return self.contacts
+
+        result = self.tg.get_contacts()
+        result.wait()
+
+        if result.error:
+            log.error("get contacts error: %s", result.error_info)
+            return None
+        self.contacts = result.update
+        return self.contacts
