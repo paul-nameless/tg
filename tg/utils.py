@@ -197,7 +197,7 @@ class suspend:
 
         proc = self.call(cmd)
         if proc.returncode:
-            input("Cmd failed: press <enter> to continue")
+            input(f"Command <{cmd}> failed: press <enter> to continue")
 
     def __enter__(self) -> "suspend":
         for view in (self.view.chats, self.view.msgs, self.view.status):
