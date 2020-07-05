@@ -135,6 +135,7 @@ CHAT_FLAGS = {
     "unread": "U",
     # last msg haven't been seen by recipient
     "unseen": "✓",
+    "secret": "🔒",
 }
 MSG_FLAGS = {
     "selected": "*",
