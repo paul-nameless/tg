@@ -398,8 +398,7 @@ class Controller:
                 f.write(msg.text_content)
                 f.flush()
                 with suspend(self.view) as s:
-                    if err_msg := s.open_file(f.name, cmd):
-                        self.present_error(err_msg)
+                    s.open_file(f.name, cmd)
             return
 
         path = msg.local_path
@@ -411,15 +410,20 @@ class Controller:
             return
         self.tg.open_message_content(chat_id, msg.msg_id)
         with suspend(self.view) as s:
-            if err_msg := s.open_file(path, cmd):
-                self.present_error(err_msg)
+            s.open_file(path, cmd)
 
     @bind(msg_handler, ["!"])
     def open_msg_with_cmd(self) -> None:
         """Open msg or file with cmd: less %s"""
         msg = MsgProxy(self.model.current_msg)
-        if cmd := self.view.status.get_input():
-            return self._open_msg(msg, cmd)
+        cmd = self.view.status.get_input()
+        if not cmd:
+            return
+        if "%s" not in cmd:
+            return self.present_error(
+                "command should contain <%s> which will be replaced by file path"
+            )
+        return self._open_msg(msg, cmd)
 
     @bind(msg_handler, ["l", "^J"])
     def open_current_msg(self) -> None:
