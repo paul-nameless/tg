@@ -184,26 +184,20 @@ class suspend:
         self.view = view
 
     def call(self, cmd: str) -> CompletedProcess:
-        return subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
+        return subprocess.run(cmd, shell=True)
 
     def run_with_input(self, cmd: str, text: str) -> None:
         subprocess.run(cmd, universal_newlines=True, input=text, shell=True)
 
-    def open_file(self, file_path: str, cmd: str = None) -> str:
+    def open_file(self, file_path: str, cmd: str = None) -> None:
         if cmd:
-            try:
-                cmd = cmd % shlex.quote(file_path)
-            except TypeError:
-                return "command should contain <%s> which will be replaced by file path"
+            cmd = cmd % shlex.quote(file_path)
         else:
             cmd = get_file_handler(file_path)
 
         proc = self.call(cmd)
         if proc.returncode:
-            stderr = proc.stderr.decode()
-            log.error("Error happened executing <%s>:\n%s", cmd, stderr)
-            return stderr
-        return ""
+            input("Cmd failed: press <enter> to continue")
 
     def __enter__(self) -> "suspend":
         for view in (self.view.chats, self.view.msgs, self.view.status):
