@@ -590,7 +590,7 @@ def parse_content(content: Dict[str, Any]) -> str:
         viewed=format_bool(msg.is_viewed),
         animated=msg.is_animated,
         emoji=msg.sticker_emoji,
-        poll_closed=msg.is_closed_poll,
+        closed=msg.is_closed_poll,
     )
     info = ", ".join(f"{k}={v}" for k, v in fields.items() if v is not None)
 
