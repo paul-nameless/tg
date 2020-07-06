@@ -1,7 +1,7 @@
 import logging
 import time
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, Iterable
 
 from tg.msg import MsgProxy
 from tg.tdlib import ChatAction, Tdlib, UserStatus
@@ -260,8 +260,15 @@ class ChatModel:
             return {}
         return result.update
 
-    def add_chats(self, chat_ids: List[int]) -> None:
-        chats = (self.fetch_chat(chat_id) for chat_id in chat_ids)
+    def add_chats(
+        self,
+        chat_ids: Optional[Iterable[int]] = None,
+        chats: Optional[Iterable[Dict[str, Any]]] = None,
+    ) -> None:
+        if chat_ids and not chats:
+            chats = (self.fetch_chat(chat_id) for chat_id in chat_ids)
+        if not chats:
+            raise RuntimeError("")
 
         for chat in chats:
             chat_id = int(chat["id"])
