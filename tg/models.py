@@ -206,6 +206,7 @@ class ChatModel:
     def __init__(self, tg: Tdlib) -> None:
         self.tg = tg
         self.chats: List[Dict[str, Any]] = []
+        self.inactive_chats: Dict[int, Any] = {}
         self.chat_ids: List[int] = []
         self.have_full_chat_list = False
         self.title: str = "Chats"
@@ -268,11 +269,14 @@ class ChatModel:
         if chat_ids and not chats:
             chats = (self.fetch_chat(chat_id) for chat_id in chat_ids)
         if not chats:
-            raise RuntimeError("")
+            raise RuntimeError("Either chats or chaat_ids should be provided")
 
         for chat in chats:
             chat_id = int(chat["id"])
-            if int(chat["order"]) == 0 or chat_id in self.chat_ids:
+            if chat_id in self.chat_ids:
+                continue
+            if int(chat["order"]) == 0:
+                self.inactive_chats[chat["id"]] = chat
                 continue
             self.chat_ids.append(chat_id)
             self.chats.append(chat)
@@ -295,9 +299,18 @@ class ChatModel:
             self._sort_chats()
             log.info(f"Updated chat with keys {list(updates)}")
             return True
-        else:
-            log.warning(f"Can't find chat {chat_id} in existing chats")
+
+        if chat := self.inactive_chats.get(chat_id):
+            chat.update(updates)
+            if int(chat["order"]) != 0:
+                del self.inactive_chats[chat_id]
+                self.add_chats(chats=[chat])
+                log.info(f"Marked chat '{chat['title']}' as active")
+                return True
             return False
+
+        log.warning(f"Can't find chat {chat_id} in existing chats")
+        return False
 
 
 class MsgModel:
