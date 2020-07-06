@@ -360,7 +360,9 @@ class MsgModel:
         }
 
     def update_msg_content_opened(self, chat_id: int, msg_id: int) -> None:
-        index = self.msg_idx[chat_id][msg_id]
+        index = self.msg_idx[chat_id].get(msg_id)
+        if not index:
+            return
         msg = MsgProxy(self.msgs[chat_id][index])
         if msg.content_type == "voice":
             msg.is_listened = True
@@ -373,7 +375,9 @@ class MsgModel:
     def update_msg(
         self, chat_id: int, msg_id: int, **fields: Dict[str, Any]
     ) -> None:
-        index = self.msg_idx[chat_id][msg_id]
+        index = self.msg_idx[chat_id].get(msg_id)
+        if not index:
+            return
         msg = self.msgs[chat_id][index]
         msg.update(fields)
 

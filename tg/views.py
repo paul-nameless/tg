@@ -102,7 +102,7 @@ class StatusView:
         self.win.clear()
         if not msg:
             return
-        self.win.addstr(0, 0, msg[: self.w])
+        self.win.addstr(0, 0, msg.replace("\n", " ")[: self.w])
         self._refresh()
 
     def get_input(self, msg: str = "") -> str:
@@ -223,7 +223,6 @@ class ChatView:
         self, chat: Dict[str, Any]
     ) -> Tuple[Optional[str], Optional[str]]:
         user, last_msg = get_last_msg(chat)
-        last_msg = last_msg.replace("\n", " ")
         if user:
             last_msg_sender = _get_user_label(self.model.users, user)
             chat_type = get_chat_type(chat)
@@ -245,7 +244,7 @@ class ChatView:
             # last msg haven't been seen by recipient
             flags.append("unseen")
 
-        if action_label := _get_action_label(self.model.users, chat["id"]):
+        if action_label := _get_action_label(self.model.users, chat):
             flags.append(action_label)
 
         if self.model.users.is_online(chat["id"]):
@@ -329,7 +328,6 @@ class MsgView:
             return msg
         reply_msg = MsgProxy(_msg)
         if reply_msg_content := self._parse_msg(reply_msg):
-            reply_msg_content = reply_msg_content.replace("\n", " ")
             reply_sender = _get_user_label(
                 self.model.users, reply_msg.sender_id
             )
@@ -356,7 +354,6 @@ class MsgView:
         self, msg_proxy: MsgProxy, user_id_item: int, width_limit: int
     ) -> str:
         msg = self._parse_msg(msg_proxy)
-        msg = msg.replace("\n", " ")
         if caption := msg_proxy.caption:
             msg += "\n" + caption.replace("\n", " ")
         msg += self._format_url(msg_proxy)
@@ -500,7 +497,7 @@ class MsgView:
         chat_type = get_chat_type(chat)
         status = ""
 
-        if action_label := _get_action_label(self.model.users, chat["id"]):
+        if action_label := _get_action_label(self.model.users, chat):
             status = action_label
         elif chat_type == ChatType.chatTypePrivate:
             status = self.model.users.get_status(chat["id"])
@@ -565,12 +562,24 @@ def get_date(chat: Dict[str, Any]) -> str:
 def parse_content(content: Dict[str, Any]) -> str:
     msg = MsgProxy({"content": content})
     if msg.is_text:
-        return content["text"]["text"]
+        return content["text"]["text"].replace("\n", " ")
+
+    _type = content["@type"]
+
+    if _type == "messageBasicGroupChatCreate":
+        return "[created the group]"
+    if _type == "messageChatAddMembers":
+        return "[joined the group]"
 
     if not msg.content_type:
         # not implemented
-        _type = content["@type"]
         return f"[{_type}]"
+
+    content_text = ""
+    if msg.is_poll:
+        content_text = f"\n {msg.poll_question}"
+        for option in msg.poll_options:
+            content_text += f"\n * {option['voter_count']} ({option['vote_percentage']}%) | {option['text']}"
 
     fields = dict(
         name=msg.file_name,
@@ -581,10 +590,11 @@ def parse_content(content: Dict[str, Any]) -> str:
         viewed=format_bool(msg.is_viewed),
         animated=msg.is_animated,
         emoji=msg.sticker_emoji,
+        closed=msg.is_closed_poll,
     )
-    info = ", ".join(f"{k}={v}" for k, v in fields.items() if v)
+    info = ", ".join(f"{k}={v}" for k, v in fields.items() if v is not None)
 
-    return f"[{msg.content_type}: {info}]"
+    return f"[{msg.content_type}: {info}]{content_text}"
 
 
 def format_bool(value: Optional[bool]) -> Optional[str]:
@@ -593,8 +603,12 @@ def format_bool(value: Optional[bool]) -> Optional[str]:
     return "yes" if value else "no"
 
 
-def get_download(local: Dict[str, Union[str, bool, int]], size: int) -> str:
-    if local["is_downloading_completed"]:
+def get_download(
+    local: Dict[str, Union[str, bool, int]], size: Optional[int]
+) -> Optional[str]:
+    if not size:
+        return None
+    elif local["is_downloading_completed"]:
         return "yes"
     elif local["is_downloading_active"]:
         d = int(local["downloaded_size"])
@@ -618,9 +632,15 @@ def _get_user_label(users: UserModel, user_id: int) -> str:
     return "Unknown?"
 
 
-def _get_action_label(users: UserModel, chat_id: int) -> Optional[str]:
-    actioner, action = users.get_user_action(chat_id)
+def _get_action_label(users: UserModel, chat: Dict[str, Any]) -> Optional[str]:
+    actioner, action = users.get_user_action(chat["id"])
     if actioner and action:
-        user_label = _get_user_label(users, actioner)
-        return f"{user_label} is {action}..."
+        label = f"{action}..."
+        chat_type = get_chat_type(chat)
+        if chat_type and chat_type.is_group(chat_type):
+            user_label = _get_user_label(users, actioner)
+            label = f"{user_label} {label}"
+
+        return label
+
     return None

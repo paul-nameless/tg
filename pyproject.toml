@@ -1,7 +1,7 @@
 [tool.flit.metadata]
 module = "tg"
 dist-name = "tg"
-description-file = "README.md"
+description-file = "readme.md"
 author = "Paul Nameless"
 author-email = "reacsdas@gmail.com"
 home-page = 'https://github.com/paul-nameless/tg'

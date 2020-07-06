@@ -392,15 +392,13 @@ class Controller:
         chat = self.model.chats.chats[self.model.current_chat]
         return chat["permissions"]["can_send_messages"]
 
-    @bind(msg_handler, ["l", "^J"])
-    def open_current_msg(self) -> None:
-        msg = MsgProxy(self.model.current_msg)
+    def _open_msg(self, msg: MsgProxy, cmd: str = None) -> None:
         if msg.is_text:
             with NamedTemporaryFile("w", suffix=".txt") as f:
                 f.write(msg.text_content)
                 f.flush()
                 with suspend(self.view) as s:
-                    s.open_file(f.name)
+                    s.open_file(f.name, cmd)
             return
 
         path = msg.local_path
@@ -412,7 +410,26 @@ class Controller:
             return
         self.tg.open_message_content(chat_id, msg.msg_id)
         with suspend(self.view) as s:
-            s.open_file(path)
+            s.open_file(path, cmd)
+
+    @bind(msg_handler, ["!"])
+    def open_msg_with_cmd(self) -> None:
+        """Open msg or file with cmd: less %s"""
+        msg = MsgProxy(self.model.current_msg)
+        cmd = self.view.status.get_input()
+        if not cmd:
+            return
+        if "%s" not in cmd:
+            return self.present_error(
+                "command should contain <%s> which will be replaced by file path"
+            )
+        return self._open_msg(msg, cmd)
+
+    @bind(msg_handler, ["l", "^J"])
+    def open_current_msg(self) -> None:
+        """Open msg or file with cmd in mailcap"""
+        msg = MsgProxy(self.model.current_msg)
+        self._open_msg(msg)
 
     @bind(msg_handler, ["e"])
     def edit_msg(self) -> None:
@@ -526,13 +543,16 @@ class Controller:
         self.resize()
 
         while True:
-            repeat_factor, keys = self.view.get_keys()
-            fun = handlers.get(keys, lambda *_: None)
-            res = fun(self, repeat_factor)  # type: ignore
-            if res == "QUIT":
-                return res
-            elif res == "BACK":
-                return res
+            try:
+                repeat_factor, keys = self.view.get_keys()
+                fun = handlers.get(keys, lambda *_: None)
+                res = fun(self, repeat_factor)  # type: ignore
+                if res == "QUIT":
+                    return res
+                elif res == "BACK":
+                    return res
+            except Exception:
+                log.exception("Error happend in key handle loop")
 
     def resize_handler(self, signum: int, frame: Any) -> None:
         curses.endwin()

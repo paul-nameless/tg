@@ -1,5 +1,7 @@
 # tg
 
+[![Join telegram chat](https://img.shields.io/badge/telegram-join%20chat-black.svg)](https://t.me/tg_term)
+
 Telegram terminal client.
 
 ![tg screenshot](tg-screenshot.png)
@@ -69,6 +71,10 @@ yay -S telegram-tg-git
   ```
   and then set in config `TDLIB_PATH`
 - `urlview` to choose urls when there is multiple in message, use `URL_VIEW` in config file to use another app (it should accept urls in stdin)
+- to open `stickers` and `animated` ones (thumbnail preview) you need to set in mailcap appropriate handler and have app which will open `webp` file:
+  ```ini
+  image/webp; mpv %s
+  ```
 
 
 ## Configuration
@@ -214,7 +220,8 @@ For navigation arrow keys also can be used.
   ```
   if text, open in `less` (to view multiline msgs)
 - `e`: edit current msg
-- `<space>`: space can be used to select multiple msgs for deletion or forwarding
+- `<space>`: select msg and jump one msg down (use for deletion or forwarding)
+- `<ctrl+space>`: same as space but jumps one msg up
 - `y`: yank (copy) selected msgs with <space> to internal buffer (for forwarding) and copy current msg text or path to file to clipboard
 - `p`: forward (paste) yanked (copied) msgs to current chat
 - `dd`: delete msg for everybody (multiple messages will be deleted if selected)
@@ -230,3 +237,4 @@ For navigation arrow keys also can be used.
 - `]`: next chat
 - `[`: prev chat
 - `?`: show help
+- `!`: open msg with custom cmd

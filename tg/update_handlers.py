@@ -73,7 +73,7 @@ def update_new_message(controller: Controller, update: Dict[str, Any]) -> None:
     current_chat_id = controller.model.current_chat_id
     if current_chat_id == msg.chat_id:
         controller.render_msgs()
-    if msg.file_id and msg.size <= max_download_size:
+    if msg.file_id and msg.size and msg.size <= max_download_size:
         controller.download(msg.file_id, msg.chat_id, msg["id"])
 
     controller.notify_for_message(msg.chat_id, msg)
