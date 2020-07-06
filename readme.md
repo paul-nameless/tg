@@ -38,6 +38,7 @@ From pip:
 
 ```sh
 pip3 install tg
+tg
 ```
 
 From sources:
@@ -46,7 +47,8 @@ From sources:
 pip3 install python-telegram
 git clone git@github.com:paul-nameless/tg.git
 cd tg
-PYTHONPATH=. python3 tg/main.py
+PYTHONPATH=. 
+python3 tg/main.py
 ```
 
 Docker (voice recordings and notifications won't work):
