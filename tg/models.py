@@ -1,7 +1,7 @@
 import logging
 import time
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set, Tuple, Iterable
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from tg.msg import MsgProxy
 from tg.tdlib import ChatAction, Tdlib, UserStatus
@@ -207,7 +207,7 @@ class ChatModel:
         self.tg = tg
         self.chats: List[Dict[str, Any]] = []
         self.inactive_chats: Dict[int, Any] = {}
-        self.chat_ids: List[int] = []
+        self.chat_ids: Set[int] = set()
         self.have_full_chat_list = False
         self.title: str = "Chats"
 
@@ -248,9 +248,10 @@ class ChatModel:
         chat_ids = result.update["chat_ids"]
         if not chat_ids:
             self.have_full_chat_list = True
-            return chat_ids
+            return
 
-        self.add_chats(chat_ids)
+        for chat_id in chat_ids:
+            self.fetch_chat(chat_id)
 
     def fetch_chat(self, chat_id: int) -> Dict[str, Any]:
         result = self.tg.get_chat(chat_id)
@@ -261,25 +262,15 @@ class ChatModel:
             return {}
         return result.update
 
-    def add_chats(
-        self,
-        chat_ids: Optional[Iterable[int]] = None,
-        chats: Optional[Iterable[Dict[str, Any]]] = None,
-    ) -> None:
-        if chat_ids and not chats:
-            chats = (self.fetch_chat(chat_id) for chat_id in chat_ids)
-        if not chats:
-            raise RuntimeError("Either chats or chaat_ids should be provided")
-
-        for chat in chats:
-            chat_id = int(chat["id"])
-            if chat_id in self.chat_ids:
-                continue
-            if int(chat["order"]) == 0:
-                self.inactive_chats[chat["id"]] = chat
-                continue
-            self.chat_ids.append(chat_id)
-            self.chats.append(chat)
+    def add_chat(self, chat: Dict[str, Any]) -> None:
+        chat_id = int(chat["id"])
+        if chat_id in self.chat_ids:
+            return
+        if int(chat["order"]) == 0:
+            self.inactive_chats[chat["id"]] = chat
+            return
+        self.chat_ids.add(chat_id)
+        self.chats.append(chat)
         self._sort_chats()
 
     def _sort_chats(self) -> None:
@@ -304,7 +295,7 @@ class ChatModel:
             chat.update(updates)
             if int(chat["order"]) != 0:
                 del self.inactive_chats[chat_id]
-                self.add_chats(chats=[chat])
+                self.add_chat(chat)
                 log.info(f"Marked chat '{chat['title']}' as active")
                 return True
             return False
