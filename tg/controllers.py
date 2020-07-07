@@ -460,14 +460,25 @@ class Controller:
             return self.present_error("Can't get contacts")
 
         total = contacts["total_count"]
-        users = [f"{total} users:"]
+        users = []
         for user_id in contacts["user_ids"]:
-            user = get_user_label(self.model.users, user_id)
+            user_name = get_user_label(self.model.users, user_id)
             status = self.model.users.get_status(user_id)
-            users.append(f"{user:<40} | {status}")
+            users.append((user_name, status))
 
+        _, cols = self.view.stdscr.getmaxyx()
+        limit = min(
+            int(cols / 2), max(len(user_name) for user_name, _ in users)
+        )
+        users_out = "\n".join(
+            f"{user_name:<{limit}} | {status}"
+            for user_name, status in sorted(users, key=lambda it: it[0])
+        )
         with suspend(self.view) as s:
-            s.run_with_input(config.VIEW_TEXT_CMD, "\n".join(users))
+            s.run_with_input(
+                config.VIEW_TEXT_CMD,
+                f"{total} users:\n" + users_out,
+            )
 
     @bind(chat_handler, ["l", "^J", "^E"])
     def handle_msgs(self) -> Optional[str]:

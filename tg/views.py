@@ -629,7 +629,7 @@ def get_user_label(users: UserModel, user_id: int) -> str:
 
     if user.get("username"):
         return "@" + user["username"]
-    return "Unknown?"
+    return "<Unknown>"
 
 
 def _get_action_label(users: UserModel, chat: Dict[str, Any]) -> Optional[str]:
