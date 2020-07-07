@@ -476,7 +476,7 @@ class Controller:
         )
         with suspend(self.view) as s:
             s.run_with_input(
-                config.VIEW_TEXT_CMD, f"{total} users:\n" + users_out,
+                config.VIEW_TEXT_CMD, f"{total} users:\n" + users_out
             )
 
     @bind(chat_handler, ["l", "^J", "^E"])
