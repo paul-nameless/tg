@@ -1,4 +1,5 @@
 import logging
+import sys
 import time
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -26,9 +27,6 @@ class Model:
 
     def is_me(self, user_id: int) -> bool:
         return self.get_me()["id"] == user_id
-
-    def get_user(self, user_id: int) -> Dict:
-        return self.users.get_user(user_id)
 
     @property
     def current_chat_id(self) -> Optional[int]:
@@ -464,6 +462,7 @@ class UserModel:
         self.supergroups: Dict[int, Dict] = {}
         self.actions: Dict[int, Dict] = {}
         self.not_found: Set[int] = set()
+        self.contacts: Dict[str, Any] = {}
 
     def get_me(self) -> Dict[str, Any]:
         if self.me:
@@ -519,6 +518,28 @@ class UserModel:
             return f"last seen {ago}"
         return f"last seen {status.value}"
 
+    def get_user_status_order(self, user_id: int) -> int:
+        if user_id not in self.users:
+            return sys.maxsize
+        user_status = self.users[user_id]["status"]
+
+        try:
+            status = UserStatus[user_status["@type"]]
+        except KeyError:
+            log.error(f"UserStatus type {user_status} not implemented")
+            return sys.maxsize
+        if status == UserStatus.userStatusOnline:
+            return 0
+        elif status == UserStatus.userStatusOffline:
+            was_online = user_status["was_online"]
+            return time.time() - was_online
+        order = {
+            UserStatus.userStatusRecently: 1,
+            UserStatus.userStatusLastWeek: 2,
+            UserStatus.userStatusLastMonth: 3,
+        }
+        return order.get(status, sys.maxsize)
+
     def is_online(self, user_id: int) -> bool:
         user = self.get_user(user_id)
         if (
@@ -557,3 +578,16 @@ class UserModel:
             return self.supergroups[supergroup_id]
         self.tg.get_supergroup(supergroup_id)
         return None
+
+    def get_contacts(self) -> Optional[Dict[str, Any]]:
+        if self.contacts:
+            return self.contacts
+
+        result = self.tg.get_contacts()
+        result.wait()
+
+        if result.error:
+            log.error("get contacts error: %s", result.error_info)
+            return None
+        self.contacts = result.update
+        return self.contacts

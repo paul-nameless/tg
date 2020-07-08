@@ -257,6 +257,12 @@ class Tdlib(Telegram):
         }
         return self._send_data(data)
 
+    def get_contacts(self) -> AsyncResult:
+        data = {
+            "@type": "getContacts",
+        }
+        return self._send_data(data)
+
 
 def get_chat_type(chat: Dict[str, Any]) -> Optional[ChatType]:
     try:

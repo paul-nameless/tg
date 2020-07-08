@@ -224,7 +224,7 @@ class ChatView:
     ) -> Tuple[Optional[str], Optional[str]]:
         user, last_msg = get_last_msg(chat)
         if user:
-            last_msg_sender = _get_user_label(self.model.users, user)
+            last_msg_sender = get_user_label(self.model.users, user)
             chat_type = get_chat_type(chat)
             if chat_type and chat_type.is_group(chat_type):
                 return last_msg_sender, last_msg
@@ -328,7 +328,7 @@ class MsgView:
             return msg
         reply_msg = MsgProxy(_msg)
         if reply_msg_content := self._parse_msg(reply_msg):
-            reply_sender = _get_user_label(
+            reply_sender = get_user_label(
                 self.model.users, reply_msg.sender_id
             )
             sender_name = f" {reply_sender}:" if reply_sender else ""
@@ -390,7 +390,7 @@ class MsgView:
                 dt = msg_proxy.date.strftime("%H:%M:%S")
                 user_id_item = msg_proxy.sender_id
 
-                user_id = _get_user_label(self.model.users, user_id_item)
+                user_id = get_user_label(self.model.users, user_id_item)
                 flags = self._get_flags(msg_proxy)
                 if user_id and flags:
                     # if not channel add space between name and flags
@@ -617,7 +617,7 @@ def get_download(
     return "no"
 
 
-def _get_user_label(users: UserModel, user_id: int) -> str:
+def get_user_label(users: UserModel, user_id: int) -> str:
     if user_id == 0:
         return ""
     user = users.get_user(user_id)
@@ -629,7 +629,7 @@ def _get_user_label(users: UserModel, user_id: int) -> str:
 
     if user.get("username"):
         return "@" + user["username"]
-    return "Unknown?"
+    return "<Unknown>"
 
 
 def _get_action_label(users: UserModel, chat: Dict[str, Any]) -> Optional[str]:
@@ -638,7 +638,7 @@ def _get_action_label(users: UserModel, chat: Dict[str, Any]) -> Optional[str]:
         label = f"{action}..."
         chat_type = get_chat_type(chat)
         if chat_type and chat_type.is_group(chat_type):
-            user_label = _get_user_label(users, actioner)
+            user_label = get_user_label(users, actioner)
             label = f"{user_label} {label}"
 
         return label

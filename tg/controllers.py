@@ -12,7 +12,7 @@ from telegram.utils import AsyncResult
 from tg import config
 from tg.models import Model
 from tg.msg import MsgProxy
-from tg.tdlib import ChatAction, Tdlib
+from tg.tdlib import ChatAction, Tdlib, UserStatus
 from tg.utils import (
     get_duration,
     get_video_resolution,
@@ -21,7 +21,7 @@ from tg.utils import (
     notify,
     suspend,
 )
-from tg.views import View
+from tg.views import View, get_user_label
 
 log = logging.getLogger(__name__)
 
@@ -109,13 +109,13 @@ class Controller:
     def show_chat_help(self) -> None:
         _help = self.format_help(chat_handler)
         with suspend(self.view) as s:
-            s.run_with_input(config.HELP_CMD, _help)
+            s.run_with_input(config.VIEW_TEXT_CMD, _help)
 
     @bind(msg_handler, ["?"])
     def show_msg_help(self) -> None:
         _help = self.format_help(msg_handler)
         with suspend(self.view) as s:
-            s.run_with_input(config.HELP_CMD, _help)
+            s.run_with_input(config.VIEW_TEXT_CMD, _help)
 
     @bind(chat_handler, ["bp"])
     @bind(msg_handler, ["bp"])
@@ -452,6 +452,33 @@ class Controller:
                 if text := f.read().strip():
                     self.model.edit_message(text=text)
                     self.present_info("Message edited")
+
+    @bind(chat_handler, ["c"])
+    def view_contacts(self) -> None:
+        contacts = self.model.users.get_contacts()
+        if contacts is None:
+            return self.present_error("Can't get contacts")
+
+        total = contacts["total_count"]
+        users = []
+        for user_id in contacts["user_ids"]:
+            user_name = get_user_label(self.model.users, user_id)
+            status = self.model.users.get_status(user_id)
+            order = self.model.users.get_user_status_order(user_id)
+            users.append((user_name, status, order))
+
+        _, cols = self.view.stdscr.getmaxyx()
+        limit = min(
+            int(cols / 2), max(len(user_name) for user_name, *_ in users)
+        )
+        users_out = "\n".join(
+            f"{user_name:<{limit}} | {status}"
+            for user_name, status, _ in sorted(users, key=lambda it: it[2])
+        )
+        with suspend(self.view) as s:
+            s.run_with_input(
+                config.VIEW_TEXT_CMD, f"{total} users:\n" + users_out
+            )
 
     @bind(chat_handler, ["l", "^J", "^E"])
     def handle_msgs(self) -> Optional[str]:
