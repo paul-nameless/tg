@@ -263,11 +263,11 @@ class ChatModel:
         return result.update
 
     def add_chat(self, chat: Dict[str, Any]) -> None:
-        chat_id = int(chat["id"])
+        chat_id = chat["id"]
         if chat_id in self.chat_ids:
             return
         if int(chat["order"]) == 0:
-            self.inactive_chats[chat["id"]] = chat
+            self.inactive_chats[chat_id] = chat
             return
         self.chat_ids.add(chat_id)
         self.chats.append(chat)
