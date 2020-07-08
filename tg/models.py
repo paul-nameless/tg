@@ -286,9 +286,15 @@ class ChatModel:
         for i, c in enumerate(self.chats):
             if c["id"] != chat_id:
                 continue
-            self.chats[i].update(updates)
-            self._sort_chats()
-            log.info(f"Updated chat with keys {list(updates)}")
+            c.update(updates)
+            if int(c["order"]) == 0:
+                self.inactive_chats[chat_id] = c
+                self.chat_ids.discard(chat_id)
+                self.chats = [c_ for c_ in self.chats if c_["id"] != chat_id]
+                log.info(f"Removing chat '{c['title']}'")
+            else:
+                self._sort_chats()
+                log.info(f"Updated chat with keys {list(updates)}")
             return True
 
         if chat := self.inactive_chats.get(chat_id):
