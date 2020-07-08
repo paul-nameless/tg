@@ -206,7 +206,7 @@ class ChatModel:
     def __init__(self, tg: Tdlib) -> None:
         self.tg = tg
         self.chats: List[Dict[str, Any]] = []
-        self.inactive_chats: Dict[int, Any] = {}
+        self.inactive_chats: Dict[int, Dict[str, Any]] = {}
         self.chat_ids: Set[int] = set()
         self.have_full_chat_list = False
         self.title: str = "Chats"
@@ -300,12 +300,12 @@ class ChatModel:
                 log.info(f"Updated chat with keys {list(updates)}")
             return True
 
-        if chat := self.inactive_chats.get(chat_id):
-            chat.update(updates)
-            if int(chat["order"]) != 0:
+        if _chat := self.inactive_chats.get(chat_id):
+            _chat.update(updates)
+            if int(_chat["order"]) != 0:
                 del self.inactive_chats[chat_id]
-                self.add_chat(chat)
-                log.info(f"Marked chat '{chat['title']}' as active")
+                self.add_chat(_chat)
+                log.info(f"Marked chat '{_chat['title']}' as active")
                 return True
             return False
 
