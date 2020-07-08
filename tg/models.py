@@ -1,4 +1,5 @@
 import logging
+import sys
 import time
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -516,6 +517,28 @@ class UserModel:
             ago = pretty_ts(was_online)
             return f"last seen {ago}"
         return f"last seen {status.value}"
+
+    def get_user_status_order(self, user_id: int) -> int:
+        if user_id not in self.users:
+            return sys.maxsize
+        user_status = self.users[user_id]["status"]
+
+        try:
+            status = UserStatus[user_status["@type"]]
+        except KeyError:
+            log.error(f"UserStatus type {user_status} not implemented")
+            return sys.maxsize
+        if status == UserStatus.userStatusOnline:
+            return 0
+        elif status == UserStatus.userStatusOffline:
+            was_online = user_status["was_online"]
+            return time.time() - was_online
+        order = {
+            UserStatus.userStatusRecently: 1,
+            UserStatus.userStatusLastWeek: 2,
+            UserStatus.userStatusLastMonth: 3,
+        }
+        return order.get(status, sys.maxsize)
 
     def is_online(self, user_id: int) -> bool:
         user = self.get_user(user_id)

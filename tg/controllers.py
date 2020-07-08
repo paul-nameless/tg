@@ -12,7 +12,7 @@ from telegram.utils import AsyncResult
 from tg import config
 from tg.models import Model
 from tg.msg import MsgProxy
-from tg.tdlib import ChatAction, Tdlib
+from tg.tdlib import ChatAction, Tdlib, UserStatus
 from tg.utils import (
     get_duration,
     get_video_resolution,
@@ -456,7 +456,7 @@ class Controller:
     @bind(chat_handler, ["c"])
     def view_contacts(self) -> None:
         contacts = self.model.users.get_contacts()
-        if not contacts:
+        if contacts is None:
             return self.present_error("Can't get contacts")
 
         total = contacts["total_count"]
@@ -464,15 +464,16 @@ class Controller:
         for user_id in contacts["user_ids"]:
             user_name = get_user_label(self.model.users, user_id)
             status = self.model.users.get_status(user_id)
-            users.append((user_name, status))
+            order = self.model.users.get_user_status_order(user_id)
+            users.append((user_name, status, order))
 
         _, cols = self.view.stdscr.getmaxyx()
         limit = min(
-            int(cols / 2), max(len(user_name) for user_name, _ in users)
+            int(cols / 2), max(len(user_name) for user_name, *_ in users)
         )
         users_out = "\n".join(
             f"{user_name:<{limit}} | {status}"
-            for user_name, status in sorted(users, key=lambda it: it[0])
+            for user_name, status, _ in sorted(users, key=lambda it: it[2])
         )
         with suspend(self.view) as s:
             s.run_with_input(
