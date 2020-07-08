@@ -251,7 +251,8 @@ class ChatModel:
             return
 
         for chat_id in chat_ids:
-            self.fetch_chat(chat_id)
+            chat = self.fetch_chat(chat_id)
+            self.add_chat(chat)
 
     def fetch_chat(self, chat_id: int) -> Dict[str, Any]:
         result = self.tg.get_chat(chat_id)
@@ -283,15 +284,17 @@ class ChatModel:
         )
 
     def update_chat(self, chat_id: int, **updates: Dict[str, Any]) -> bool:
-        for i, c in enumerate(self.chats):
-            if c["id"] != chat_id:
+        for i, chat in enumerate(self.chats):
+            if chat["id"] != chat_id:
                 continue
-            c.update(updates)
-            if int(c["order"]) == 0:
-                self.inactive_chats[chat_id] = c
+            chat.update(updates)
+            if int(chat["order"]) == 0:
+                self.inactive_chats[chat_id] = chat
                 self.chat_ids.discard(chat_id)
-                self.chats = [c_ for c_ in self.chats if c_["id"] != chat_id]
-                log.info(f"Removing chat '{c['title']}'")
+                self.chats = [
+                    _chat for _chat in self.chats if _chat["id"] != chat_id
+                ]
+                log.info(f"Removing chat '{chat['title']}'")
             else:
                 self._sort_chats()
                 log.info(f"Updated chat with keys {list(updates)}")
