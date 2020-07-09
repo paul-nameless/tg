@@ -2,7 +2,7 @@ import logging
 import sys
 import time
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from tg.msg import MsgProxy
 from tg.tdlib import ChatAction, Tdlib, UserStatus
@@ -204,7 +204,8 @@ class ChatModel:
     def __init__(self, tg: Tdlib) -> None:
         self.tg = tg
         self.chats: List[Dict[str, Any]] = []
-        self.chat_ids: List[int] = []
+        self.inactive_chats: Dict[int, Dict[str, Any]] = {}
+        self.chat_ids: Set[int] = set()
         self.have_full_chat_list = False
         self.title: str = "Chats"
 
@@ -242,17 +243,14 @@ class ChatModel:
             log.error(f"get chat ids error: {result.error_info}")
             return None
 
-        chats = result.update["chat_ids"]
-        if not chats:
+        chat_ids = result.update["chat_ids"]
+        if not chat_ids:
             self.have_full_chat_list = True
-            return chats
+            return
 
-        for chat_id in chats:
-            # TODO: fix this, we shouldn't have any duplicates
-            if chat_id not in self.chat_ids:
-                self.chat_ids.append(chat_id)
-                chat = self.fetch_chat(chat_id)
-                self.chats.append(chat)
+        for chat_id in chat_ids:
+            chat = self.fetch_chat(chat_id)
+            self.add_chat(chat)
 
     def fetch_chat(self, chat_id: int) -> Dict[str, Any]:
         result = self.tg.get_chat(chat_id)
@@ -263,23 +261,54 @@ class ChatModel:
             return {}
         return result.update
 
+    def add_chat(self, chat: Dict[str, Any]) -> None:
+        chat_id = chat["id"]
+        if chat_id in self.chat_ids:
+            return
+        if int(chat["order"]) == 0:
+            self.inactive_chats[chat_id] = chat
+            return
+        self.chat_ids.add(chat_id)
+        self.chats.append(chat)
+        self._sort_chats()
+
+    def _sort_chats(self) -> None:
+        self.chats = sorted(
+            self.chats,
+            # recommended chat order, for more info see
+            # https://core.telegram.org/tdlib/getting-started#getting-the-lists-of-chats
+            key=lambda it: (it["order"], it["id"]),
+            reverse=True,
+        )
+
     def update_chat(self, chat_id: int, **updates: Dict[str, Any]) -> bool:
-        for i, c in enumerate(self.chats):
-            if c["id"] != chat_id:
+        for i, chat in enumerate(self.chats):
+            if chat["id"] != chat_id:
                 continue
-            self.chats[i].update(updates)
-            self.chats = sorted(
-                self.chats,
-                # recommended chat order, for more info see
-                # https://core.telegram.org/tdlib/getting-started#getting-the-lists-of-chats
-                key=lambda it: (it["order"], it["id"]),
-                reverse=True,
-            )
-            log.info(f"Updated chat with keys {list(updates)}")
+            chat.update(updates)
+            if int(chat["order"]) == 0:
+                self.inactive_chats[chat_id] = chat
+                self.chat_ids.discard(chat_id)
+                self.chats = [
+                    _chat for _chat in self.chats if _chat["id"] != chat_id
+                ]
+                log.info(f"Removing chat '{chat['title']}'")
+            else:
+                self._sort_chats()
+                log.info(f"Updated chat with keys {list(updates)}")
             return True
-        else:
-            log.warning(f"Can't find chat {chat_id} in existing chats")
+
+        if _chat := self.inactive_chats.get(chat_id):
+            _chat.update(updates)
+            if int(_chat["order"]) != 0:
+                del self.inactive_chats[chat_id]
+                self.add_chat(_chat)
+                log.info(f"Marked chat '{_chat['title']}' as active")
+                return True
             return False
+
+        log.warning(f"Can't find chat {chat_id} in existing chats")
+        return False
 
 
 class MsgModel:
@@ -386,9 +415,10 @@ class MsgModel:
                 limit=len(self.msgs[chat_id]) + limit,
             )
         result.wait()
+        if not result or not result.update["messages"]:
+            return []
+
         messages = result.update["messages"]
-        if not messages:
-            return messages
 
         # tdlib could doesn't guarantee number of messages, so we need to
         # send another request on demand
