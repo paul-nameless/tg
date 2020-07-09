@@ -261,6 +261,9 @@ class ChatView:
         elif chat["unread_count"]:
             flags.append(str(chat["unread_count"]))
 
+        if get_chat_type(chat) == ChatType.chatTypeSecret:
+            flags.append("secret")
+
         label = " ".join(config.CHAT_FLAGS.get(flag, flag) for flag in flags)
         if label:
             return f" {label}"
