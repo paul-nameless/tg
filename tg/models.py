@@ -72,6 +72,22 @@ class Model:
             return self.msgs.jump_bottom(chat_id)
         return False
 
+    def set_current_chat_by_id(self, chat_id: int) -> bool:
+        idx = next(
+            iter(
+                i
+                for i, chat in enumerate(self.chats.chats)
+                if chat["id"] == chat_id
+            )
+        )
+        return self.set_current_chat(idx)
+
+    def set_current_chat(self, chat_idx: int) -> bool:
+        if 0 < chat_idx < len(self.chats.chats):
+            self.current_chat = chat_idx
+            return True
+        return False
+
     def next_chat(self, step: int = 1) -> bool:
         new_idx = self.current_chat + step
         if new_idx < len(self.chats.chats):
