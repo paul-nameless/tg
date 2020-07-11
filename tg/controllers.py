@@ -440,7 +440,25 @@ class Controller:
         if not msg.is_text:
             return self.present_error("You can edit text messages only!")
         if not msg.can_be_edited:
-            return self.present_error("Meessage can't be edited!")
+            return self.present_error("Message can't be edited!")
+
+        if text := self.view.status.get_input():
+            self.model.edit_message(text=text)
+            self.present_info("Message edited")
+        else:
+            self.present_info("Message wasn't edited")
+
+    @bind(msg_handler, ["E"])
+    def edit_msg_external(self) -> None:
+        msg = MsgProxy(self.model.current_msg)
+        log.info("Editing msg: %s", msg.msg)
+        if not self.model.is_me(msg.sender_id):
+            return self.present_error("You can edit only your messages!")
+        if not msg.is_text:
+            return self.present_error("You can edit text messages only!")
+        if not msg.can_be_edited:
+            return self.present_error("Message can't be edited!")
+
 
         with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(
             self.view
