@@ -60,7 +60,8 @@ class Model:
             return {}
         current_msg = self.msgs.current_msgs[chat_id]
         log.info("current-msg: %s", current_msg)
-        return self.msgs.msgs[chat_id][current_msg]
+        msg_id = self.msgs.msg_ids[chat_id][current_msg]
+        return self.msgs.msgs[chat_id][msg_id]
 
     @property
     def current_msg_id(self) -> int:
@@ -155,7 +156,8 @@ class Model:
                     return False
         else:
             selected_msg = self.msgs.current_msgs[chat_id]
-            msg = self.msgs.msgs[chat_id][selected_msg]
+            msg_id = self.msgs.msg_ids[chat_id][selected_msg]
+            msg = self.msgs.msgs[chat_id][msg_id]
             if not self.can_be_deleted(chat_id, msg):
                 return False
             message_ids = [msg["id"]]
@@ -314,13 +316,13 @@ class ChatModel:
 class MsgModel:
     def __init__(self, tg: Tdlib) -> None:
         self.tg = tg
-        self.msgs: Dict[int, List[Dict]] = defaultdict(list)
+        self.msgs: Dict[int, Dict[int, Dict]] = defaultdict(dict)
         self.current_msgs: Dict[int, int] = defaultdict(int)
         self.not_found: Set[int] = set()
-        self.msg_idx: Dict[int, Dict[int, int]] = defaultdict(dict)
+        self.msg_ids: Dict[int, List[int]] = defaultdict(list)
 
     def jump_to_msg_by_id(self, chat_id: int, msg_id: int) -> bool:
-        if index := self.msg_idx[chat_id].get(msg_id):
+        if index := self.msg_ids[chat_id].index(msg_id):
             self.current_msgs[chat_id] = index
             return True
         return False
@@ -340,7 +342,7 @@ class MsgModel:
 
     def prev_msg(self, chat_id: int, step: int = 1) -> bool:
         new_idx = self.current_msgs[chat_id] + step
-        if new_idx < len(self.msgs[chat_id]):
+        if new_idx < len(self.msg_ids[chat_id]):
             self.current_msgs[chat_id] = new_idx
             return True
         return False
@@ -348,10 +350,8 @@ class MsgModel:
     def get_message(self, chat_id: int, msg_id: int) -> Optional[Dict]:
         if msg_id in self.not_found:
             return None
-        if index := self.msg_idx[chat_id].get(msg_id):
-            return self.msgs[chat_id][index]
-        # we are not storing any out of ordres old msgs
-        # just fetching them on demand
+        if msg := self.msgs[chat_id].get(msg_id):
+            return msg
         result = self.tg.get_message(chat_id, msg_id)
         result.wait()
         if result.error:
@@ -359,33 +359,28 @@ class MsgModel:
             return None
         return result.update
 
-    def remove_messages(self, chat_id: int, msg_idx: List[int]) -> None:
-        log.info(f"removing msg {msg_idx=}")
-        self.msgs[chat_id] = [
-            m for m in self.msgs[chat_id] if m["id"] not in msg_idx
-        ]
-        self.msg_idx[chat_id] = {
-            msg["id"]: i for i, msg in enumerate(self.msgs[chat_id])
-        }
+    def remove_messages(self, chat_id: int, msg_ids: List[int]) -> None:
+        log.info(f"removing msg {msg_ids=}")
+        for msg_id in msg_ids:
+            self.msg_ids[chat_id].remove(msg_id)
+            self.msgs[chat_id].pop(msg_id, None)
 
     def add_message(self, chat_id: int, msg: Dict[str, Any]) -> None:
         log.info(f"adding {msg=}")
-        self.msgs[chat_id] = sorted(
-            self.msgs[chat_id] + [msg], key=lambda d: d["id"], reverse=True,
-        )
-        self.msg_idx[chat_id] = {
-            msg["id"]: i for i, msg in enumerate(self.msgs[chat_id])
-        }
+        msg_id = msg["id"]
+        self.msgs[chat_id][msg_id] = msg
+        self.msg_ids[chat_id].append(msg_id)
+        self.msg_ids[chat_id].sort(reverse=True)
 
     def update_msg_content_opened(self, chat_id: int, msg_id: int) -> None:
-        index = self.msg_idx[chat_id].get(msg_id)
-        if not index:
+        msg = self.msgs[chat_id].get(msg_id)
+        if not msg:
             return
-        msg = MsgProxy(self.msgs[chat_id][index])
-        if msg.content_type == "voice":
-            msg.is_listened = True
-        elif msg.content_type == "recording":
-            msg.is_viewed = True
+        msg_proxy = MsgProxy(msg)
+        if msg_proxy.content_type == "voice":
+            msg_proxy.is_listened = True
+        elif msg_proxy.content_type == "recording":
+            msg_proxy.is_viewed = True
         # TODO: start the TTL timer for self-destructing messages
         # that is the last case to implement
         # https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1update_message_content_opened.html
@@ -393,10 +388,9 @@ class MsgModel:
     def update_msg(
         self, chat_id: int, msg_id: int, **fields: Dict[str, Any]
     ) -> None:
-        index = self.msg_idx[chat_id].get(msg_id)
-        if not index:
+        msg = self.msgs[chat_id].get(msg_id)
+        if not msg:
             return
-        msg = self.msgs[chat_id][index]
         msg.update(fields)
 
     def _fetch_msgs_until_limit(
@@ -405,14 +399,14 @@ class MsgModel:
         if self.msgs[chat_id]:
             result = self.tg.get_chat_history(
                 chat_id,
-                from_message_id=self.msgs[chat_id][-1]["id"],
-                limit=len(self.msgs[chat_id]) + limit,
+                from_message_id=self.msg_ids[chat_id][-1],
+                limit=len(self.msg_ids[chat_id]) + limit,
             )
         else:
             result = self.tg.get_chat_history(
                 chat_id,
-                offset=len(self.msgs[chat_id]),
-                limit=len(self.msgs[chat_id]) + limit,
+                offset=len(self.msg_ids[chat_id]),
+                limit=len(self.msg_ids[chat_id]) + limit,
             )
         result.wait()
         if not result or not result.update["messages"]:
@@ -429,7 +423,7 @@ class MsgModel:
             result = self.tg.get_chat_history(
                 chat_id,
                 from_message_id=messages[-1]["id"],
-                limit=len(self.msgs[chat_id]) + limit,
+                limit=len(self.msg_ids[chat_id]) + limit,
             )
             result.wait()
             messages += result.update["messages"]
@@ -439,7 +433,7 @@ class MsgModel:
     def fetch_msgs(
         self, chat_id: int, offset: int = 0, limit: int = 10
     ) -> List[Tuple[int, Dict[str, Any]]]:
-        if offset + limit > len(self.msgs[chat_id]):
+        if offset + limit > len(self.msg_ids[chat_id]):
             msgs = self._fetch_msgs_until_limit(
                 chat_id, offset, offset + limit
             )
@@ -447,9 +441,10 @@ class MsgModel:
                 self.add_message(chat_id, msg)
 
         return [
-            (i, self.msgs[chat_id][i])
-            for i in range(offset, offset + limit)
-            if i < len(self.msgs[chat_id])
+            (i, self.msgs[chat_id][msg_id])
+            for i, msg_id in enumerate(
+                self.msg_ids[chat_id][offset : offset + limit]
+            )
         ]
 
     def edit_message(self, chat_id: int, message_id: int, text: str) -> bool:
