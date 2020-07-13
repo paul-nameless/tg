@@ -72,6 +72,13 @@ def setup_log() -> None:
     logging.captureWarnings(True)
 
 
+def get_mime(file_path: str) -> str:
+    mtype, _ = mimetypes.guess_type(file_path)
+    if not mtype:
+        return ""
+    return mtype.split("/")[0]
+
+
 def get_file_handler(file_path: str) -> str:
     mtype, _ = mimetypes.guess_type(file_path)
     if not mtype:

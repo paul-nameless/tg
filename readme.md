@@ -75,6 +75,7 @@ yay -S telegram-tg-git
   ```ini
   image/webp; mpv %s
   ```
+- [ranger](https://github.com/ranger/ranger), [nnn](https://github.com/jarun/nnn)  - can be used to choose file when sending, customizable with `FILE_PICKER_CMD`
 
 
 ## Configuration
@@ -165,6 +166,9 @@ USERS_COLORS = tuple(range(2, 16))
 # cleanup cache
 # Values: N days, None (never)
 KEEP_MEDIA = 7
+
+FILE_PICKER_CMD = "ranger --choosefile={file_path}"
+# FILE_PICKER_CMD = "nnn -p {file_path}"
 ```
 
 ### Mailcap file

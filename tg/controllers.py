@@ -15,6 +15,7 @@ from tg.msg import MsgProxy
 from tg.tdlib import ChatAction, Tdlib, UserStatus
 from tg.utils import (
     get_duration,
+    get_mime,
     get_video_resolution,
     get_waveform,
     is_yes,
@@ -299,18 +300,6 @@ class Controller:
                     )
                     self.present_info("Message wasn't sent")
 
-    @bind(msg_handler, ["sv"])
-    def send_video(self) -> None:
-        file_path = self.view.status.get_input()
-        if not file_path or not os.path.isfile(file_path):
-            return
-        chat_id = self.model.chats.id_by_index(self.model.current_chat)
-        if not chat_id:
-            return
-        width, height = get_video_resolution(file_path)
-        duration = get_duration(file_path)
-        self.tg.send_video(file_path, chat_id, width, height, duration)
-
     @bind(msg_handler, ["dd"])
     def delete_msgs(self) -> None:
         is_deleted = self.model.delete_msgs()
@@ -319,6 +308,30 @@ class Controller:
             self.present_error("Can't delete msg(s)")
             return
         self.present_info("Message deleted")
+
+    @bind(msg_handler, ["S"])
+    def choose_and_send_file(self) -> None:
+        chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        file_path = None
+        if not chat_id:
+            return self.present_error("No chat selected")
+        try:
+            with NamedTemporaryFile("w") as f, suspend(self.view) as s:
+                s.call(config.FILE_PICKER_CMD.format(file_path=f.name))
+                with open(f.name) as f:
+                    file_path = f.read().strip()
+        except FileNotFoundError:
+            pass
+        if not file_path or not os.path.isfile(file_path):
+            return self.present_error("No file was selected")
+        mime_map = {
+            "image": self.tg.send_photo,
+            "audio": self.tg.send_audio,
+            "video": self._send_video,
+        }
+        mime = get_mime(file_path)
+        fun = mime_map.get(mime, self.tg.send_doc)
+        fun(file_path, chat_id)
 
     @bind(msg_handler, ["sd"])
     def send_document(self) -> None:
@@ -331,6 +344,21 @@ class Controller:
     @bind(msg_handler, ["sa"])
     def send_audio(self) -> None:
         self.send_file(self.tg.send_audio)
+
+    @bind(msg_handler, ["sv"])
+    def send_video(self) -> None:
+        file_path = self.view.status.get_input()
+        if not file_path or not os.path.isfile(file_path):
+            return
+        chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        if not chat_id:
+            return
+        self._send_video(file_path, chat_id)
+
+    def _send_video(self, file_path: str, chat_id: int) -> None:
+        width, height = get_video_resolution(file_path)
+        duration = get_duration(file_path)
+        self.tg.send_video(file_path, chat_id, width, height, duration)
 
     def send_file(
         self, send_file_fun: Callable[[str, int], AsyncResult],

@@ -5,16 +5,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from tg import config
-from tg.colors import (
-    blue,
-    bold,
-    cyan,
-    get_color,
-    magenta,
-    reverse,
-    white,
-    yellow,
-)
+from tg.colors import bold, cyan, get_color, magenta, reverse, white, yellow
 from tg.models import Model, UserModel
 from tg.msg import MsgProxy
 from tg.tdlib import ChatType, get_chat_type
