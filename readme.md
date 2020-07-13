@@ -107,7 +107,7 @@ ENC_KEY = get_pass("i/telegram-enc-key")
 # log level for debugging, info by default
 LOG_LEVEL = "DEBUG"
 # path where logs will be stored (all.log and error.log)
-LOG_PATH = "~/.local/share/tg/"
+LOG_PATH = os.path.expanduser("~/.local/share/tg/")
 
 # If you have problems with tdlib shipped with the client, you can install and
 # use your own, for example:
