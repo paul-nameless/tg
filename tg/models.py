@@ -368,9 +368,11 @@ class MsgModel:
     def add_message(self, chat_id: int, msg: Dict[str, Any]) -> None:
         log.info(f"adding {msg=}")
         msg_id = msg["id"]
+        ids = self.msg_ids[chat_id]
         self.msgs[chat_id][msg_id] = msg
-        self.msg_ids[chat_id].append(msg_id)
-        self.msg_ids[chat_id].sort(reverse=True)
+        ids.insert(0, msg_id)
+        if len(ids) >= 2 and msg_id < ids[1]:
+            self.msg_ids[chat_id].sort(reverse=True)
 
     def update_msg_content_opened(self, chat_id: int, msg_id: int) -> None:
         msg = self.msgs[chat_id].get(msg_id)
