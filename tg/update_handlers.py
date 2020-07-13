@@ -259,6 +259,9 @@ def update_message_content_opened(
 def update_delete_messages(
     controller: Controller, update: Dict[str, Any]
 ) -> None:
+    if not update["is_permanent"]:
+        log.debug("Ignoring deletiong becuase not permanent: %s", update)
+        return
     chat_id = update["chat_id"]
     msg_ids = update["message_ids"]
     controller.model.msgs.remove_messages(chat_id, msg_ids)
