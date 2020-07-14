@@ -235,7 +235,7 @@ def update_file(controller: Controller, update: Dict[str, Any]) -> None:
         )
         return
     msgs = controller.model.msgs.msgs[chat_id]
-    for msg in msgs:
+    for msg_id, msg in msgs.items():
         if msg["id"] == msg_id:
             proxy = MsgProxy(msg)
             proxy.local = local

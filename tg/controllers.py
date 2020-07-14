@@ -12,7 +12,7 @@ from telegram.utils import AsyncResult
 from tg import config
 from tg.models import Model
 from tg.msg import MsgProxy
-from tg.tdlib import ChatAction, Tdlib, UserStatus
+from tg.tdlib import ChatAction, Tdlib
 from tg.utils import (
     get_duration,
     get_mime,
@@ -364,13 +364,13 @@ class Controller:
     def send_file(
         self, send_file_fun: Callable[[str, int], AsyncResult],
     ) -> None:
-        file_path = self.view.status.get_input()
-        if file_path and os.path.isfile(file_path):
-            if chat_id := self.model.chats.id_by_index(
-                self.model.current_chat
-            ):
-                send_file_fun(file_path, chat_id)
-                self.present_info("File sent")
+        file_path = os.path.expanduser(self.view.status.get_input())
+        if not file_path or not os.path.isfile(file_path):
+            return self.present_info("Given path to file does not exist")
+
+        if chat_id := self.model.chats.id_by_index(self.model.current_chat):
+            send_file_fun(file_path, chat_id)
+            self.present_info("File sent")
 
     @bind(msg_handler, ["v"])
     def record_voice(self) -> None:
