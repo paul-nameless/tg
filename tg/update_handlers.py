@@ -229,7 +229,7 @@ def update_file(controller: Controller, update: Dict[str, Any]) -> None:
     file_id = update["file"]["id"]
     local = update["file"]["local"]
     chat_id, msg_id = controller.model.downloads.get(file_id, (None, None))
-    if chat_id is None:
+    if chat_id is None or msg_id is None:
         log.warning(
             "Can't find information about file with file_id=%s", file_id
         )

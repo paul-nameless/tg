@@ -331,6 +331,13 @@ class Controller:
             "video": self._send_video,
         }
         mime = get_mime(file_path)
+        if mime in ("image", "video"):
+            resp = self.view.status.get_input(
+                f"Upload <{file_path}> compressed?[Y/n]"
+            )
+            if not is_yes(resp):
+                mime = ""
+
         fun = mime_map.get(mime, self.tg.send_doc)
         fun(file_path, chat_id)
 
