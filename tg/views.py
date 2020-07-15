@@ -1,8 +1,9 @@
 import curses
 import logging
-from _curses import window  # type: ignore
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
+
+from _curses import window  # type: ignore
 
 from tg import config
 from tg.colors import bold, cyan, get_color, magenta, reverse, white, yellow
