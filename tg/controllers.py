@@ -498,26 +498,17 @@ class Controller:
     @bind(chat_handler, ["n"])
     def next_found_chat(self) -> None:
         """Go to next found chat"""
-        return self._move_to_chat()
+        if self.model.set_current_chat_by_id(
+            self.model.chats.next_found_chat()
+        ):
+            self.render()
 
     @bind(chat_handler, ["N"])
     def prev_found_chat(self) -> None:
         """Go to previous found chat"""
-        return self._move_to_chat(backwards=True)
-
-    def _move_to_chat(self, backwards: bool = False) -> None:
-        idx = self.model.chats.found_chat_idx
-        if backwards:
-            idx -= 1
-        else:
-            idx += 1
-
-        new_idx = idx % len(self.model.chats.found_chats)
-        chat_id = self.model.chats.found_chats[new_idx]
-
-        self.model.chats.found_chat_idx = new_idx
-
-        if self.model.set_current_chat_by_id(chat_id):
+        if self.model.set_current_chat_by_id(
+            self.model.chats.next_found_chat(True)
+        ):
             self.render()
 
     @bind(chat_handler, ["/"])

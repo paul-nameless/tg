@@ -229,6 +229,14 @@ class ChatModel:
         self.found_chats: List[int] = []
         self.found_chat_idx: int = 0
 
+    def next_found_chat(self, backwards: bool = False) -> int:
+        new_idx = self.found_chat_idx + (-1 if backwards else 1)
+        new_idx %= len(self.found_chats)
+
+        self.found_chat_idx = new_idx
+
+        return self.found_chats[new_idx]
+
     def id_by_index(self, index: int) -> Optional[int]:
         if index >= len(self.chats):
             return None
