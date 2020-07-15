@@ -227,6 +227,7 @@ class ChatModel:
         self.have_full_chat_list = False
         self.title: str = "Chats"
         self.found_chats: List[int] = []
+        self.found_chat_idx: int = 0
 
     def id_by_index(self, index: int) -> Optional[int]:
         if index >= len(self.chats):

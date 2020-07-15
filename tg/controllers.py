@@ -497,17 +497,25 @@ class Controller:
 
     @bind(chat_handler, ["n"])
     def next_found_chat(self) -> None:
-        """Go to next chat"""
-        chats = self.model.chats.found_chats
-        if not chats:
-            return
-        chat_id = chats.pop(0)
+        """Go to next found chat"""
+        return self._move_to_chat()
 
-        if chat_id not in self.model.chats.chat_ids:
-            self.present_info("Chat not loaded")
-            return
+    @bind(chat_handler, ["N"])
+    def prev_found_chat(self) -> None:
+        """Go to previous found chat"""
+        return self._move_to_chat(backwards=True)
 
-        chats.append(chat_id)
+    def _move_to_chat(self, backwards: bool = False) -> None:
+        idx = self.model.chats.found_chat_idx
+        if backwards:
+            idx -= 1
+        else:
+            idx += 1
+
+        new_idx = idx % len(self.model.chats.found_chats)
+        chat_id = self.model.chats.found_chats[new_idx]
+
+        self.model.chats.found_chat_idx = new_idx
 
         if self.model.set_current_chat_by_id(chat_id):
             self.render()
@@ -524,14 +532,12 @@ class Controller:
         if not chat_ids:
             return self.present_info("Chat not found")
 
-        self.model.chats.found_chats = chat_ids
-
-        chat_id = chat_ids.pop()
+        chat_id = chat_ids[0]
         if chat_id not in self.model.chats.chat_ids:
             self.present_info("Chat not loaded")
             return
 
-        self.model.chats.found_chats.append(chat_id)
+        self.model.chats.found_chats = chat_ids
 
         if self.model.set_current_chat_by_id(chat_id):
             self.render()
