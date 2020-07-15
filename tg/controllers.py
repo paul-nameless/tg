@@ -495,6 +495,23 @@ class Controller:
                     self.model.edit_message(text=text)
                     self.present_info("Message edited")
 
+    @bind(chat_handler, ["n"])
+    def next_found_chat(self) -> None:
+        """Go to next chat"""
+        chats = self.model.chats.found_chats
+        if not chats:
+            return
+        chat_id = chats.pop(0)
+
+        if chat_id not in self.model.chats.chat_ids:
+            self.present_info("Chat not loaded")
+            return
+
+        chats.append(chat_id)
+
+        if self.model.set_current_chat_by_id(chat_id):
+            self.render()
+
     @bind(chat_handler, ["/"])
     def search_contacts(self) -> None:
         """Search contacts and set jumps to it if found"""
@@ -507,10 +524,14 @@ class Controller:
         if not chat_ids:
             return self.present_info("Chat not found")
 
+        self.model.chats.found_chats = chat_ids
+
         chat_id = chat_ids.pop()
         if chat_id not in self.model.chats.chat_ids:
             self.present_info("Chat not loaded")
             return
+
+        self.model.chats.found_chats.append(chat_id)
 
         if self.model.set_current_chat_by_id(chat_id):
             self.render()

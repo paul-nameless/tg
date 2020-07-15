@@ -114,7 +114,7 @@ class Tdlib(Telegram):
         return self._send_data(data)
 
     def search_contacts(self, target: str) -> AsyncResult:
-        data = {"@type": "searchChats", "query": target, "limit": 1}
+        data = {"@type": "searchChats", "query": target, "limit": 10}
         return self._send_data(data, block=True)
 
     def send_doc(self, file_path: str, chat_id: int) -> AsyncResult:
