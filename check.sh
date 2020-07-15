@@ -3,7 +3,7 @@
 set -ex
 
 echo Checking and formatting with black...
-black .
+black --check .
 
 echo Python type checking...
 mypy tg --warn-redundant-casts --warn-unused-ignores \
