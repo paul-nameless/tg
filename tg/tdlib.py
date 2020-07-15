@@ -27,9 +27,6 @@ class ChatType(Enum):
     channel = "channel"
     chatTypeSecret = "secret"
 
-    def is_group(self, chat_type: "Union[str, ChatType]") -> bool:
-        return chat_type in (self.chatTypeSupergroup, self.chatTypeBasicGroup)
-
 
 class UserStatus(Enum):
     userStatusEmpty = ""
@@ -276,3 +273,10 @@ def get_chat_type(chat: Dict[str, Any]) -> Optional[ChatType]:
     except KeyError:
         pass
     return None
+
+
+def is_group(chat_type: Union[str, ChatType]) -> bool:
+    return chat_type in (
+        ChatType.chatTypeSupergroup,
+        ChatType.chatTypeBasicGroup,
+    )

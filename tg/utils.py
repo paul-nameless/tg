@@ -19,7 +19,7 @@ from subprocess import CompletedProcess
 from types import TracebackType
 from typing import Any, Optional, Tuple, Type
 
-from tg import colors, config
+from tg import config
 
 log = logging.getLogger(__name__)
 emoji_pattern = re.compile(

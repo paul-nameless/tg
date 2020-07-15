@@ -8,7 +8,7 @@ from tg import config
 from tg.colors import bold, cyan, get_color, magenta, reverse, white, yellow
 from tg.models import Model, UserModel
 from tg.msg import MsgProxy
-from tg.tdlib import ChatType, get_chat_type
+from tg.tdlib import ChatType, get_chat_type, is_group
 from tg.utils import emoji_pattern, get_color_by_str, num, truncate_to_len
 
 log = logging.getLogger(__name__)
@@ -215,7 +215,7 @@ class ChatView:
         if user:
             last_msg_sender = get_user_label(self.model.users, user)
             chat_type = get_chat_type(chat)
-            if chat_type and chat_type.is_group(chat_type):
+            if chat_type and is_group(chat_type):
                 return last_msg_sender, last_msg
 
         return None, last_msg
@@ -629,7 +629,7 @@ def _get_action_label(users: UserModel, chat: Dict[str, Any]) -> Optional[str]:
     if actioner and action:
         label = f"{action}..."
         chat_type = get_chat_type(chat)
-        if chat_type and chat_type.is_group(chat_type):
+        if chat_type and is_group(chat_type):
             user_label = get_user_label(users, actioner)
             label = f"{user_label} {label}"
 
