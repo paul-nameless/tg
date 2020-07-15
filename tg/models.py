@@ -362,7 +362,10 @@ class MsgModel:
     def remove_messages(self, chat_id: int, msg_ids: List[int]) -> None:
         log.info(f"removing msg {msg_ids=}")
         for msg_id in msg_ids:
-            self.msg_ids[chat_id].remove(msg_id)
+            try:
+                self.msg_ids[chat_id].remove(msg_id)
+            except ValueError:
+                pass
             self.msgs[chat_id].pop(msg_id, None)
 
     def add_message(self, chat_id: int, msg: Dict[str, Any]) -> None:
