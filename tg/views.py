@@ -5,16 +5,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from tg import config
-from tg.colors import (
-    blue,
-    bold,
-    cyan,
-    get_color,
-    magenta,
-    reverse,
-    white,
-    yellow,
-)
+from tg.colors import bold, cyan, get_color, magenta, reverse, white, yellow
 from tg.models import Model, UserModel
 from tg.msg import MsgProxy
 from tg.tdlib import ChatType, get_chat_type
@@ -98,10 +89,8 @@ class StatusView:
         self.win.resize(self.h, self.w)
         self.win.mvwin(self.y, self.x)
 
-    def draw(self, msg: Optional[str] = None) -> None:
+    def draw(self, msg: str = "") -> None:
         self.win.clear()
-        if not msg:
-            return
         self.win.addstr(0, 0, msg.replace("\n", " ")[: self.w])
         self._refresh()
 

@@ -229,20 +229,19 @@ def update_file(controller: Controller, update: Dict[str, Any]) -> None:
     file_id = update["file"]["id"]
     local = update["file"]["local"]
     chat_id, msg_id = controller.model.downloads.get(file_id, (None, None))
-    if chat_id is None:
+    if chat_id is None or msg_id is None:
         log.warning(
             "Can't find information about file with file_id=%s", file_id
         )
         return
-    msgs = controller.model.msgs.msgs[chat_id]
-    for msg_id, msg in msgs.items():
-        if msg["id"] == msg_id:
-            proxy = MsgProxy(msg)
-            proxy.local = local
-            controller.render_msgs()
-            if proxy.is_downloaded:
-                controller.model.downloads.pop(file_id)
-            break
+    msg = controller.model.msgs.msgs[chat_id].get(msg_id)
+    if not msg:
+        return
+    proxy = MsgProxy(msg)
+    proxy.local = local
+    controller.render_msgs()
+    if proxy.is_downloaded:
+        controller.model.downloads.pop(file_id)
 
 
 @update_handler("updateMessageContentOpened")

@@ -71,6 +71,8 @@ USERS_COLORS = tuple(range(2, 16))
 
 KEEP_MEDIA = 7
 
+FILE_PICKER_CMD = "ranger --choosefile={file_path}"
+
 
 if os.path.isfile(CONFIG_FILE):
     config_params = runpy.run_path(CONFIG_FILE)
