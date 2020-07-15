@@ -465,9 +465,7 @@ class MsgModel:
             return True
 
     def send_message(self, chat_id: int, text: str) -> None:
-        log.info("Sending msg")
-        result = self.tg.send_message(chat_id=chat_id, text=text)
-
+        result = self.tg.send_message(chat_id, text)
         result.wait()
         if result.error:
             log.info(f"send message error: {result.error_info}")
