@@ -89,10 +89,8 @@ class StatusView:
         self.win.resize(self.h, self.w)
         self.win.mvwin(self.y, self.x)
 
-    def draw(self, msg: Optional[str] = None) -> None:
+    def draw(self, msg: str = "") -> None:
         self.win.clear()
-        if not msg:
-            return
         self.win.addstr(0, 0, msg.replace("\n", " ")[: self.w])
         self._refresh()
 

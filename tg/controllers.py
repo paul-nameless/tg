@@ -335,6 +335,7 @@ class Controller:
             resp = self.view.status.get_input(
                 f"Upload <{file_path}> compressed?[Y/n]"
             )
+            self.render_status()
             if not is_yes(resp):
                 mime = ""
 
@@ -343,18 +344,22 @@ class Controller:
 
     @bind(msg_handler, ["sd"])
     def send_document(self) -> None:
+        """Enter file path and send uncompressed"""
         self.send_file(self.tg.send_doc)
 
     @bind(msg_handler, ["sp"])
     def send_picture(self) -> None:
+        """Enter file path and send compressed image"""
         self.send_file(self.tg.send_photo)
 
     @bind(msg_handler, ["sa"])
     def send_audio(self) -> None:
+        """Enter file path and send as audio"""
         self.send_file(self.tg.send_audio)
 
     @bind(msg_handler, ["sv"])
     def send_video(self) -> None:
+        """Enter file path and send compressed video"""
         file_path = self.view.status.get_input()
         if not file_path or not os.path.isfile(file_path):
             return
@@ -663,8 +668,14 @@ class Controller:
         self.queue.put(self._render)
 
     def _render(self) -> None:
-        self.render_chats()
-        self.render_msgs()
+        self._render_chats()
+        self._render_msgs()
+        self._render_status()
+
+    def render_status(self) -> None:
+        self.queue.put(self._render_status)
+
+    def _render_status(self) -> None:
         self.view.status.draw()
 
     def render_chats(self) -> None:
