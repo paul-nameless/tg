@@ -240,7 +240,6 @@ def pretty_ts(ts: int) -> str:
     diff = now - datetime.utcfromtimestamp(ts)
     second_diff = diff.seconds
     day_diff = diff.days
-    log.info("diff:: %s, %s, %s", ts, second_diff, day_diff)
 
     if day_diff < 0:
         return ""
