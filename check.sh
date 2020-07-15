@@ -1,5 +1,8 @@
 #!/bin/sh
 
+set -ex
+
+
 echo Checking and formatting with black...
 black .
 
