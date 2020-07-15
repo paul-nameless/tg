@@ -95,13 +95,15 @@ class StatusView:
         self.win.addstr(0, 0, msg.replace("\n", " ")[: self.w])
         self._refresh()
 
-    def get_input(self, msg: str = "") -> str:
-        self.draw(msg)
+    def get_input(self, buff: str = "", prefix: str = "") -> str:
         curses.curs_set(1)
 
-        buff = ""
         while True:
-            key = self.win.get_wch(0, min(len(buff) + len(msg), self.w - 1))
+            self.win.erase()
+            line = buff[-(self.w - 1) :]
+            self.win.addstr(0, 0, f"{prefix}{line}")
+
+            key = self.win.get_wch(0, min(len(buff + prefix), self.w - 1))
             key = ord(key)
             if key == 10:  # return
                 break
@@ -113,9 +115,6 @@ class StatusView:
                 break
             elif chr(key).isprintable():
                 buff += chr(key)
-            self.win.erase()
-            line = (msg + buff)[-(self.w - 1) :]
-            self.win.addstr(0, 0, line)
 
         self.win.clear()
         curses.curs_set(0)
