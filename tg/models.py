@@ -2,7 +2,7 @@ import logging
 import sys
 import time
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from tg.msg import MsgProxy
 from tg.tdlib import ChatAction, Tdlib, UserStatus
@@ -481,9 +481,7 @@ class MsgModel:
             return True
 
     def send_message(self, chat_id: int, text: str) -> None:
-        log.info("Sending msg")
-        result = self.tg.send_message(chat_id=chat_id, text=text)
-
+        result = self.tg.send_message(chat_id, text)
         result.wait()
         if result.error:
             log.info(f"send message error: {result.error_info}")

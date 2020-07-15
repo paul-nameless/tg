@@ -9,6 +9,7 @@ from tempfile import NamedTemporaryFile
 from typing import Any, Callable, Dict, List, Optional
 
 from telegram.utils import AsyncResult
+
 from tg import config
 from tg.models import Model
 from tg.msg import MsgProxy
@@ -496,26 +497,23 @@ class Controller:
 
     @bind(chat_handler, ["/"])
     def search_contacts(self) -> None:
-        """Search contacts"""
-        if msg := self.view.status.get_input():
-            self.present_info(f"Searching for {msg}")
-            rv = self.tg.search_contacts(msg)
-            if chat_ids := rv.update["chat_ids"]:
-                log.info(f"Found {chat_ids}")
-                chat_id = chat_ids.pop()
-                if chat_id not in self.model.chats.chat_ids:
-                    self.present_info("Chat not loaded")
-                    return
-                if self.model.set_current_chat_by_id(chat_id):
-                    self.render()
-            else:
-                self.present_info("Chat not found")
+        """Search contacts and set jumps to it if found"""
+        msg = self.view.status.get_input()
+        if not msg:
+            return self.present_info("Search discarded")
 
-        else:
-            # self.tg.send_chat_action(chat_id, ChatAction.chatActionCancel)
-            self.present_info("Search discarded")
+        rv = self.tg.search_contacts(msg)
+        chat_ids = rv.update["chat_ids"]
+        if not chat_ids:
+            return self.present_info("Chat not found")
 
-        log.info("Works /")
+        chat_id = chat_ids.pop()
+        if chat_id not in self.model.chats.chat_ids:
+            self.present_info("Chat not loaded")
+            return
+
+        if self.model.set_current_chat_by_id(chat_id):
+            self.render()
 
     @bind(chat_handler, ["c"])
     def view_contacts(self) -> None:

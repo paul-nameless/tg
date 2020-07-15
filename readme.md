@@ -90,6 +90,8 @@ PHONE = "[your phone number]"
 
 ### Advanced configuration:
 
+All configurable variables can be found [here](https://github.com/paul-nameless/tg/blob/master/tg/config.py)
+
 ```python
 import os
 
@@ -210,6 +212,7 @@ For navigation arrow keys also can be used.
 - `p`: pin/unpin current chat
 - `u`: mark read/unread
 - `r`: read current chat
+- `c`: show list of contacts
 - `?`: show help
 
 ## Msgs:

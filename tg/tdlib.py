@@ -27,9 +27,6 @@ class ChatType(Enum):
     channel = "channel"
     chatTypeSecret = "secret"
 
-    def is_group(self, chat_type: "Union[str, ChatType]") -> bool:
-        return chat_type in (self.chatTypeSupergroup, self.chatTypeBasicGroup)
-
 
 class UserStatus(Enum):
     userStatusEmpty = ""
@@ -40,7 +37,46 @@ class UserStatus(Enum):
     userStatusLastMonth = "last month"
 
 
+class TextParseModeInput(Enum):
+    textParseModeMarkdown = "markdown"
+    textParseModeHTML = "html"
+
+
 class Tdlib(Telegram):
+    def parse_text_entities(
+        self,
+        text: str,
+        parse_mode: TextParseModeInput = TextParseModeInput.textParseModeMarkdown,
+        version: int = 2,
+    ) -> AsyncResult:
+        """Offline synchronous method which returns parsed entities"""
+        data = {
+            "@type": "parseTextEntities",
+            "text": text,
+            "parse_mode": {"@type": parse_mode.name, "version": version},
+        }
+
+        return self._send_data(data)
+
+    def send_message(self, chat_id: int, msg: str) -> AsyncResult:
+        result = self.parse_text_entities(msg)
+        result.wait()
+        if result.error:
+            return result
+
+        text = result.update
+
+        data = {
+            "@type": "sendMessage",
+            "chat_id": chat_id,
+            "input_message_content": {
+                "@type": "inputMessageText",
+                "text": text,
+            },
+        }
+
+        return self._send_data(data)
+
     def download_file(
         self,
         file_id: int,
@@ -280,3 +316,10 @@ def get_chat_type(chat: Dict[str, Any]) -> Optional[ChatType]:
     except KeyError:
         pass
     return None
+
+
+def is_group(chat_type: Union[str, ChatType]) -> bool:
+    return chat_type in (
+        ChatType.chatTypeSupergroup,
+        ChatType.chatTypeBasicGroup,
+    )
