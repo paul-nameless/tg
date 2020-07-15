@@ -2,7 +2,7 @@ import logging
 import sys
 import time
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from tg.msg import MsgProxy
 from tg.tdlib import ChatAction, Tdlib, UserStatus

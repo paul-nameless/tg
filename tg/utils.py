@@ -19,7 +19,7 @@ from subprocess import CompletedProcess
 from types import TracebackType
 from typing import Any, Optional, Tuple, Type
 
-from tg import colors, config
+from tg import config
 
 log = logging.getLogger(__name__)
 emoji_pattern = re.compile(
@@ -240,7 +240,6 @@ def pretty_ts(ts: int) -> str:
     diff = now - datetime.utcfromtimestamp(ts)
     second_diff = diff.seconds
     day_diff = diff.days
-    log.info("diff:: %s, %s, %s", ts, second_diff, day_diff)
 
     if day_diff < 0:
         return ""
