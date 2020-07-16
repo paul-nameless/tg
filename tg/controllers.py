@@ -9,7 +9,6 @@ from tempfile import NamedTemporaryFile
 from typing import Any, Callable, Dict, List, Optional
 
 from telegram.utils import AsyncResult
-
 from tg import config
 from tg.models import Model
 from tg.msg import MsgProxy
@@ -671,7 +670,7 @@ class Controller:
     def _render(self) -> None:
         self._render_chats()
         self._render_msgs()
-        self._render_status()
+        # self._render_status()
 
     def render_status(self) -> None:
         self.queue.put(self._render_status)
