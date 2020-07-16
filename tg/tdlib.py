@@ -113,6 +113,24 @@ class Tdlib(Telegram):
 
         return self._send_data(data)
 
+    def search_messages(
+        self,
+        target: str,
+        offset_chat_id: int,
+        offset_msg_id: int,
+        limit: int = 10,
+    ) -> AsyncResult:
+        data = {
+            "@type": "searchMessages",
+            "query": target,
+            "limit": limit,
+            "offset_date": 0,
+            "offset_chat_id": offset_chat_id,
+            "offset_message_id": offset_msg_id,
+            "chat_list": None
+        }
+        return self._send_data(data, block=True)
+
     def search_contacts(self, target: str, limit: int = 10) -> AsyncResult:
         data = {"@type": "searchChats", "query": target, "limit": limit}
         return self._send_data(data, block=True)

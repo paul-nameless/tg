@@ -533,6 +533,35 @@ class Controller:
         if self.model.set_current_chat_by_id(chat_id):
             self.render()
 
+    @bind(msg_handler, ["/"])
+    def search_messages(self) -> None:
+        """Search contacts and set jumps to it if found"""
+        msg = self.view.status.get_input(prefix="/")
+        if not msg:
+            return self.present_info("Search discarded")
+
+        chat = self.model.chats.chats[self.model.current_chat]
+        chat_id = chat["id"]
+        msg_id = chat["last_message"]["id"]
+
+        rv = self.tg.search_messages(msg, chat_id, msg_id)
+        total_count = rv.update["total_count"]
+        if total_count:
+            return self.present_info(f"Found {total_count} messages")
+        else:
+            return self.present_info("Messages not found")
+
+
+        messages = rv.update["messages"]
+        if chat_id not in self.model.chats.chat_ids:
+            self.present_info("Chat not loaded")
+            return
+
+        self.model.chats.found_chats = chat_ids
+
+        if self.model.set_current_chat_by_id(chat_id):
+            self.render()
+
     @bind(chat_handler, ["c"])
     def view_contacts(self) -> None:
         contacts = self.model.users.get_contacts()
