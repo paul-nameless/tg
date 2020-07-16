@@ -59,12 +59,12 @@ class Tdlib(Telegram):
         return self._send_data(data)
 
     def send_message(self, chat_id: int, msg: str) -> AsyncResult:
+        text = {'@type': 'formattedText', 'text': msg}
+
         result = self.parse_text_entities(msg)
         result.wait()
-        if result.error:
-            return result
-
-        text = result.update
+        if not result.error:
+            text = result.update
 
         data = {
             "@type": "sendMessage",
