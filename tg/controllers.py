@@ -709,12 +709,8 @@ class Controller:
     def _render(self) -> None:
         self._render_chats()
         self._render_msgs()
-        self._render_status()
 
     def render_status(self) -> None:
-        self.queue.put(self._render_status)
-
-    def _render_status(self) -> None:
         self.view.status.draw()
 
     def render_chats(self) -> None:
