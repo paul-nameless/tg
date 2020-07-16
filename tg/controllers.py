@@ -495,6 +495,44 @@ class Controller:
                     self.model.edit_message(text=text)
                     self.present_info("Message edited")
 
+    @bind(chat_handler, ["n"])
+    def next_found_chat(self) -> None:
+        """Go to next found chat"""
+        if self.model.set_current_chat_by_id(
+            self.model.chats.next_found_chat()
+        ):
+            self.render()
+
+    @bind(chat_handler, ["N"])
+    def prev_found_chat(self) -> None:
+        """Go to previous found chat"""
+        if self.model.set_current_chat_by_id(
+            self.model.chats.next_found_chat(True)
+        ):
+            self.render()
+
+    @bind(chat_handler, ["/"])
+    def search_contacts(self) -> None:
+        """Search contacts and set jumps to it if found"""
+        msg = self.view.status.get_input(prefix="/")
+        if not msg:
+            return self.present_info("Search discarded")
+
+        rv = self.tg.search_contacts(msg)
+        chat_ids = rv.update["chat_ids"]
+        if not chat_ids:
+            return self.present_info("Chat not found")
+
+        chat_id = chat_ids[0]
+        if chat_id not in self.model.chats.chat_ids:
+            self.present_info("Chat not loaded")
+            return
+
+        self.model.chats.found_chats = chat_ids
+
+        if self.model.set_current_chat_by_id(chat_id):
+            self.render()
+
     @bind(chat_handler, ["c"])
     def view_contacts(self) -> None:
         contacts = self.model.users.get_contacts()
