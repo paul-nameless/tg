@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from _curses import window  # type: ignore
+
 from tg import config
 from tg.colors import bold, cyan, get_color, magenta, reverse, white, yellow
 from tg.models import Model, UserModel
@@ -94,7 +95,7 @@ class StatusView:
         self.win.addstr(0, 0, msg.replace("\n", " ")[: self.w])
         self._refresh()
 
-    def get_input(self, buff: str = "", prefix: str = "") -> str:
+    def get_input(self, buff: str = "", prefix: str = "") -> Optional[str]:
         curses.curs_set(1)
 
         try:

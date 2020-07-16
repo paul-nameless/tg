@@ -310,6 +310,13 @@ class Tdlib(Telegram):
         }
         return self._send_data(data)
 
+    def join_chat(self, chat_id: int) -> AsyncResult:
+        data = {
+            "@type": "joinChat",
+            "chat_id": chat_id,
+        }
+        return self._send_data(data)
+
     def close_secret_chat(self, secret_chat_id: int) -> AsyncResult:
         data = {
             "@type": "closeSecretChat",
