@@ -18,13 +18,14 @@ Telegram terminal client.
 - [X] auto download files
 - [X] toggle chats: pin/unpin, mark as read/unread, mute/unmute
 - [X] message history
+- [X] list contacts
+- [X] show user status
 
 TODO:
 
 - [ ] secret chats
-- [ ] list contacts
 - [ ] search
-- [ ] show users and their status in current chat
+- [ ] show members in chat
 - [ ] create new chat
 - [ ] bots (bot keyboard)
 
@@ -213,6 +214,7 @@ For navigation arrow keys also can be used.
 - `u`: mark read/unread
 - `r`: read current chat
 - `c`: show list of contacts
+- `dd`: delete chat or remove history
 - `?`: show help
 
 ## Msgs:

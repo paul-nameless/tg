@@ -95,32 +95,35 @@ class StatusView:
         self.win.addstr(0, 0, msg.replace("\n", " ")[: self.w])
         self._refresh()
 
-    def get_input(self, msg: str = "") -> str:
+    def get_input(self, msg: str = "") -> Optional[str]:
         self.draw(msg)
         curses.curs_set(1)
 
         buff = ""
-        while True:
-            key = self.win.get_wch(0, min(len(buff) + len(msg), self.w - 1))
-            key = ord(key)
-            if key == 10:  # return
-                break
-            elif key == 127:  # del
-                if buff:
-                    buff = buff[:-1]
-            elif key in (7, 27):  # (^G, <esc>) cancel
-                buff = ""
-                break
-            elif chr(key).isprintable():
-                buff += chr(key)
-            self.win.erase()
-            line = (msg + buff)[-(self.w - 1) :]
-            self.win.addstr(0, 0, line)
+        try:
+            while True:
+                key = self.win.get_wch(
+                    0, min(len(buff) + len(msg), self.w - 1)
+                )
+                key = ord(key)
+                if key == 10:  # return
+                    break
+                elif key == 127:  # del
+                    if buff:
+                        buff = buff[:-1]
+                elif key in (7, 27):  # (^G, <esc>) cancel
+                    return None
+                elif chr(key).isprintable():
+                    buff += chr(key)
+                self.win.erase()
+                line = (msg + buff)[-(self.w - 1) :]
+                self.win.addstr(0, 0, line)
+        finally:
+            self.win.clear()
+            curses.curs_set(0)
+            curses.cbreak()
+            curses.noecho()
 
-        self.win.clear()
-        curses.curs_set(0)
-        curses.cbreak()
-        curses.noecho()
         return buff
 
 

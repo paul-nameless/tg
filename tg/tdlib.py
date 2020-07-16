@@ -299,6 +299,34 @@ class Tdlib(Telegram):
         }
         return self._send_data(data)
 
+    def leave_chat(self, chat_id: int) -> AsyncResult:
+        data = {
+            "@type": "leaveChat",
+            "chat_id": chat_id,
+        }
+        return self._send_data(data)
+
+    def close_secret_chat(self, secret_chat_id: int) -> AsyncResult:
+        data = {
+            "@type": "closeSecretChat",
+            "secret_chat_id": secret_chat_id,
+        }
+        return self._send_data(data)
+
+    def delete_chat_history(
+        self, chat_id: int, remove_from_chat_list: bool, revoke: bool = False
+    ) -> AsyncResult:
+        """
+        revoke: Pass true to try to delete chat history for all users
+        """
+        data = {
+            "@type": "deleteChatHistory",
+            "chat_id": chat_id,
+            "remove_from_chat_list": remove_from_chat_list,
+            "revoke": revoke,
+        }
+        return self._send_data(data)
+
 
 def get_chat_type(chat: Dict[str, Any]) -> Optional[ChatType]:
     try:

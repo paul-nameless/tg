@@ -126,8 +126,14 @@ def num(value: str, default: Optional[int] = None) -> Optional[int]:
         return default
 
 
-def is_yes(resp: str) -> bool:
-    if resp.strip().lower() == "y" or resp == "":
+def is_yes(resp: Optional[str]) -> bool:
+    if not resp or resp.strip().lower() == "y":
+        return True
+    return False
+
+
+def is_no(resp: Optional[str]) -> bool:
+    if not resp or resp.strip().lower() == "n":
         return True
     return False
 

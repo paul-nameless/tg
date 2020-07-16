@@ -19,6 +19,7 @@ from tg.utils import (
     get_mime,
     get_video_resolution,
     get_waveform,
+    is_no,
     is_yes,
     notify,
     suspend,
@@ -377,7 +378,10 @@ class Controller:
     def send_file(
         self, send_file_fun: Callable[[str, int], AsyncResult],
     ) -> None:
-        file_path = os.path.expanduser(self.view.status.get_input())
+        _input = self.view.status.get_input()
+        if _input is None:
+            return
+        file_path = os.path.expanduser(_input)
         if not file_path or not os.path.isfile(file_path):
             return self.present_info("Given path to file does not exist")
 
@@ -494,6 +498,31 @@ class Controller:
                 if text := f.read().strip():
                     self.model.edit_message(text=text)
                     self.present_info("Message edited")
+
+    @bind(chat_handler, ["dd"])
+    def leave_chat(self) -> None:
+        """Leave group or cloase private, secret chat"""
+        # can_be_deleted_only_for_self
+        # can_be_deleted_for_all_users
+        chat = self.model.chats.chats[self.model.current_chat]
+        resp = self.view.status.get_input(
+            "Are you sure you want to delete the chat?[y/N]"
+        )
+        if resp is None or is_no(resp):
+            return self.present_info("Not deleting chat")
+
+        is_revoke = False
+        if chat["can_be_deleted_for_all_users"]:
+            resp = self.view.status.get_input("Deleting for all users?[y/N]")
+            if resp is None:
+                return self.present_info("Not deleting chat")
+            self.render_status()
+            is_revoke = is_no(resp)
+
+        self.tg.delete_chat_history(
+            chat["id"], remove_from_chat_list=True, revoke=is_revoke
+        )
+        self.present_info("Chat was deleted")
 
     @bind(chat_handler, ["c"])
     def view_contacts(self) -> None:
