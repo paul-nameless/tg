@@ -51,7 +51,7 @@ tg
 git clone git@github.com:paul-nameless/tg.git
 cd tg
 flit install
-python3 -m tg
+tg
 ```
 
 ### Using Docker
