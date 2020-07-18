@@ -28,47 +28,11 @@ TODO:
 - [ ] create new chat
 - [ ] bots (bot keyboard)
 
+## Requirements
 
-## Installation
+To use tg, you'll need to have the following installed:
 
-### From PyPI
-
-```sh
-pip3 install tg
-tg
-```
-
-### Using the GitHub sources 
-
-> Requires [flit](https://github.com/takluyver/flit) to be installed.
->
-> Install it with:
-> ```sh 
-> pip3 install flit
-> ```
-
-```sh
-git clone git@github.com:paul-nameless/tg.git
-cd tg
-flit install
-tg
-```
-
-### Using Docker
-
-> Please note that voice recordings and notifications won't work when using Docker.
-
-```sh
-docker run -it --rm tg
-```
-
-### From the AUR
-
-If you're using Arch Linux, you can install tg through [its AUR package](https://aur.archlinux.org/packages/telegram-tg-git/):
-
-```bash
-pacman -S telegram-tg-git
-```
+- [Python 3.8](https://www.python.org/downloads/release/python-380/)
 
 ## Optional dependencies
 
@@ -85,6 +49,66 @@ pacman -S telegram-tg-git
   ```ini
   image/webp; mpv %s
   ```
+
+## Installation
+
+### From PyPI
+
+This option is recommended for production:
+
+```sh
+pip3 install tg
+tg
+```
+
+### Using flit
+
+This option is recommended for development:
+
+> Requires [flit](https://github.com/takluyver/flit) to be installed.
+>
+> Install it with:
+> ```sh 
+> pip3 install flit
+> ```
+
+```sh
+git clone https://github.com:paul-nameless/tg.git
+cd tg
+flit install
+tg
+```
+
+### Without installing
+
+> Ensure you have the correct version of Python installed before using this method!
+
+```sh
+git clone https://github.com:paul-nameless/tg.git
+cd tg
+python3 -m venv venv
+source venv/bin/activate
+pip install python-telegram
+python3 tg/__main__.py
+```
+
+### Using Docker
+
+> Please note that voice recordings and notifications won't work when using Docker.
+
+```sh
+docker run -it --rm tg
+```
+
+### From the AUR
+
+If you're using Arch Linux, you can install tg through [its AUR package](https://aur.archlinux.org/packages/telegram-tg-git/):
+
+If you're using the `yay` AUR helper, you can install the package with:
+
+```bash
+yay -S telegram-tg-git
+```
 
 ## Configuration
 
