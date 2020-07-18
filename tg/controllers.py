@@ -13,12 +13,13 @@ from telegram.utils import AsyncResult
 from tg import config
 from tg.models import Model
 from tg.msg import MsgProxy
-from tg.tdlib import ChatAction, Tdlib
+from tg.tdlib import ChatAction, ChatType, Tdlib, get_chat_type
 from tg.utils import (
     get_duration,
     get_mime,
     get_video_resolution,
     get_waveform,
+    is_no,
     is_yes,
     notify,
     suspend,
@@ -337,6 +338,8 @@ class Controller:
                 f"Upload <{file_path}> compressed?[Y/n]"
             )
             self.render_status()
+            if resp is None:
+                return self.present_info("Uploading cancelled")
             if not is_yes(resp):
                 mime = ""
 
@@ -377,7 +380,10 @@ class Controller:
     def send_file(
         self, send_file_fun: Callable[[str, int], AsyncResult],
     ) -> None:
-        file_path = os.path.expanduser(self.view.status.get_input())
+        _input = self.view.status.get_input()
+        if _input is None:
+            return
+        file_path = os.path.expanduser(_input)
         if not file_path or not os.path.isfile(file_path):
             return self.present_info("Given path to file does not exist")
 
@@ -397,13 +403,11 @@ class Controller:
         resp = self.view.status.get_input(
             f"Do you want to send recording: {file_path}? [Y/n]"
         )
-        if not is_yes(resp):
-            self.present_info("Voice message discarded")
-            return
+        if resp is None or not is_yes(resp):
+            return self.present_info("Voice message discarded")
 
         if not os.path.isfile(file_path):
-            self.present_info(f"Can't load recording file {file_path}")
-            return
+            return self.present_info(f"Can't load recording file {file_path}")
 
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
         if not chat_id:
@@ -494,6 +498,47 @@ class Controller:
                 if text := f.read().strip():
                     self.model.edit_message(text=text)
                     self.present_info("Message edited")
+
+    @bind(chat_handler, ["dd"])
+    def delete_chat(self) -> None:
+        """Leave group/channel or delete private/secret chats"""
+
+        chat = self.model.chats.chats[self.model.current_chat]
+        chat_type = get_chat_type(chat)
+        if chat_type in (
+            ChatType.chatTypeSupergroup,
+            ChatType.chatTypeBasicGroup,
+            ChatType.channel,
+        ):
+            resp = self.view.status.get_input(
+                "Are you sure you want to leave this group/channel?[y/N]"
+            )
+            if is_no(resp or ""):
+                return self.present_info("Not leaving group/channel")
+            self.tg.leave_chat(chat["id"])
+            self.tg.delete_chat_history(
+                chat["id"], remove_from_chat_list=True, revoke=False
+            )
+            return
+
+        resp = self.view.status.get_input(
+            "Are you sure you want to delete the chat?[y/N]"
+        )
+        if is_no(resp or ""):
+            return self.present_info("Not deleting chat")
+
+        is_revoke = False
+        if chat["can_be_deleted_for_all_users"]:
+            resp = self.view.status.get_input("Delete for all users?[y/N]")
+            if resp is None:
+                return self.present_info("Not deleting chat")
+            self.render_status()
+            is_revoke = is_no(resp)
+
+        self.tg.delete_chat_history(
+            chat["id"], remove_from_chat_list=True, revoke=is_revoke
+        )
+        self.present_info("Chat was deleted")
 
     @bind(chat_handler, ["n"])
     def next_found_chat(self) -> None:

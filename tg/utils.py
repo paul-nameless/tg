@@ -127,9 +127,11 @@ def num(value: str, default: Optional[int] = None) -> Optional[int]:
 
 
 def is_yes(resp: str) -> bool:
-    if resp.strip().lower() == "y" or resp == "":
-        return True
-    return False
+    return not resp or resp.strip().lower() == "y"
+
+
+def is_no(resp: str) -> bool:
+    return not resp or resp.strip().lower() == "n"
 
 
 def get_duration(file_path: str) -> int:
