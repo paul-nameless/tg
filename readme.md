@@ -31,35 +31,43 @@ TODO:
 
 ## Installation
 
-`python3.8` required.
-
-
-From pip:
+### From PyPI
 
 ```sh
 pip3 install tg
 tg
 ```
 
-From sources:
+### Using the GitHub sources 
+
+> Requires [flit](https://github.com/takluyver/flit) to be installed.
+>
+> Install it with:
+> ```sh 
+> pip3 install flit
+> ```
 
 ```sh
-pip3 install python-telegram
 git clone git@github.com:paul-nameless/tg.git
 cd tg
-PYTHONPATH=. 
-python3 tg/main.py
+flit install
+python3 -m tg
 ```
 
-Docker (voice recordings and notifications won't work):
+### Using Docker
+
+> Please note that voice recordings and notifications won't work when using Docker.
+
 ```sh
 docker run -it --rm tg
 ```
 
-Arch Linux users can install from the AUR: https://aur.archlinux.org/packages/telegram-tg-git/
+### From the AUR
+
+If you're using Arch Linux, you can install tg through [its AUR package](https://aur.archlinux.org/packages/telegram-tg-git/):
 
 ```bash
-yay -S telegram-tg-git
+pacman -S telegram-tg-git
 ```
 
 ## Optional dependencies
@@ -77,7 +85,6 @@ yay -S telegram-tg-git
   ```ini
   image/webp; mpv %s
   ```
-
 
 ## Configuration
 
