@@ -79,7 +79,7 @@ flit install
 tg
 ```
 
-### Without installing
+### Running with virtualenv
 
 > Ensure you have the correct version of Python installed before using this method!
 
