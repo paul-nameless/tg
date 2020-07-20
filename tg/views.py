@@ -1,23 +1,15 @@
 import curses
 import logging
-from _curses import window  # type: ignore
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
+from _curses import window  # type: ignore
+
 from tg import config
-from tg.colors import (
-    blue,
-    bold,
-    cyan,
-    get_color,
-    magenta,
-    reverse,
-    white,
-    yellow,
-)
+from tg.colors import bold, cyan, get_color, magenta, reverse, white, yellow
 from tg.models import Model, UserModel
 from tg.msg import MsgProxy
-from tg.tdlib import ChatType, get_chat_type
+from tg.tdlib import ChatType, get_chat_type, is_group
 from tg.utils import emoji_pattern, get_color_by_str, num, truncate_to_len
 
 log = logging.getLogger(__name__)
@@ -98,39 +90,37 @@ class StatusView:
         self.win.resize(self.h, self.w)
         self.win.mvwin(self.y, self.x)
 
-    def draw(self, msg: Optional[str] = None) -> None:
+    def draw(self, msg: str = "") -> None:
         self.win.clear()
-        if not msg:
-            return
         self.win.addstr(0, 0, msg.replace("\n", " ")[: self.w])
         self._refresh()
 
-    def get_input(self, msg: str = "") -> str:
-        self.draw(msg)
+    def get_input(self, buff: str = "", prefix: str = "") -> Optional[str]:
         curses.curs_set(1)
 
-        buff = ""
-        while True:
-            key = self.win.get_wch(0, min(len(buff) + len(msg), self.w - 1))
-            key = ord(key)
-            if key == 10:  # return
-                break
-            elif key == 127:  # del
-                if buff:
-                    buff = buff[:-1]
-            elif key in (7, 27):  # (^G, <esc>) cancel
-                buff = ""
-                break
-            elif chr(key).isprintable():
-                buff += chr(key)
-            self.win.erase()
-            line = (msg + buff)[-(self.w - 1) :]
-            self.win.addstr(0, 0, line)
+        try:
+            while True:
+                self.win.erase()
+                line = buff[-(self.w - 1) :]
+                self.win.addstr(0, 0, f"{prefix}{line}")
 
-        self.win.clear()
-        curses.curs_set(0)
-        curses.cbreak()
-        curses.noecho()
+                key = self.win.get_wch(0, min(len(buff + prefix), self.w - 1))
+                key = ord(key)
+                if key == 10:  # return
+                    break
+                elif key == 127:  # del
+                    if buff:
+                        buff = buff[:-1]
+                elif key in (7, 27):  # (^G, <esc>) cancel
+                    return None
+                elif chr(key).isprintable():
+                    buff += chr(key)
+        finally:
+            self.win.clear()
+            curses.curs_set(0)
+            curses.cbreak()
+            curses.noecho()
+
         return buff
 
 
@@ -223,11 +213,10 @@ class ChatView:
         self, chat: Dict[str, Any]
     ) -> Tuple[Optional[str], Optional[str]]:
         user, last_msg = get_last_msg(chat)
-        last_msg = last_msg.replace("\n", " ")
         if user:
-            last_msg_sender = _get_user_label(self.model.users, user)
+            last_msg_sender = get_user_label(self.model.users, user)
             chat_type = get_chat_type(chat)
-            if chat_type and chat_type.is_group(chat_type):
+            if chat_type and is_group(chat_type):
                 return last_msg_sender, last_msg
 
         return None, last_msg
@@ -245,7 +234,7 @@ class ChatView:
             # last msg haven't been seen by recipient
             flags.append("unseen")
 
-        if action_label := _get_action_label(self.model.users, chat["id"]):
+        if action_label := _get_action_label(self.model.users, chat):
             flags.append(action_label)
 
         if self.model.users.is_online(chat["id"]):
@@ -261,6 +250,9 @@ class ChatView:
             flags.append("unread")
         elif chat["unread_count"]:
             flags.append(str(chat["unread_count"]))
+
+        if get_chat_type(chat) == ChatType.chatTypeSecret:
+            flags.append("secret")
 
         label = " ".join(config.CHAT_FLAGS.get(flag, flag) for flag in flags)
         if label:
@@ -329,8 +321,7 @@ class MsgView:
             return msg
         reply_msg = MsgProxy(_msg)
         if reply_msg_content := self._parse_msg(reply_msg):
-            reply_msg_content = reply_msg_content.replace("\n", " ")
-            reply_sender = _get_user_label(
+            reply_sender = get_user_label(
                 self.model.users, reply_msg.sender_id
             )
             sender_name = f" {reply_sender}:" if reply_sender else ""
@@ -356,7 +347,6 @@ class MsgView:
         self, msg_proxy: MsgProxy, user_id_item: int, width_limit: int
     ) -> str:
         msg = self._parse_msg(msg_proxy)
-        msg = msg.replace("\n", " ")
         if caption := msg_proxy.caption:
             msg += "\n" + caption.replace("\n", " ")
         msg += self._format_url(msg_proxy)
@@ -393,7 +383,7 @@ class MsgView:
                 dt = msg_proxy.date.strftime("%H:%M:%S")
                 user_id_item = msg_proxy.sender_id
 
-                user_id = _get_user_label(self.model.users, user_id_item)
+                user_id = get_user_label(self.model.users, user_id_item)
                 flags = self._get_flags(msg_proxy)
                 if user_id and flags:
                     # if not channel add space between name and flags
@@ -500,7 +490,7 @@ class MsgView:
         chat_type = get_chat_type(chat)
         status = ""
 
-        if action_label := _get_action_label(self.model.users, chat["id"]):
+        if action_label := _get_action_label(self.model.users, chat):
             status = action_label
         elif chat_type == ChatType.chatTypePrivate:
             status = self.model.users.get_status(chat["id"])
@@ -565,7 +555,7 @@ def get_date(chat: Dict[str, Any]) -> str:
 def parse_content(content: Dict[str, Any]) -> str:
     msg = MsgProxy({"content": content})
     if msg.is_text:
-        return content["text"]["text"]
+        return content["text"]["text"].replace("\n", " ")
 
     _type = content["@type"]
 
@@ -578,6 +568,12 @@ def parse_content(content: Dict[str, Any]) -> str:
         # not implemented
         return f"[{_type}]"
 
+    content_text = ""
+    if msg.is_poll:
+        content_text = f"\n {msg.poll_question}"
+        for option in msg.poll_options:
+            content_text += f"\n * {option['voter_count']} ({option['vote_percentage']}%) | {option['text']}"
+
     fields = dict(
         name=msg.file_name,
         download=get_download(msg.local, msg.size),
@@ -587,10 +583,11 @@ def parse_content(content: Dict[str, Any]) -> str:
         viewed=format_bool(msg.is_viewed),
         animated=msg.is_animated,
         emoji=msg.sticker_emoji,
+        closed=msg.is_closed_poll,
     )
-    info = ", ".join(f"{k}={v}" for k, v in fields.items() if v)
+    info = ", ".join(f"{k}={v}" for k, v in fields.items() if v is not None)
 
-    return f"[{msg.content_type}: {info}]"
+    return f"[{msg.content_type}: {info}]{content_text}"
 
 
 def format_bool(value: Optional[bool]) -> Optional[str]:
@@ -599,8 +596,12 @@ def format_bool(value: Optional[bool]) -> Optional[str]:
     return "yes" if value else "no"
 
 
-def get_download(local: Dict[str, Union[str, bool, int]], size: int) -> str:
-    if local["is_downloading_completed"]:
+def get_download(
+    local: Dict[str, Union[str, bool, int]], size: Optional[int]
+) -> Optional[str]:
+    if not size:
+        return None
+    elif local["is_downloading_completed"]:
         return "yes"
     elif local["is_downloading_active"]:
         d = int(local["downloaded_size"])
@@ -609,7 +610,7 @@ def get_download(local: Dict[str, Union[str, bool, int]], size: int) -> str:
     return "no"
 
 
-def _get_user_label(users: UserModel, user_id: int) -> str:
+def get_user_label(users: UserModel, user_id: int) -> str:
     if user_id == 0:
         return ""
     user = users.get_user(user_id)
@@ -621,12 +622,18 @@ def _get_user_label(users: UserModel, user_id: int) -> str:
 
     if user.get("username"):
         return "@" + user["username"]
-    return "Unknown?"
+    return "<Unknown>"
 
 
-def _get_action_label(users: UserModel, chat_id: int) -> Optional[str]:
-    actioner, action = users.get_user_action(chat_id)
+def _get_action_label(users: UserModel, chat: Dict[str, Any]) -> Optional[str]:
+    actioner, action = users.get_user_action(chat["id"])
     if actioner and action:
-        user_label = _get_user_label(users, actioner)
-        return f"{user_label} is {action}..."
+        label = f"{action}..."
+        chat_type = get_chat_type(chat)
+        if chat_type and is_group(chat_type):
+            user_label = get_user_label(users, actioner)
+            label = f"{user_label} {label}"
+
+        return label
+
     return None

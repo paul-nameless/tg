@@ -33,7 +33,7 @@ MAX_DOWNLOAD_SIZE = "10MB"
 # TODO: check platform
 NOTIFY_CMD = "/usr/local/bin/terminal-notifier -title {title} -subtitle {subtitle} -message {msg} -appIcon {icon_path}"
 
-HELP_CMD = "less"
+VIEW_TEXT_CMD = "less"
 
 if _os_name == _linux:
     # for more info see https://trac.ffmpeg.org/wiki/Capture/ALSA
@@ -70,6 +70,8 @@ URL_VIEW = "urlview"
 USERS_COLORS = tuple(range(2, 16))
 
 KEEP_MEDIA = 7
+
+FILE_PICKER_CMD = "ranger --choosefile={file_path}"
 
 
 if os.path.isfile(CONFIG_FILE):

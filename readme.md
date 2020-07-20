@@ -18,13 +18,14 @@ Telegram terminal client.
 - [X] auto download files
 - [X] toggle chats: pin/unpin, mark as read/unread, mute/unmute
 - [X] message history
+- [X] list contacts
+- [X] show user status
 
 TODO:
 
 - [ ] secret chats
-- [ ] list contacts
 - [ ] search
-- [ ] show users and their status in current chat
+- [ ] show members in chat
 - [ ] create new chat
 - [ ] bots (bot keyboard)
 
@@ -49,6 +50,8 @@ To use tg, you'll need to have the following installed:
   ```ini
   image/webp; mpv %s
   ```
+- [ranger](https://github.com/ranger/ranger), [nnn](https://github.com/jarun/nnn):
+  can be used to choose file when sending, customizable with `FILE_PICKER_CMD`
 
 ## Installation
 
@@ -105,7 +108,6 @@ docker run -it --rm tg
 If you're using Arch Linux, you can install tg through [its AUR package](https://aur.archlinux.org/packages/telegram-tg-git/):
 
 If you're using the `yay` AUR helper, you can install the package with:
-
 ```bash
 yay -S telegram-tg-git
 ```
@@ -121,6 +123,8 @@ PHONE = "[your phone number]"
 ```
 
 ### Advanced configuration:
+
+All configurable variables can be found [here](https://github.com/paul-nameless/tg/blob/master/tg/config.py)
 
 ```python
 import os
@@ -140,7 +144,7 @@ ENC_KEY = get_pass("i/telegram-enc-key")
 # log level for debugging, info by default
 LOG_LEVEL = "DEBUG"
 # path where logs will be stored (all.log and error.log)
-LOG_PATH = "~/.local/share/tg/"
+LOG_PATH = os.path.expanduser("~/.local/share/tg/")
 
 # If you have problems with tdlib shipped with the client, you can install and
 # use your own, for example:
@@ -168,6 +172,7 @@ CHAT_FLAGS = {
     "unread": "U",
     # last msg haven't been seen by recipient
     "unseen": "✓",
+    "secret": "🔒",
 }
 MSG_FLAGS = {
     "selected": "*",
@@ -197,6 +202,9 @@ USERS_COLORS = tuple(range(2, 16))
 # cleanup cache
 # Values: N days, None (never)
 KEEP_MEDIA = 7
+
+FILE_PICKER_CMD = "ranger --choosefile={file_path}"
+# FILE_PICKER_CMD = "nnn -p {file_path}"
 ```
 
 ### Mailcap file
@@ -238,6 +246,8 @@ For navigation arrow keys also can be used.
 - `p`: pin/unpin current chat
 - `u`: mark read/unread
 - `r`: read current chat
+- `c`: show list of contacts
+- `dd`: delete chat or remove history
 - `?`: show help
 
 ## Msgs:

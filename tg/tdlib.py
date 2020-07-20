@@ -27,9 +27,6 @@ class ChatType(Enum):
     channel = "channel"
     chatTypeSecret = "secret"
 
-    def is_group(self, chat_type: "Union[str, ChatType]") -> bool:
-        return chat_type in (self.chatTypeSupergroup, self.chatTypeBasicGroup)
-
 
 class UserStatus(Enum):
     userStatusEmpty = ""
@@ -40,7 +37,46 @@ class UserStatus(Enum):
     userStatusLastMonth = "last month"
 
 
+class TextParseModeInput(Enum):
+    textParseModeMarkdown = "markdown"
+    textParseModeHTML = "html"
+
+
 class Tdlib(Telegram):
+    def parse_text_entities(
+        self,
+        text: str,
+        parse_mode: TextParseModeInput = TextParseModeInput.textParseModeMarkdown,
+        version: int = 2,
+    ) -> AsyncResult:
+        """Offline synchronous method which returns parsed entities"""
+        data = {
+            "@type": "parseTextEntities",
+            "text": text,
+            "parse_mode": {"@type": parse_mode.name, "version": version},
+        }
+
+        return self._send_data(data)
+
+    def send_message(self, chat_id: int, msg: str) -> AsyncResult:
+        text = {"@type": "formattedText", "text": msg}
+
+        result = self.parse_text_entities(msg)
+        result.wait()
+        if not result.error:
+            text = result.update
+
+        data = {
+            "@type": "sendMessage",
+            "chat_id": chat_id,
+            "input_message_content": {
+                "@type": "inputMessageText",
+                "text": text,
+            },
+        }
+
+        return self._send_data(data)
+
     def download_file(
         self,
         file_id: int,
@@ -76,6 +112,10 @@ class Tdlib(Telegram):
         }
 
         return self._send_data(data)
+
+    def search_contacts(self, target: str, limit: int = 10) -> AsyncResult:
+        data = {"@type": "searchChats", "query": target, "limit": limit}
+        return self._send_data(data, block=True)
 
     def send_doc(self, file_path: str, chat_id: int) -> AsyncResult:
         data = {
@@ -257,6 +297,47 @@ class Tdlib(Telegram):
         }
         return self._send_data(data)
 
+    def get_contacts(self) -> AsyncResult:
+        data = {
+            "@type": "getContacts",
+        }
+        return self._send_data(data)
+
+    def leave_chat(self, chat_id: int) -> AsyncResult:
+        data = {
+            "@type": "leaveChat",
+            "chat_id": chat_id,
+        }
+        return self._send_data(data)
+
+    def join_chat(self, chat_id: int) -> AsyncResult:
+        data = {
+            "@type": "joinChat",
+            "chat_id": chat_id,
+        }
+        return self._send_data(data)
+
+    def close_secret_chat(self, secret_chat_id: int) -> AsyncResult:
+        data = {
+            "@type": "closeSecretChat",
+            "secret_chat_id": secret_chat_id,
+        }
+        return self._send_data(data)
+
+    def delete_chat_history(
+        self, chat_id: int, remove_from_chat_list: bool, revoke: bool = False
+    ) -> AsyncResult:
+        """
+        revoke: Pass true to try to delete chat history for all users
+        """
+        data = {
+            "@type": "deleteChatHistory",
+            "chat_id": chat_id,
+            "remove_from_chat_list": remove_from_chat_list,
+            "revoke": revoke,
+        }
+        return self._send_data(data)
+
 
 def get_chat_type(chat: Dict[str, Any]) -> Optional[ChatType]:
     try:
@@ -270,3 +351,10 @@ def get_chat_type(chat: Dict[str, Any]) -> Optional[ChatType]:
     except KeyError:
         pass
     return None
+
+
+def is_group(chat_type: Union[str, ChatType]) -> bool:
+    return chat_type in (
+        ChatType.chatTypeSupergroup,
+        ChatType.chatTypeBasicGroup,
+    )

@@ -9,19 +9,22 @@ from tempfile import NamedTemporaryFile
 from typing import Any, Callable, Dict, List, Optional
 
 from telegram.utils import AsyncResult
+
 from tg import config
 from tg.models import Model
 from tg.msg import MsgProxy
-from tg.tdlib import ChatAction, Tdlib
+from tg.tdlib import ChatAction, ChatType, Tdlib, get_chat_type
 from tg.utils import (
     get_duration,
+    get_mime,
     get_video_resolution,
     get_waveform,
+    is_no,
     is_yes,
     notify,
     suspend,
 )
-from tg.views import View
+from tg.views import View, get_user_label
 
 log = logging.getLogger(__name__)
 
@@ -109,13 +112,13 @@ class Controller:
     def show_chat_help(self) -> None:
         _help = self.format_help(chat_handler)
         with suspend(self.view) as s:
-            s.run_with_input(config.HELP_CMD, _help)
+            s.run_with_input(config.VIEW_TEXT_CMD, _help)
 
     @bind(msg_handler, ["?"])
     def show_msg_help(self) -> None:
         _help = self.format_help(msg_handler)
         with suspend(self.view) as s:
-            s.run_with_input(config.HELP_CMD, _help)
+            s.run_with_input(config.VIEW_TEXT_CMD, _help)
 
     @bind(chat_handler, ["bp"])
     @bind(msg_handler, ["bp"])
@@ -299,18 +302,6 @@ class Controller:
                     )
                     self.present_info("Message wasn't sent")
 
-    @bind(msg_handler, ["sv"])
-    def send_video(self) -> None:
-        file_path = self.view.status.get_input()
-        if not file_path or not os.path.isfile(file_path):
-            return
-        chat_id = self.model.chats.id_by_index(self.model.current_chat)
-        if not chat_id:
-            return
-        width, height = get_video_resolution(file_path)
-        duration = get_duration(file_path)
-        self.tg.send_video(file_path, chat_id, width, height, duration)
-
     @bind(msg_handler, ["dd"])
     def delete_msgs(self) -> None:
         is_deleted = self.model.delete_msgs()
@@ -320,28 +311,85 @@ class Controller:
             return
         self.present_info("Message deleted")
 
+    @bind(msg_handler, ["S"])
+    def choose_and_send_file(self) -> None:
+        """Call file picker and send chosen file based on mimetype"""
+        chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        file_path = None
+        if not chat_id:
+            return self.present_error("No chat selected")
+        try:
+            with NamedTemporaryFile("w") as f, suspend(self.view) as s:
+                s.call(config.FILE_PICKER_CMD.format(file_path=f.name))
+                with open(f.name) as f:
+                    file_path = f.read().strip()
+        except FileNotFoundError:
+            pass
+        if not file_path or not os.path.isfile(file_path):
+            return self.present_error("No file was selected")
+        mime_map = {
+            "image": self.tg.send_photo,
+            "audio": self.tg.send_audio,
+            "video": self._send_video,
+        }
+        mime = get_mime(file_path)
+        if mime in ("image", "video"):
+            resp = self.view.status.get_input(
+                f"Upload <{file_path}> compressed?[Y/n]"
+            )
+            self.render_status()
+            if resp is None:
+                return self.present_info("Uploading cancelled")
+            if not is_yes(resp):
+                mime = ""
+
+        fun = mime_map.get(mime, self.tg.send_doc)
+        fun(file_path, chat_id)
+
     @bind(msg_handler, ["sd"])
     def send_document(self) -> None:
+        """Enter file path and send uncompressed"""
         self.send_file(self.tg.send_doc)
 
     @bind(msg_handler, ["sp"])
     def send_picture(self) -> None:
+        """Enter file path and send compressed image"""
         self.send_file(self.tg.send_photo)
 
     @bind(msg_handler, ["sa"])
     def send_audio(self) -> None:
+        """Enter file path and send as audio"""
         self.send_file(self.tg.send_audio)
+
+    @bind(msg_handler, ["sv"])
+    def send_video(self) -> None:
+        """Enter file path and send compressed video"""
+        file_path = self.view.status.get_input()
+        if not file_path or not os.path.isfile(file_path):
+            return
+        chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        if not chat_id:
+            return
+        self._send_video(file_path, chat_id)
+
+    def _send_video(self, file_path: str, chat_id: int) -> None:
+        width, height = get_video_resolution(file_path)
+        duration = get_duration(file_path)
+        self.tg.send_video(file_path, chat_id, width, height, duration)
 
     def send_file(
         self, send_file_fun: Callable[[str, int], AsyncResult],
     ) -> None:
-        file_path = self.view.status.get_input()
-        if file_path and os.path.isfile(file_path):
-            if chat_id := self.model.chats.id_by_index(
-                self.model.current_chat
-            ):
-                send_file_fun(file_path, chat_id)
-                self.present_info("File sent")
+        _input = self.view.status.get_input()
+        if _input is None:
+            return
+        file_path = os.path.expanduser(_input)
+        if not file_path or not os.path.isfile(file_path):
+            return self.present_info("Given path to file does not exist")
+
+        if chat_id := self.model.chats.id_by_index(self.model.current_chat):
+            send_file_fun(file_path, chat_id)
+            self.present_info("File sent")
 
     @bind(msg_handler, ["v"])
     def record_voice(self) -> None:
@@ -355,13 +403,11 @@ class Controller:
         resp = self.view.status.get_input(
             f"Do you want to send recording: {file_path}? [Y/n]"
         )
-        if not is_yes(resp):
-            self.present_info("Voice message discarded")
-            return
+        if resp is None or not is_yes(resp):
+            return self.present_info("Voice message discarded")
 
         if not os.path.isfile(file_path):
-            self.present_info(f"Can't load recording file {file_path}")
-            return
+            return self.present_info(f"Can't load recording file {file_path}")
 
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
         if not chat_id:
@@ -398,8 +444,7 @@ class Controller:
                 f.write(msg.text_content)
                 f.flush()
                 with suspend(self.view) as s:
-                    if err_msg := s.open_file(f.name, cmd):
-                        self.present_error(err_msg)
+                    s.open_file(f.name, cmd)
             return
 
         path = msg.local_path
@@ -411,15 +456,20 @@ class Controller:
             return
         self.tg.open_message_content(chat_id, msg.msg_id)
         with suspend(self.view) as s:
-            if err_msg := s.open_file(path, cmd):
-                self.present_error(err_msg)
+            s.open_file(path, cmd)
 
     @bind(msg_handler, ["!"])
     def open_msg_with_cmd(self) -> None:
         """Open msg or file with cmd: less %s"""
         msg = MsgProxy(self.model.current_msg)
-        if cmd := self.view.status.get_input():
-            return self._open_msg(msg, cmd)
+        cmd = self.view.status.get_input()
+        if not cmd:
+            return
+        if "%s" not in cmd:
+            return self.present_error(
+                "command should contain <%s> which will be replaced by file path"
+            )
+        return self._open_msg(msg, cmd)
 
     @bind(msg_handler, ["l", "^J"])
     def open_current_msg(self) -> None:
@@ -448,6 +498,112 @@ class Controller:
                 if text := f.read().strip():
                     self.model.edit_message(text=text)
                     self.present_info("Message edited")
+
+    @bind(chat_handler, ["dd"])
+    def delete_chat(self) -> None:
+        """Leave group/channel or delete private/secret chats"""
+
+        chat = self.model.chats.chats[self.model.current_chat]
+        chat_type = get_chat_type(chat)
+        if chat_type in (
+            ChatType.chatTypeSupergroup,
+            ChatType.chatTypeBasicGroup,
+            ChatType.channel,
+        ):
+            resp = self.view.status.get_input(
+                "Are you sure you want to leave this group/channel?[y/N]"
+            )
+            if is_no(resp or ""):
+                return self.present_info("Not leaving group/channel")
+            self.tg.leave_chat(chat["id"])
+            self.tg.delete_chat_history(
+                chat["id"], remove_from_chat_list=True, revoke=False
+            )
+            return
+
+        resp = self.view.status.get_input(
+            "Are you sure you want to delete the chat?[y/N]"
+        )
+        if is_no(resp or ""):
+            return self.present_info("Not deleting chat")
+
+        is_revoke = False
+        if chat["can_be_deleted_for_all_users"]:
+            resp = self.view.status.get_input("Delete for all users?[y/N]")
+            if resp is None:
+                return self.present_info("Not deleting chat")
+            self.render_status()
+            is_revoke = is_no(resp)
+
+        self.tg.delete_chat_history(
+            chat["id"], remove_from_chat_list=True, revoke=is_revoke
+        )
+        self.present_info("Chat was deleted")
+
+    @bind(chat_handler, ["n"])
+    def next_found_chat(self) -> None:
+        """Go to next found chat"""
+        if self.model.set_current_chat_by_id(
+            self.model.chats.next_found_chat()
+        ):
+            self.render()
+
+    @bind(chat_handler, ["N"])
+    def prev_found_chat(self) -> None:
+        """Go to previous found chat"""
+        if self.model.set_current_chat_by_id(
+            self.model.chats.next_found_chat(True)
+        ):
+            self.render()
+
+    @bind(chat_handler, ["/"])
+    def search_contacts(self) -> None:
+        """Search contacts and set jumps to it if found"""
+        msg = self.view.status.get_input(prefix="/")
+        if not msg:
+            return self.present_info("Search discarded")
+
+        rv = self.tg.search_contacts(msg)
+        chat_ids = rv.update["chat_ids"]
+        if not chat_ids:
+            return self.present_info("Chat not found")
+
+        chat_id = chat_ids[0]
+        if chat_id not in self.model.chats.chat_ids:
+            self.present_info("Chat not loaded")
+            return
+
+        self.model.chats.found_chats = chat_ids
+
+        if self.model.set_current_chat_by_id(chat_id):
+            self.render()
+
+    @bind(chat_handler, ["c"])
+    def view_contacts(self) -> None:
+        contacts = self.model.users.get_contacts()
+        if contacts is None:
+            return self.present_error("Can't get contacts")
+
+        total = contacts["total_count"]
+        users = []
+        for user_id in contacts["user_ids"]:
+            user_name = get_user_label(self.model.users, user_id)
+            status = self.model.users.get_status(user_id)
+            order = self.model.users.get_user_status_order(user_id)
+            users.append((user_name, status, order))
+
+        _, cols = self.view.stdscr.getmaxyx()
+        limit = min(
+            int(cols / 2), max(len(user_name) for user_name, *_ in users)
+        )
+        users_out = "\n".join(
+            f"{user_name:<{limit}} | {status}"
+            for user_name, status, _ in sorted(users, key=lambda it: it[2])
+        )
+        with suspend(self.view) as s:
+            s.run_with_input(
+                config.VIEW_TEXT_CMD, f"{total} users:\n" + users_out
+            )
 
     @bind(chat_handler, ["l", "^J", "^E"])
     def handle_msgs(self) -> Optional[str]:
@@ -596,8 +752,10 @@ class Controller:
         self.queue.put(self._render)
 
     def _render(self) -> None:
-        self.render_chats()
-        self.render_msgs()
+        self._render_chats()
+        self._render_msgs()
+
+    def render_status(self) -> None:
         self.view.status.draw()
 
     def render_chats(self) -> None:

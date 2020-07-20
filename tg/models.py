@@ -1,4 +1,5 @@
 import logging
+import sys
 import time
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -26,9 +27,6 @@ class Model:
 
     def is_me(self, user_id: int) -> bool:
         return self.get_me()["id"] == user_id
-
-    def get_user(self, user_id: int) -> Dict:
-        return self.users.get_user(user_id)
 
     @property
     def current_chat_id(self) -> Optional[int]:
@@ -62,7 +60,8 @@ class Model:
             return {}
         current_msg = self.msgs.current_msgs[chat_id]
         log.info("current-msg: %s", current_msg)
-        return self.msgs.msgs[chat_id][current_msg]
+        msg_id = self.msgs.msg_ids[chat_id][current_msg]
+        return self.msgs.msgs[chat_id][msg_id]
 
     @property
     def current_msg_id(self) -> int:
@@ -71,6 +70,22 @@ class Model:
     def jump_bottom(self) -> bool:
         if chat_id := self.chats.id_by_index(self.current_chat):
             return self.msgs.jump_bottom(chat_id)
+        return False
+
+    def set_current_chat_by_id(self, chat_id: int) -> bool:
+        idx = next(
+            iter(
+                i
+                for i, chat in enumerate(self.chats.chats)
+                if chat["id"] == chat_id
+            )
+        )
+        return self.set_current_chat(idx)
+
+    def set_current_chat(self, chat_idx: int) -> bool:
+        if 0 < chat_idx < len(self.chats.chats):
+            self.current_chat = chat_idx
+            return True
         return False
 
     def next_chat(self, step: int = 1) -> bool:
@@ -157,7 +172,8 @@ class Model:
                     return False
         else:
             selected_msg = self.msgs.current_msgs[chat_id]
-            msg = self.msgs.msgs[chat_id][selected_msg]
+            msg_id = self.msgs.msg_ids[chat_id][selected_msg]
+            msg = self.msgs.msgs[chat_id][msg_id]
             if not self.can_be_deleted(chat_id, msg):
                 return False
             message_ids = [msg["id"]]
@@ -206,9 +222,20 @@ class ChatModel:
     def __init__(self, tg: Tdlib) -> None:
         self.tg = tg
         self.chats: List[Dict[str, Any]] = []
-        self.chat_ids: List[int] = []
+        self.inactive_chats: Dict[int, Dict[str, Any]] = {}
+        self.chat_ids: Set[int] = set()
         self.have_full_chat_list = False
         self.title: str = "Chats"
+        self.found_chats: List[int] = []
+        self.found_chat_idx: int = 0
+
+    def next_found_chat(self, backwards: bool = False) -> int:
+        new_idx = self.found_chat_idx + (-1 if backwards else 1)
+        new_idx %= len(self.found_chats)
+
+        self.found_chat_idx = new_idx
+
+        return self.found_chats[new_idx]
 
     def id_by_index(self, index: int) -> Optional[int]:
         if index >= len(self.chats):
@@ -244,17 +271,14 @@ class ChatModel:
             log.error(f"get chat ids error: {result.error_info}")
             return None
 
-        chats = result.update["chat_ids"]
-        if not chats:
+        chat_ids = result.update["chat_ids"]
+        if not chat_ids:
             self.have_full_chat_list = True
-            return chats
+            return
 
-        for chat_id in chats:
-            # TODO: fix this, we shouldn't have any duplicates
-            if chat_id not in self.chat_ids:
-                self.chat_ids.append(chat_id)
-                chat = self.fetch_chat(chat_id)
-                self.chats.append(chat)
+        for chat_id in chat_ids:
+            chat = self.fetch_chat(chat_id)
+            self.add_chat(chat)
 
     def fetch_chat(self, chat_id: int) -> Dict[str, Any]:
         result = self.tg.get_chat(chat_id)
@@ -265,35 +289,66 @@ class ChatModel:
             return {}
         return result.update
 
+    def add_chat(self, chat: Dict[str, Any]) -> None:
+        chat_id = chat["id"]
+        if chat_id in self.chat_ids:
+            return
+        if int(chat["order"]) == 0:
+            self.inactive_chats[chat_id] = chat
+            return
+        self.chat_ids.add(chat_id)
+        self.chats.append(chat)
+        self._sort_chats()
+
+    def _sort_chats(self) -> None:
+        self.chats = sorted(
+            self.chats,
+            # recommended chat order, for more info see
+            # https://core.telegram.org/tdlib/getting-started#getting-the-lists-of-chats
+            key=lambda it: (it["order"], it["id"]),
+            reverse=True,
+        )
+
     def update_chat(self, chat_id: int, **updates: Dict[str, Any]) -> bool:
-        for i, c in enumerate(self.chats):
-            if c["id"] != chat_id:
+        for i, chat in enumerate(self.chats):
+            if chat["id"] != chat_id:
                 continue
-            self.chats[i].update(updates)
-            self.chats = sorted(
-                self.chats,
-                # recommended chat order, for more info see
-                # https://core.telegram.org/tdlib/getting-started#getting-the-lists-of-chats
-                key=lambda it: (it["order"], it["id"]),
-                reverse=True,
-            )
-            log.info(f"Updated chat with keys {list(updates)}")
+            chat.update(updates)
+            if int(chat["order"]) == 0:
+                self.inactive_chats[chat_id] = chat
+                self.chat_ids.discard(chat_id)
+                self.chats = [
+                    _chat for _chat in self.chats if _chat["id"] != chat_id
+                ]
+                log.info(f"Removing chat '{chat['title']}'")
+            else:
+                self._sort_chats()
+                log.info(f"Updated chat with keys {list(updates)}")
             return True
-        else:
-            log.warning(f"Can't find chat {chat_id} in existing chats")
+
+        if _chat := self.inactive_chats.get(chat_id):
+            _chat.update(updates)
+            if int(_chat["order"]) != 0:
+                del self.inactive_chats[chat_id]
+                self.add_chat(_chat)
+                log.info(f"Marked chat '{_chat['title']}' as active")
+                return True
             return False
+
+        log.warning(f"Can't find chat {chat_id} in existing chats")
+        return False
 
 
 class MsgModel:
     def __init__(self, tg: Tdlib) -> None:
         self.tg = tg
-        self.msgs: Dict[int, List[Dict]] = defaultdict(list)
+        self.msgs: Dict[int, Dict[int, Dict]] = defaultdict(dict)
         self.current_msgs: Dict[int, int] = defaultdict(int)
         self.not_found: Set[int] = set()
-        self.msg_idx: Dict[int, Dict[int, int]] = defaultdict(dict)
+        self.msg_ids: Dict[int, List[int]] = defaultdict(list)
 
     def jump_to_msg_by_id(self, chat_id: int, msg_id: int) -> bool:
-        if index := self.msg_idx[chat_id].get(msg_id):
+        if index := self.msg_ids[chat_id].index(msg_id):
             self.current_msgs[chat_id] = index
             return True
         return False
@@ -313,7 +368,7 @@ class MsgModel:
 
     def prev_msg(self, chat_id: int, step: int = 1) -> bool:
         new_idx = self.current_msgs[chat_id] + step
-        if new_idx < len(self.msgs[chat_id]):
+        if new_idx < len(self.msg_ids[chat_id]):
             self.current_msgs[chat_id] = new_idx
             return True
         return False
@@ -321,10 +376,8 @@ class MsgModel:
     def get_message(self, chat_id: int, msg_id: int) -> Optional[Dict]:
         if msg_id in self.not_found:
             return None
-        if index := self.msg_idx[chat_id].get(msg_id):
-            return self.msgs[chat_id][index]
-        # we are not storing any out of ordres old msgs
-        # just fetching them on demand
+        if msg := self.msgs[chat_id].get(msg_id):
+            return msg
         result = self.tg.get_message(chat_id, msg_id)
         result.wait()
         if result.error:
@@ -332,33 +385,33 @@ class MsgModel:
             return None
         return result.update
 
-    def remove_messages(self, chat_id: int, msg_idx: List[int]) -> None:
-        log.info(f"removing msg {msg_idx=}")
-        self.msgs[chat_id] = [
-            m for m in self.msgs[chat_id] if m["id"] not in msg_idx
-        ]
-        self.msg_idx[chat_id] = {
-            msg["id"]: i for i, msg in enumerate(self.msgs[chat_id])
-        }
+    def remove_messages(self, chat_id: int, msg_ids: List[int]) -> None:
+        log.info(f"removing msg {msg_ids=}")
+        for msg_id in msg_ids:
+            try:
+                self.msg_ids[chat_id].remove(msg_id)
+            except ValueError:
+                pass
+            self.msgs[chat_id].pop(msg_id, None)
 
     def add_message(self, chat_id: int, msg: Dict[str, Any]) -> None:
         log.info(f"adding {msg=}")
-        self.msgs[chat_id] = sorted(
-            self.msgs[chat_id] + [msg], key=lambda d: d["id"], reverse=True,
-        )
-        self.msg_idx[chat_id] = {
-            msg["id"]: i for i, msg in enumerate(self.msgs[chat_id])
-        }
+        msg_id = msg["id"]
+        ids = self.msg_ids[chat_id]
+        self.msgs[chat_id][msg_id] = msg
+        ids.insert(0, msg_id)
+        if len(ids) >= 2 and msg_id < ids[1]:
+            self.msg_ids[chat_id].sort(reverse=True)
 
     def update_msg_content_opened(self, chat_id: int, msg_id: int) -> None:
-        index = self.msg_idx[chat_id].get(msg_id)
-        if not index:
+        msg = self.msgs[chat_id].get(msg_id)
+        if not msg:
             return
-        msg = MsgProxy(self.msgs[chat_id][index])
-        if msg.content_type == "voice":
-            msg.is_listened = True
-        elif msg.content_type == "recording":
-            msg.is_viewed = True
+        msg_proxy = MsgProxy(msg)
+        if msg_proxy.content_type == "voice":
+            msg_proxy.is_listened = True
+        elif msg_proxy.content_type == "recording":
+            msg_proxy.is_viewed = True
         # TODO: start the TTL timer for self-destructing messages
         # that is the last case to implement
         # https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1update_message_content_opened.html
@@ -366,10 +419,9 @@ class MsgModel:
     def update_msg(
         self, chat_id: int, msg_id: int, **fields: Dict[str, Any]
     ) -> None:
-        index = self.msg_idx[chat_id].get(msg_id)
-        if not index:
+        msg = self.msgs[chat_id].get(msg_id)
+        if not msg:
             return
-        msg = self.msgs[chat_id][index]
         msg.update(fields)
 
     def _fetch_msgs_until_limit(
@@ -378,19 +430,20 @@ class MsgModel:
         if self.msgs[chat_id]:
             result = self.tg.get_chat_history(
                 chat_id,
-                from_message_id=self.msgs[chat_id][-1]["id"],
-                limit=len(self.msgs[chat_id]) + limit,
+                from_message_id=self.msg_ids[chat_id][-1],
+                limit=len(self.msg_ids[chat_id]) + limit,
             )
         else:
             result = self.tg.get_chat_history(
                 chat_id,
-                offset=len(self.msgs[chat_id]),
-                limit=len(self.msgs[chat_id]) + limit,
+                offset=len(self.msg_ids[chat_id]),
+                limit=len(self.msg_ids[chat_id]) + limit,
             )
         result.wait()
+        if not result or not result.update["messages"]:
+            return []
+
         messages = result.update["messages"]
-        if not messages:
-            return messages
 
         # tdlib could doesn't guarantee number of messages, so we need to
         # send another request on demand
@@ -401,7 +454,7 @@ class MsgModel:
             result = self.tg.get_chat_history(
                 chat_id,
                 from_message_id=messages[-1]["id"],
-                limit=len(self.msgs[chat_id]) + limit,
+                limit=len(self.msg_ids[chat_id]) + limit,
             )
             result.wait()
             messages += result.update["messages"]
@@ -411,7 +464,7 @@ class MsgModel:
     def fetch_msgs(
         self, chat_id: int, offset: int = 0, limit: int = 10
     ) -> List[Tuple[int, Dict[str, Any]]]:
-        if offset + limit > len(self.msgs[chat_id]):
+        if offset + limit > len(self.msg_ids[chat_id]):
             msgs = self._fetch_msgs_until_limit(
                 chat_id, offset, offset + limit
             )
@@ -419,9 +472,10 @@ class MsgModel:
                 self.add_message(chat_id, msg)
 
         return [
-            (i, self.msgs[chat_id][i])
-            for i in range(offset, offset + limit)
-            if i < len(self.msgs[chat_id])
+            (i, self.msgs[chat_id][msg_id])
+            for i, msg_id in enumerate(
+                self.msg_ids[chat_id][offset : offset + limit]
+            )
         ]
 
     def edit_message(self, chat_id: int, message_id: int, text: str) -> bool:
@@ -437,9 +491,7 @@ class MsgModel:
             return True
 
     def send_message(self, chat_id: int, text: str) -> None:
-        log.info("Sending msg")
-        result = self.tg.send_message(chat_id=chat_id, text=text)
-
+        result = self.tg.send_message(chat_id, text)
         result.wait()
         if result.error:
             log.info(f"send message error: {result.error_info}")
@@ -464,6 +516,7 @@ class UserModel:
         self.supergroups: Dict[int, Dict] = {}
         self.actions: Dict[int, Dict] = {}
         self.not_found: Set[int] = set()
+        self.contacts: Dict[str, Any] = {}
 
     def get_me(self) -> Dict[str, Any]:
         if self.me:
@@ -519,6 +572,28 @@ class UserModel:
             return f"last seen {ago}"
         return f"last seen {status.value}"
 
+    def get_user_status_order(self, user_id: int) -> int:
+        if user_id not in self.users:
+            return sys.maxsize
+        user_status = self.users[user_id]["status"]
+
+        try:
+            status = UserStatus[user_status["@type"]]
+        except KeyError:
+            log.error(f"UserStatus type {user_status} not implemented")
+            return sys.maxsize
+        if status == UserStatus.userStatusOnline:
+            return 0
+        elif status == UserStatus.userStatusOffline:
+            was_online = user_status["was_online"]
+            return time.time() - was_online
+        order = {
+            UserStatus.userStatusRecently: 1,
+            UserStatus.userStatusLastWeek: 2,
+            UserStatus.userStatusLastMonth: 3,
+        }
+        return order.get(status, sys.maxsize)
+
     def is_online(self, user_id: int) -> bool:
         user = self.get_user(user_id)
         if (
@@ -557,3 +632,16 @@ class UserModel:
             return self.supergroups[supergroup_id]
         self.tg.get_supergroup(supergroup_id)
         return None
+
+    def get_contacts(self) -> Optional[Dict[str, Any]]:
+        if self.contacts:
+            return self.contacts
+
+        result = self.tg.get_contacts()
+        result.wait()
+
+        if result.error:
+            log.error("get contacts error: %s", result.error_info)
+            return None
+        self.contacts = result.update
+        return self.contacts

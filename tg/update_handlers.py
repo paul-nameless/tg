@@ -73,7 +73,7 @@ def update_new_message(controller: Controller, update: Dict[str, Any]) -> None:
     current_chat_id = controller.model.current_chat_id
     if current_chat_id == msg.chat_id:
         controller.render_msgs()
-    if msg.file_id and msg.size <= max_download_size:
+    if msg.file_id and msg.size and msg.size <= max_download_size:
         controller.download(msg.file_id, msg.chat_id, msg["id"])
 
     controller.notify_for_message(msg.chat_id, msg)
@@ -111,6 +111,12 @@ def update_chat_is_marked_as_unread(
         chat_id, is_marked_as_unread=is_marked_as_unread
     ):
         controller.refresh_current_chat(current_chat_id)
+
+
+@update_handler("updateNewChat")
+def update_new_chat(controller: Controller, update: Dict[str, Any]) -> None:
+    chat = update["chat"]
+    controller.model.chats.add_chat(chat)
 
 
 @update_handler("updateChatIsPinned")
@@ -223,20 +229,19 @@ def update_file(controller: Controller, update: Dict[str, Any]) -> None:
     file_id = update["file"]["id"]
     local = update["file"]["local"]
     chat_id, msg_id = controller.model.downloads.get(file_id, (None, None))
-    if chat_id is None:
+    if chat_id is None or msg_id is None:
         log.warning(
             "Can't find information about file with file_id=%s", file_id
         )
         return
-    msgs = controller.model.msgs.msgs[chat_id]
-    for msg in msgs:
-        if msg["id"] == msg_id:
-            proxy = MsgProxy(msg)
-            proxy.local = local
-            controller.render_msgs()
-            if proxy.is_downloaded:
-                controller.model.downloads.pop(file_id)
-            break
+    msg = controller.model.msgs.msgs[chat_id].get(msg_id)
+    if not msg:
+        return
+    proxy = MsgProxy(msg)
+    proxy.local = local
+    controller.render_msgs()
+    if proxy.is_downloaded:
+        controller.model.downloads.pop(file_id)
 
 
 @update_handler("updateMessageContentOpened")
@@ -253,6 +258,9 @@ def update_message_content_opened(
 def update_delete_messages(
     controller: Controller, update: Dict[str, Any]
 ) -> None:
+    if not update["is_permanent"]:
+        log.debug("Ignoring deletiong becuase not permanent: %s", update)
+        return
     chat_id = update["chat_id"]
     msg_ids = update["message_ids"]
     controller.model.msgs.remove_messages(chat_id, msg_ids)

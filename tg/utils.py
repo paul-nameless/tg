@@ -19,7 +19,7 @@ from subprocess import CompletedProcess
 from types import TracebackType
 from typing import Any, Optional, Tuple, Type
 
-from tg import colors, config
+from tg import config
 
 log = logging.getLogger(__name__)
 emoji_pattern = re.compile(
@@ -72,6 +72,13 @@ def setup_log() -> None:
     logging.captureWarnings(True)
 
 
+def get_mime(file_path: str) -> str:
+    mtype, _ = mimetypes.guess_type(file_path)
+    if not mtype:
+        return ""
+    return mtype.split("/")[0]
+
+
 def get_file_handler(file_path: str) -> str:
     mtype, _ = mimetypes.guess_type(file_path)
     if not mtype:
@@ -120,9 +127,11 @@ def num(value: str, default: Optional[int] = None) -> Optional[int]:
 
 
 def is_yes(resp: str) -> bool:
-    if resp.strip().lower() == "y" or resp == "":
-        return True
-    return False
+    return not resp or resp.strip().lower() == "y"
+
+
+def is_no(resp: str) -> bool:
+    return not resp or resp.strip().lower() == "n"
 
 
 def get_duration(file_path: str) -> int:
@@ -184,26 +193,20 @@ class suspend:
         self.view = view
 
     def call(self, cmd: str) -> CompletedProcess:
-        return subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
+        return subprocess.run(cmd, shell=True)
 
     def run_with_input(self, cmd: str, text: str) -> None:
         subprocess.run(cmd, universal_newlines=True, input=text, shell=True)
 
-    def open_file(self, file_path: str, cmd: str = None) -> str:
+    def open_file(self, file_path: str, cmd: str = None) -> None:
         if cmd:
-            try:
-                cmd = cmd % shlex.quote(file_path)
-            except TypeError:
-                return "command should contain <%s> which will be replaced by file path"
+            cmd = cmd % shlex.quote(file_path)
         else:
             cmd = get_file_handler(file_path)
 
         proc = self.call(cmd)
         if proc.returncode:
-            stderr = proc.stderr.decode()
-            log.error("Error happened executing <%s>:\n%s", cmd, stderr)
-            return stderr
-        return ""
+            input(f"Command <{cmd}> failed: press <enter> to continue")
 
     def __enter__(self) -> "suspend":
         for view in (self.view.chats, self.view.msgs, self.view.status):
@@ -239,7 +242,6 @@ def pretty_ts(ts: int) -> str:
     diff = now - datetime.utcfromtimestamp(ts)
     second_diff = diff.seconds
     day_diff = diff.days
-    log.info("diff:: %s, %s, %s", ts, second_diff, day_diff)
 
     if day_diff < 0:
         return ""
@@ -258,7 +260,7 @@ def pretty_ts(ts: int) -> str:
         if second_diff < 86400:
             return f"{int(second_diff / 3600)} hours ago"
     if day_diff == 1:
-        return "Yesterday"
+        return "yesterday"
     if day_diff < 7:
         return f"{day_diff} days ago"
     if day_diff < 31:
