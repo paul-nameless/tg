@@ -89,7 +89,7 @@ cd tg
 python3 -m venv venv
 source venv/bin/activate
 pip install python-telegram
-python3 tg/__main__.py
+python3 tg
 ```
 
 ### Using Docker
