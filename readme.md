@@ -89,12 +89,12 @@ tg
 > Ensure you have the correct version of Python installed before using this method!
 
 ```sh
-git clone https://github.com:paul-nameless/tg.git
+git clone https://github.com/paul-nameless/tg.git
 cd tg
 python3 -m venv venv
 source venv/bin/activate
 pip install python-telegram
-python3 tg
+python3 -m tg
 ```
 
 ### Using Docker
