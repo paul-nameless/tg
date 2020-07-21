@@ -9,7 +9,6 @@ from tempfile import NamedTemporaryFile
 from typing import Any, Callable, Dict, List, Optional
 
 from telegram.utils import AsyncResult
-
 from tg import config
 from tg.models import Model
 from tg.msg import MsgProxy
@@ -498,6 +497,16 @@ class Controller:
                 if text := f.read().strip():
                     self.model.edit_message(text=text)
                     self.present_info("Message edited")
+
+    @bind(chat_handler, ["ns"])
+    def new_secret(self) -> None:
+        self.tg.create_new_secret_chat()
+        ...
+
+    @bind(chat_handler, ["ng"])
+    def new_group(self) -> None:
+        self.tg.create_new_basic_group_chat()
+        ...
 
     @bind(chat_handler, ["dd"])
     def delete_chat(self) -> None:
