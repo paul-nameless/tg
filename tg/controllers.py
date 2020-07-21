@@ -559,7 +559,7 @@ class Controller:
     @bind(chat_handler, ["/"])
     def search_contacts(self) -> None:
         """Search contacts and set jumps to it if found"""
-        msg = self.view.status.get_input(prefix="/")
+        msg = self.view.status.get_input("/")
         if not msg:
             return self.present_info("Search discarded")
 

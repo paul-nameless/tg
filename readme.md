@@ -29,11 +29,13 @@ TODO:
 - [ ] create new chat
 - [ ] bots (bot keyboard)
 
+
 ## Requirements
 
 To use tg, you'll need to have the following installed:
 
 - [Python 3.8](https://www.python.org/downloads/release/python-380/)
+
 
 ## Optional dependencies
 
@@ -53,6 +55,7 @@ To use tg, you'll need to have the following installed:
 - [ranger](https://github.com/ranger/ranger), [nnn](https://github.com/jarun/nnn):
   can be used to choose file when sending, customizable with `FILE_PICKER_CMD`
 
+
 ## Installation
 
 ### From PyPI
@@ -70,8 +73,7 @@ This option is recommended for development:
 
 > Requires [flit](https://github.com/takluyver/flit) to be installed.
 >
-> Install it with:
-> ```sh 
+> ```sh
 > pip3 install flit
 > ```
 
@@ -248,6 +250,7 @@ For navigation arrow keys also can be used.
 - `r`: read current chat
 - `c`: show list of contacts
 - `dd`: delete chat or remove history
+- `/`: search in chats
 - `?`: show help
 
 ## Msgs:
