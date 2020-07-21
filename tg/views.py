@@ -95,7 +95,7 @@ class StatusView:
         self.win.addstr(0, 0, msg.replace("\n", " ")[: self.w])
         self._refresh()
 
-    def get_input(self, buff: str = "", prefix: str = "") -> Optional[str]:
+    def get_input(self, prefix: str = "", buff: str = "") -> Optional[str]:
         curses.curs_set(1)
 
         try:
