@@ -121,7 +121,8 @@ Config file should be stored at `~/.config/tg/conf.py`. This is simple python fi
 ### Simple config:
 
 ```python
-PHONE = "[your phone number]"
+# should start with + (plus) and contain country code
+PHONE = "[phone number in international format]"
 ```
 
 ### Advanced configuration:
