@@ -331,7 +331,9 @@ class Tdlib(Telegram):
         }
         return self._send_data(data)
 
-    def create_new_basic_group_chat(self, user_ids: List[int], title: str) -> AsyncResult:
+    def create_new_basic_group_chat(
+        self, user_ids: List[int], title: str
+    ) -> AsyncResult:
         data = {
             "@type": "createNewBasicGroupChat",
             "user_ids": user_ids,

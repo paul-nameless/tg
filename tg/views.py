@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from _curses import window  # type: ignore
+
 from tg import config
 from tg.colors import bold, cyan, get_color, magenta, reverse, white, yellow
 from tg.models import Model, UserModel
@@ -218,7 +219,7 @@ class ChatView:
     ) -> Tuple[Optional[str], Optional[str]]:
         user, last_msg = get_last_msg(chat)
         if user:
-            last_msg_sender = get_user_label(self.model.users, user)
+            last_msg_sender = self.model.users.get_user_label(user)
             chat_type = get_chat_type(chat)
             if chat_type and is_group(chat_type):
                 return last_msg_sender, last_msg
@@ -325,9 +326,7 @@ class MsgView:
             return msg
         reply_msg = MsgProxy(_msg)
         if reply_msg_content := self._parse_msg(reply_msg):
-            reply_sender = get_user_label(
-                self.model.users, reply_msg.sender_id
-            )
+            reply_sender = self.model.users.get_user_label(reply_msg.sender_id)
             sender_name = f" {reply_sender}:" if reply_sender else ""
             reply_line = f">{sender_name} {reply_msg_content}"
             if len(reply_line) >= width_limit:
@@ -387,7 +386,7 @@ class MsgView:
                 dt = msg_proxy.date.strftime("%H:%M:%S")
                 user_id_item = msg_proxy.sender_id
 
-                user_id = get_user_label(self.model.users, user_id_item)
+                user_id = self.model.users.get_user_label(user_id_item)
                 flags = self._get_flags(msg_proxy)
                 if user_id and flags:
                     # if not channel add space between name and flags
@@ -614,28 +613,13 @@ def get_download(
     return "no"
 
 
-def get_user_label(users: UserModel, user_id: int) -> str:
-    if user_id == 0:
-        return ""
-    user = users.get_user(user_id)
-    if user["first_name"] and user["last_name"]:
-        return f'{user["first_name"]} {user["last_name"]}'[:20]
-
-    if user["first_name"]:
-        return f'{user["first_name"]}'[:20]
-
-    if user.get("username"):
-        return "@" + user["username"]
-    return "<Unknown>"
-
-
 def _get_action_label(users: UserModel, chat: Dict[str, Any]) -> Optional[str]:
     actioner, action = users.get_user_action(chat["id"])
     if actioner and action:
         label = f"{action}..."
         chat_type = get_chat_type(chat)
         if chat_type and is_group(chat_type):
-            user_label = get_user_label(users, actioner)
+            user_label = users.get_user_label(actioner)
             label = f"{user_label} {label}"
 
         return label

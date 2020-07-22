@@ -9,6 +9,7 @@ from tempfile import NamedTemporaryFile
 from typing import Any, Callable, Dict, List, Optional
 
 from telegram.utils import AsyncResult
+
 from tg import config
 from tg.models import Model
 from tg.msg import MsgProxy
@@ -23,7 +24,7 @@ from tg.utils import (
     notify,
     suspend,
 )
-from tg.views import View, get_user_label
+from tg.views import View
 
 log = logging.getLogger(__name__)
 
@@ -498,15 +499,42 @@ class Controller:
                     self.model.edit_message(text=text)
                     self.present_info("Message edited")
 
+    def _get_user_ids(self, is_multiple: bool = False) -> List[int]:
+        users = self.model.users.get_list_of_users()
+        _, cols = self.view.stdscr.getmaxyx()
+        limit = min(int(cols / 2), max(len(user.name) for user in users),)
+        users_out = "\n".join(
+            f"{user.id}\t{user.name:<{limit}} | {user.status}"
+            for user in sorted(users, key=lambda user: user.order)
+        )
+        cmd = config.FZF + " -n 2"
+        if is_multiple:
+            cmd += " -m"
+
+        with NamedTemporaryFile("r+") as tmp, suspend(self.view) as s:
+            s.run_with_input(f"{cmd} > {tmp.name}", users_out)
+            with open(tmp.name) as f:
+                return [int(line.split()[0]) for line in f.readlines()]
+
     @bind(chat_handler, ["ns"])
     def new_secret(self) -> None:
-        self.tg.create_new_secret_chat()
-        ...
+        user_ids = self._get_user_ids()
+        if not user_ids:
+            return
+        self.tg.create_new_secret_chat(user_ids[0])
 
     @bind(chat_handler, ["ng"])
     def new_group(self) -> None:
-        self.tg.create_new_basic_group_chat()
-        ...
+        user_ids = self._get_user_ids(is_multiple=True)
+        if not user_ids:
+            return
+        title = self.view.status.get_input("Group name: ")
+        if title is None:
+            return self.present_info("Cancelling creating group")
+        if not title:
+            return self.present_error("Group name should not be empty")
+
+        self.tg.create_new_basic_group_chat(user_ids, title)
 
     @bind(chat_handler, ["dd"])
     def delete_chat(self) -> None:
@@ -547,6 +575,9 @@ class Controller:
         self.tg.delete_chat_history(
             chat["id"], remove_from_chat_list=True, revoke=is_revoke
         )
+        if chat_type == ChatType.chatTypeSecret:
+            self.tg.close_secret_chat(chat["type"]["secret_chat_id"])
+
         self.present_info("Chat was deleted")
 
     @bind(chat_handler, ["n"])
@@ -589,30 +620,7 @@ class Controller:
 
     @bind(chat_handler, ["c"])
     def view_contacts(self) -> None:
-        contacts = self.model.users.get_contacts()
-        if contacts is None:
-            return self.present_error("Can't get contacts")
-
-        total = contacts["total_count"]
-        users = []
-        for user_id in contacts["user_ids"]:
-            user_name = get_user_label(self.model.users, user_id)
-            status = self.model.users.get_status(user_id)
-            order = self.model.users.get_user_status_order(user_id)
-            users.append((user_name, status, order))
-
-        _, cols = self.view.stdscr.getmaxyx()
-        limit = min(
-            int(cols / 2), max(len(user_name) for user_name, *_ in users)
-        )
-        users_out = "\n".join(
-            f"{user_name:<{limit}} | {status}"
-            for user_name, status, _ in sorted(users, key=lambda it: it[2])
-        )
-        with suspend(self.view) as s:
-            s.run_with_input(
-                config.VIEW_TEXT_CMD, f"{total} users:\n" + users_out
-            )
+        self._get_user_ids()
 
     @bind(chat_handler, ["l", "^J", "^E"])
     def handle_msgs(self) -> Optional[str]:
