@@ -13,7 +13,7 @@ from telegram.utils import AsyncResult
 from tg import config
 from tg.models import Model
 from tg.msg import MsgProxy
-from tg.tdlib import ChatAction, ChatType, Tdlib, get_chat_type
+from tg.tdlib import ChatAction, ChatType, Tdlib, UserType, get_chat_type
 from tg.utils import (
     get_duration,
     get_mime,
@@ -75,6 +75,35 @@ class Controller:
         self.is_running = True
         self.tg = tg
         self.chat_size = 0.5
+
+    @bind(msg_handler, ["u"])
+    def user_innfo(self) -> None:
+        """Show user profile"""
+        msg = MsgProxy(self.model.current_msg)
+        user_id = msg.sender_id
+        users = self.model.users
+        name = users.get_user_label(user_id)
+        status = users.get_status(user_id)
+        user = users.get_user(user_id)
+        user_info = users.get_user_full_info(user_id)
+        user_type = None
+        try:
+            user_type = UserType[user["type"]["@type"]].value
+        except KeyError:
+            pass
+        info = {
+            name: status,
+            "Username": user.get("username", ""),
+            "UserId": user_id,
+            "Bio": user_info.get("bio", ""),
+            "Phone": user.get("phone_number", ""),
+            "Type": user_type,
+        }
+        with suspend(self.view) as s:
+            s.run_with_input(
+                config.VIEW_TEXT_CMD,
+                "\n".join(f"{k}: {v}" for k, v in info.items() if v),
+            )
 
     @bind(msg_handler, ["o"])
     def open_url(self) -> None:

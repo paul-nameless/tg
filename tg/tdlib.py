@@ -37,6 +37,13 @@ class UserStatus(Enum):
     userStatusLastMonth = "last month"
 
 
+class UserType(Enum):
+    userTypeRegular = ""
+    userTypeDeleted = "deleted"
+    userTypeBot = "bot"
+    userTypeUnknown = "unknownn"
+
+
 class TextParseModeInput(Enum):
     textParseModeMarkdown = "markdown"
     textParseModeHTML = "html"
@@ -363,6 +370,20 @@ class Tdlib(Telegram):
             "chat_id": chat_id,
             "remove_from_chat_list": remove_from_chat_list,
             "revoke": revoke,
+        }
+        return self._send_data(data)
+
+    def get_user(self, user_id: int) -> AsyncResult:
+        data = {
+            "@type": "getUser",
+            "user_id": user_id,
+        }
+        return self._send_data(data)
+
+    def get_user_full_info(self, user_id: int) -> AsyncResult:
+        data = {
+            "@type": "getUserFullInfo",
+            "user_id": user_id,
         }
         return self._send_data(data)
 
