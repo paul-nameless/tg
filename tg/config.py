@@ -81,8 +81,7 @@ if os.path.isfile(CONFIG_FILE):
         if param.isupper():
             globals()[param] = value
 else:
-    for directory in (LOG_PATH, CONFIG_DIR, FILES_DIR):
-        os.makedirs(directory, exist_ok=True)
+    os.makedirs(CONFIG_DIR, exist_ok=True)
 
     if not PHONE:
         print(

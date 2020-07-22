@@ -49,6 +49,8 @@ class LogWriter:
 
 
 def setup_log() -> None:
+    os.makedirs(config.LOG_PATH, exist_ok=True)
+
     handlers = []
 
     for level, filename in (
