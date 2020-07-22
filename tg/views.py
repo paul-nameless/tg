@@ -4,7 +4,6 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from _curses import window  # type: ignore
-
 from tg import config
 from tg.colors import bold, cyan, get_color, magenta, reverse, white, yellow
 from tg.models import Model, UserModel
@@ -216,7 +215,7 @@ class ChatView:
     def _get_last_msg_data(
         self, chat: Dict[str, Any]
     ) -> Tuple[Optional[str], Optional[str]]:
-        user, last_msg = get_last_msg(chat)
+        user, last_msg = get_last_msg(chat, self.model.users)
         if user:
             last_msg_sender = self.model.users.get_user_label(user)
             chat_type = get_chat_type(chat)
@@ -528,17 +527,21 @@ class MsgView:
 
     def _parse_msg(self, msg: MsgProxy) -> str:
         if msg.is_message:
-            return parse_content(msg["content"])
+            return parse_content(msg, self.model.users)
         log.debug("Unknown message type: %s", msg)
         return "unknown msg type: " + str(msg["content"])
 
 
-def get_last_msg(chat: Dict[str, Any]) -> Tuple[Optional[int], str]:
+def get_last_msg(
+    chat: Dict[str, Any], users: UserModel
+) -> Tuple[Optional[int], str]:
     last_msg = chat.get("last_message")
     if not last_msg:
         return None, "<No messages yet>"
-    content = last_msg["content"]
-    return last_msg["sender_user_id"], parse_content(content)
+    return (
+        last_msg["sender_user_id"],
+        parse_content(MsgProxy(last_msg), users),
+    )
 
 
 def get_date(chat: Dict[str, Any]) -> str:
@@ -554,17 +557,31 @@ def get_date(chat: Dict[str, Any]) -> str:
     return dt.strftime(date_fmt)
 
 
-def parse_content(content: Dict[str, Any]) -> str:
-    msg = MsgProxy({"content": content})
+def parse_content(msg: MsgProxy, users: UserModel) -> str:
     if msg.is_text:
-        return content["text"]["text"].replace("\n", " ")
+        return msg.text_content.replace("\n", " ")
 
+    content = msg["content"]
     _type = content["@type"]
 
     if _type == "messageBasicGroupChatCreate":
-        return "[created the group]"
+        return f"[created the group \"{content['title']}\"]"
     if _type == "messageChatAddMembers":
-        return "[joined the group]"
+        user_ids = content["member_user_ids"]
+        if user_ids[0] == msg.sender_id:
+            return "[joined the group]"
+        users_name = ", ".join(
+            users.get_user_label(user_id) for user_id in user_ids
+        )
+        return f"[added {users_name}]"
+    if _type == "messageChatDeleteMember":
+        user_id = content["user_id"]
+        if user_id == msg.sender_id:
+            return "[left the group]"
+        user_name = users.get_user_label(user_id)
+        return f"[removed {user_name}]"
+    if _type == "messageChatChangeTitle":
+        return f"[changed the group name to \"{content['title']}\"]"
 
     if not msg.content_type:
         # not implemented
