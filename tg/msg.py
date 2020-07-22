@@ -19,7 +19,7 @@ class MsgProxy:
         "messageVideoNote": ("video_note", "video"),
         "messageSticker": ("sticker", "thumbnail", "photo"),
         "messagePoll": (),
-        "messageAnimation": ("animation", "animation")
+        "messageAnimation": ("animation", "animation"),
     }
 
     types = {
