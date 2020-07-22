@@ -67,20 +67,15 @@ pip3 install tg
 tg
 ```
 
-### Using flit
+### Using setup.py
 
 This option is recommended for development:
 
-> Requires [flit](https://github.com/takluyver/flit) to be installed.
->
-> ```sh
-> pip3 install flit
-> ```
 
 ```sh
 git clone https://github.com:paul-nameless/tg.git
 cd tg
-flit install
+python setup.py install
 tg
 ```
 

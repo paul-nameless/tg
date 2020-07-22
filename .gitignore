@@ -7,3 +7,7 @@ dist
 Makefile
 .idea/
 *monkeytype.sqlite3
+.vscode/
+build/
+MANIFEST
+tg.egg-info/
