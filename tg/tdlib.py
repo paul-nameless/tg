@@ -335,6 +335,23 @@ class Tdlib(Telegram):
         }
         return self._send_data(data)
 
+    def create_new_secret_chat(self, user_id: int) -> AsyncResult:
+        data = {
+            "@type": "createNewSecretChat",
+            "user_id": user_id,
+        }
+        return self._send_data(data)
+
+    def create_new_basic_group_chat(
+        self, user_ids: List[int], title: str
+    ) -> AsyncResult:
+        data = {
+            "@type": "createNewBasicGroupChat",
+            "user_ids": user_ids,
+            "title": title,
+        }
+        return self._send_data(data)
+
     def delete_chat_history(
         self, chat_id: int, remove_from_chat_list: bool, revoke: bool = False
     ) -> AsyncResult:

@@ -39,8 +39,8 @@ To use tg, you'll need to have the following installed:
 
 ## Optional dependencies
 
-- [terminal-notifier](https://github.com/julienXX/terminal-notifier) for Mac (used by default). You can change it to [dunst](https://github.com/dunst-project/dunst) for Linux or any other notifications program (see `NOTIFY_CMD` in configuration)
-- [ffmpeg](https://ffmpeg.org/) to record voice msgs and upload videos.
+- [terminal-notifier](https://github.com/julienXX/terminal-notifier) - for Mac (used by default). You can change it to [dunst](https://github.com/dunst-project/dunst) for Linux or any other notifications program (see `NOTIFY_CMD` in configuration)
+- [ffmpeg](https://ffmpeg.org/) - to record voice msgs and upload videos.
 - [tdlib](https://tdlib.github.io/td/build.html?language=Python) - in case of incompatibility with built in package.
   For example, macOS:
   ```sh
@@ -52,9 +52,8 @@ To use tg, you'll need to have the following installed:
   ```ini
   image/webp; mpv %s
   ```
-- [ranger](https://github.com/ranger/ranger), [nnn](https://github.com/jarun/nnn):
-  can be used to choose file when sending, customizable with `FILE_PICKER_CMD`
-
+- [ranger](https://github.com/ranger/ranger), [nnn](https://github.com/jarun/nnn) - can be used to choose file when sending, customizable with `FILE_PICKER_CMD`
+- [fzf](https://github.com/junegunn/fzf) - to create groups and secret chats (used for single and multiple user selection)
 
 ## Installation
 

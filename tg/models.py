@@ -1,7 +1,7 @@
 import logging
 import sys
 import time
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from tg.msg import MsgProxy
@@ -499,6 +499,9 @@ class MsgModel:
             log.info(f"message has been sent: {result.update}")
 
 
+User = namedtuple("User", ["id", "name", "status", "order"])
+
+
 class UserModel:
 
     types = {
@@ -645,3 +648,29 @@ class UserModel:
             return None
         self.contacts = result.update
         return self.contacts
+
+    def get_user_label(self, user_id: int) -> str:
+        if user_id == 0:
+            return ""
+        user = self.get_user(user_id)
+        if user["first_name"] and user["last_name"]:
+            return f'{user["first_name"]} {user["last_name"]}'[:20]
+
+        if user["first_name"]:
+            return f'{user["first_name"]}'[:20]
+
+        if user.get("username"):
+            return "@" + user["username"]
+        return "<Unknown>"
+
+    def get_users(self) -> List[User]:
+        contacts = self.get_contacts()
+        if contacts is None:
+            return []
+        users = []
+        for user_id in contacts["user_ids"]:
+            user_name = self.get_user_label(user_id)
+            status = self.get_status(user_id)
+            order = self.get_user_status_order(user_id)
+            users.append(User(user_id, user_name, status, order))
+        return users
