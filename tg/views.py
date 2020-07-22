@@ -4,7 +4,6 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from _curses import window  # type: ignore
-
 from tg import config
 from tg.colors import bold, cyan, get_color, magenta, reverse, white, yellow
 from tg.models import Model, UserModel
@@ -21,6 +20,7 @@ MULTICHAR_KEYBINDINGS = (
     "sp",
     "sa",
     "sv",
+    "sn",
     "ns",
     "ng",
     "bp",

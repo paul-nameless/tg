@@ -66,20 +66,15 @@ pip3 install tg
 tg
 ```
 
-### Using flit
+### Using setup.py
 
 This option is recommended for development:
 
-> Requires [flit](https://github.com/takluyver/flit) to be installed.
->
-> ```sh
-> pip3 install flit
-> ```
 
 ```sh
 git clone https://github.com:paul-nameless/tg.git
 cd tg
-flit install
+python setup.py install
 tg
 ```
 
@@ -120,7 +115,8 @@ Config file should be stored at `~/.config/tg/conf.py`. This is simple python fi
 ### Simple config:
 
 ```python
-PHONE = "[your phone number]"
+# should start with + (plus) and contain country code
+PHONE = "[phone number in international format]"
 ```
 
 ### Advanced configuration:

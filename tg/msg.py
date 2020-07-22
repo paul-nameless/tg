@@ -19,6 +19,7 @@ class MsgProxy:
         "messageVideoNote": ("video_note", "video"),
         "messageSticker": ("sticker", "thumbnail", "photo"),
         "messagePoll": (),
+        "messageAnimation": ("animation", "animation"),
     }
 
     types = {
@@ -31,6 +32,7 @@ class MsgProxy:
         "messageVideoNote": "recording",
         "messageSticker": "sticker",
         "messagePoll": "poll",
+        "messageAnimation": "animation",
     }
 
     @classmethod
@@ -109,6 +111,7 @@ class MsgProxy:
             "recording",
             "sticker",
             "voice",
+            "animation",
         ):
             return None
         doc = self.get_doc(self.msg)
