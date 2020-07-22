@@ -139,6 +139,17 @@ class Tdlib(Telegram):
         }
         return self._send_data(data)
 
+    def send_animation(self, file_path: str, chat_id: int) -> AsyncResult:
+        data = {
+            "@type": "sendMessage",
+            "chat_id": chat_id,
+            "input_message_content": {
+                "@type": "inputMessageAnimation",
+                "animation": {"@type": "inputFileLocal", "path": file_path},
+            },
+        }
+        return self._send_data(data)
+
     def send_photo(self, file_path: str, chat_id: int) -> AsyncResult:
         data = {
             "@type": "sendMessage",

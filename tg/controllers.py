@@ -9,7 +9,6 @@ from tempfile import NamedTemporaryFile
 from typing import Any, Callable, Dict, List, Optional
 
 from telegram.utils import AsyncResult
-
 from tg import config
 from tg.models import Model
 from tg.msg import MsgProxy
@@ -328,12 +327,13 @@ class Controller:
         if not file_path or not os.path.isfile(file_path):
             return self.present_error("No file was selected")
         mime_map = {
+            "animation": self.tg.send_animation,
             "image": self.tg.send_photo,
             "audio": self.tg.send_audio,
             "video": self._send_video,
         }
         mime = get_mime(file_path)
-        if mime in ("image", "video"):
+        if mime in ("image", "video", "animation"):
             resp = self.view.status.get_input(
                 f"Upload <{file_path}> compressed?[Y/n]"
             )
@@ -360,6 +360,11 @@ class Controller:
     def send_audio(self) -> None:
         """Enter file path and send as audio"""
         self.send_file(self.tg.send_audio)
+
+    @bind(msg_handler, ["sn"])
+    def send_animation(self) -> None:
+        """Enter file path and send as animation"""
+        self.send_file(self.tg.send_animation)
 
     @bind(msg_handler, ["sv"])
     def send_video(self) -> None:
