@@ -196,7 +196,11 @@ class suspend:
         return subprocess.run(cmd, shell=True)
 
     def run_with_input(self, cmd: str, text: str) -> None:
-        subprocess.run(cmd, universal_newlines=True, input=text, shell=True)
+        proc = subprocess.run(
+            cmd, universal_newlines=True, input=text, shell=True
+        )
+        if proc.returncode:
+            input(f"Command <{cmd}> failed: press <enter> to continue")
 
     def open_file(self, file_path: str, cmd: str = None) -> None:
         if cmd:

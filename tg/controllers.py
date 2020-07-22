@@ -500,7 +500,7 @@ class Controller:
                     self.present_info("Message edited")
 
     def _get_user_ids(self, is_multiple: bool = False) -> List[int]:
-        users = self.model.users.get_list_of_users()
+        users = self.model.users.get_users()
         _, cols = self.view.stdscr.getmaxyx()
         limit = min(int(cols / 2), max(len(user.name) for user in users),)
         users_out = "\n".join(
@@ -518,6 +518,7 @@ class Controller:
 
     @bind(chat_handler, ["ns"])
     def new_secret(self) -> None:
+        """Create new secret chat"""
         user_ids = self._get_user_ids()
         if not user_ids:
             return
@@ -525,6 +526,7 @@ class Controller:
 
     @bind(chat_handler, ["ng"])
     def new_group(self) -> None:
+        """Create new group"""
         user_ids = self._get_user_ids(is_multiple=True)
         if not user_ids:
             return

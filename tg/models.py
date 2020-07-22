@@ -663,7 +663,7 @@ class UserModel:
             return "@" + user["username"]
         return "<Unknown>"
 
-    def get_list_of_users(self) -> List[User]:
+    def get_users(self) -> List[User]:
         contacts = self.get_contacts()
         if contacts is None:
             return []
