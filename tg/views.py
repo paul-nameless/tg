@@ -21,6 +21,7 @@ MULTICHAR_KEYBINDINGS = (
     "sp",
     "sa",
     "sv",
+    "sn",
     "bp",
 )
 

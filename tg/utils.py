@@ -76,6 +76,8 @@ def get_mime(file_path: str) -> str:
     mtype, _ = mimetypes.guess_type(file_path)
     if not mtype:
         return ""
+    if mtype == "image/gif":
+        return "animation"
     return mtype.split("/")[0]
 
 
