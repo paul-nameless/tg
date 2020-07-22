@@ -8,6 +8,7 @@ with open("readme.md", "r") as fh:
 
 setup(
     long_description=readme,
+    long_description_content_type="text/markdown",
     name="tg",
     version=tg.__version__,
     description="Terminal client for telegram",
