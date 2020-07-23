@@ -77,7 +77,7 @@ class Controller:
         self.chat_size = 0.5
 
     @bind(msg_handler, ["u"])
-    def user_innfo(self) -> None:
+    def user_info(self) -> None:
         """Show user profile"""
         msg = MsgProxy(self.model.current_msg)
         user_id = msg.sender_id

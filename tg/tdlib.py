@@ -380,12 +380,14 @@ class Tdlib(Telegram):
         }
         return self._send_data(data)
 
-    def get_user_full_info(self, user_id: int) -> AsyncResult:
+    def get_user_full_info(
+        self, user_id: int, block: bool = False
+    ) -> AsyncResult:
         data = {
             "@type": "getUserFullInfo",
             "user_id": user_id,
         }
-        return self._send_data(data)
+        return self._send_data(data, block=block)
 
 
 def get_chat_type(chat: Dict[str, Any]) -> Optional[ChatType]:
