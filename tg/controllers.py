@@ -747,8 +747,10 @@ class Controller:
         self.view.stdscr.erase()
         self.view.stdscr.noutrefresh()
 
-        self.view.chats.resize(rows, cols, self.chat_size)
-        self.view.msgs.resize(rows, cols, 1 - self.chat_size)
+        chat_width = round(cols * self.chat_size)
+        msg_width = cols - chat_width
+        self.view.chats.resize(rows, cols, chat_width)
+        self.view.msgs.resize(rows, cols, msg_width)
         self.view.status.resize(rows, cols)
         self.render()
 

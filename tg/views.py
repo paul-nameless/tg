@@ -137,9 +137,9 @@ class ChatView:
         self._refresh = self.win.refresh
         self.model = model
 
-    def resize(self, rows: int, cols: int, p: float = 0.25) -> None:
+    def resize(self, rows: int, cols: int, width: int) -> None:
         self.h = rows - 1
-        self.w = round(cols * p)
+        self.w = width
         self.win.resize(self.h, self.w)
 
     def _msg_color(self, is_selected: bool = False) -> int:
@@ -278,9 +278,9 @@ class MsgView:
             "messageSendingStatePending": "pending",
         }
 
-    def resize(self, rows: int, cols: int, p: float = 0.5) -> None:
+    def resize(self, rows: int, cols: int, width: int) -> None:
         self.h = rows - 1
-        self.w = round(cols * p)
+        self.w = width
         self.x = cols - self.w
         self.win.resize(self.h, self.w)
         self.win.mvwin(0, self.x)
