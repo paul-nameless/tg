@@ -92,18 +92,15 @@ class Tdlib(Telegram):
         limit: int = 0,
         synchronous: bool = False,
     ) -> None:
-        result = self.call_method(
-            "downloadFile",
-            params=dict(
-                file_id=file_id,
-                priority=priority,
-                offset=offset,
-                limit=limit,
-                synchronous=synchronous,
-            ),
-            block=False,
-        )
-        result.wait()
+        data = {
+            "@type": "downloadFile",
+            "file_id": file_id,
+            "priority": priority,
+            "offset": offset,
+            "limit": limit,
+            "synchronous": synchronous,
+        }
+        return self._send_data(data)
 
     def reply_message(
         self, chat_id: int, reply_to_message_id: int, text: str
@@ -380,14 +377,12 @@ class Tdlib(Telegram):
         }
         return self._send_data(data)
 
-    def get_user_full_info(
-        self, user_id: int, block: bool = False
-    ) -> AsyncResult:
+    def get_user_full_info(self, user_id: int) -> AsyncResult:
         data = {
             "@type": "getUserFullInfo",
             "user_id": user_id,
         }
-        return self._send_data(data, block=block)
+        return self._send_data(data)
 
 
 def get_chat_type(chat: Dict[str, Any]) -> Optional[ChatType]:
