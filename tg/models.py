@@ -608,12 +608,27 @@ class UserModel:
             return True
         return False
 
+    def get_user_full_info(self, user_id: int) -> Dict[str, Any]:
+        user = self.get_user(user_id)
+        if not user:
+            return user
+        if user.get("full_info"):
+            return user["full_info"]
+
+        result = self.tg.get_user_full_info(user_id)
+        result.wait()
+        if result.error:
+            log.warning(f"get user full info error: {result.error_info}")
+            return {}
+        user["full_info"] = result.update
+        return result.update
+
     def get_user(self, user_id: int) -> Dict[str, Any]:
         if user_id in self.not_found:
             return {}
         if user_id in self.users:
             return self.users[user_id]
-        result = self.tg.call_method("getUser", {"user_id": user_id})
+        result = self.tg.get_user(user_id)
         result.wait()
         if result.error:
             log.warning(f"get user error: {result.error_info}")

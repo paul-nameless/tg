@@ -37,6 +37,13 @@ class UserStatus(Enum):
     userStatusLastMonth = "last month"
 
 
+class UserType(Enum):
+    userTypeRegular = ""
+    userTypeDeleted = "deleted"
+    userTypeBot = "bot"
+    userTypeUnknown = "unknownn"
+
+
 class TextParseModeInput(Enum):
     textParseModeMarkdown = "markdown"
     textParseModeHTML = "html"
@@ -85,18 +92,15 @@ class Tdlib(Telegram):
         limit: int = 0,
         synchronous: bool = False,
     ) -> None:
-        result = self.call_method(
-            "downloadFile",
-            params=dict(
-                file_id=file_id,
-                priority=priority,
-                offset=offset,
-                limit=limit,
-                synchronous=synchronous,
-            ),
-            block=False,
-        )
-        result.wait()
+        data = {
+            "@type": "downloadFile",
+            "file_id": file_id,
+            "priority": priority,
+            "offset": offset,
+            "limit": limit,
+            "synchronous": synchronous,
+        }
+        return self._send_data(data)
 
     def reply_message(
         self, chat_id: int, reply_to_message_id: int, text: str
@@ -363,6 +367,20 @@ class Tdlib(Telegram):
             "chat_id": chat_id,
             "remove_from_chat_list": remove_from_chat_list,
             "revoke": revoke,
+        }
+        return self._send_data(data)
+
+    def get_user(self, user_id: int) -> AsyncResult:
+        data = {
+            "@type": "getUser",
+            "user_id": user_id,
+        }
+        return self._send_data(data)
+
+    def get_user_full_info(self, user_id: int) -> AsyncResult:
+        data = {
+            "@type": "getUserFullInfo",
+            "user_id": user_id,
         }
         return self._send_data(data)
 
