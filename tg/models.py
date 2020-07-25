@@ -615,7 +615,7 @@ class UserModel:
         if user.get("full_info"):
             return user["full_info"]
 
-        result = self.tg.get_user_full_info(user_id,)
+        result = self.tg.get_user_full_info(user_id)
         result.wait()
         if result.error:
             log.warning(f"get user full info error: {result.error_info}")
