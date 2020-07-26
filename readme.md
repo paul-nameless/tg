@@ -101,12 +101,14 @@ docker run -it --rm tg
 
 ### From the AUR
 
-If you're using Arch Linux, you can install tg through [its AUR package](https://aur.archlinux.org/packages/telegram-tg-git/):
+If you're using Arch Linux, you can install tg through [its AUR package](https://aur.archlinux.org/packages/telegram-tg/):
 
 If you're using the `yay` AUR helper, you can install the package with:
 ```bash
-yay -S telegram-tg-git
+yay -S telegram-tg
 ```
+
+If you want to use the latest developement version via the AUR you can find it [here](https://aur.archlinux.org/packages/telegram-tg-git/)
 
 ## Configuration
 
