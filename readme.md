@@ -20,13 +20,13 @@ Telegram terminal client.
 - [X] message history
 - [X] list contacts
 - [X] show user status
+- [X] secret chats
+- [X] create new chat
 
 TODO:
 
-- [ ] secret chats
 - [ ] search
 - [ ] show members in chat
-- [ ] create new chat
 - [ ] bots (bot keyboard)
 
 
@@ -245,6 +245,8 @@ For navigation arrow keys also can be used.
 - `r`: read current chat
 - `c`: show list of contacts
 - `dd`: delete chat or remove history
+- `ng`: create new group chat
+- `ns`: create new secret chat
 - `/`: search in chats
 - `?`: show help
 
@@ -277,5 +279,7 @@ For navigation arrow keys also can be used.
 - `o`: open url present in message (if multiple urls, `urlview` will be opened)
 - `]`: next chat
 - `[`: prev chat
+- `u`: show user info (username, bio, phone, etc.)
+- `c`: show chat info (e.g. secret chat encryption key, chat id, state, etc.)
 - `?`: show help
 - `!`: open msg with custom cmd

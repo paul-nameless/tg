@@ -49,6 +49,12 @@ class TextParseModeInput(Enum):
     textParseModeHTML = "html"
 
 
+class SecretChatState(Enum):
+    secretChatStatePending = "pending"
+    secretChatStateReady = "ready"
+    secretChatStateClosed = "closed"
+
+
 class Tdlib(Telegram):
     def parse_text_entities(
         self,
@@ -295,10 +301,31 @@ class Tdlib(Telegram):
         }
         return self._send_data(data)
 
+    def get_basic_group_full_info(self, basic_group_id: int,) -> AsyncResult:
+        data = {
+            "@type": "getBasicGroupFullInfo",
+            "basic_group_id": basic_group_id,
+        }
+        return self._send_data(data)
+
     def get_supergroup(self, supergroup_id: int,) -> AsyncResult:
         data = {
             "@type": "getSupergroup",
             "supergroup_id": supergroup_id,
+        }
+        return self._send_data(data)
+
+    def get_supergroup_full_info(self, supergroup_id: int,) -> AsyncResult:
+        data = {
+            "@type": "getSupergroupFullInfo",
+            "supergroup_id": supergroup_id,
+        }
+        return self._send_data(data)
+
+    def get_secret_chat(self, secret_chat_id: int,) -> AsyncResult:
+        data = {
+            "@type": "getSecretChat",
+            "secret_chat_id": secret_chat_id,
         }
         return self._send_data(data)
 

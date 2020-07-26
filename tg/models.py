@@ -1,3 +1,4 @@
+import base64
 import logging
 import sys
 import time
@@ -5,7 +6,15 @@ from collections import defaultdict, namedtuple
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from tg.msg import MsgProxy
-from tg.tdlib import ChatAction, Tdlib, UserStatus
+from tg.tdlib import (
+    ChatAction,
+    ChatType,
+    SecretChatState,
+    Tdlib,
+    UserStatus,
+    UserType,
+    get_chat_type,
+)
 from tg.utils import copy_to_clipboard, pretty_ts
 
 log = logging.getLogger(__name__)
@@ -216,6 +225,114 @@ class Model:
                 buffer.append(msg.text_content)
         copy_to_clipboard("\n".join(buffer))
         return True
+
+    def get_chat_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
+        chat_type = get_chat_type(chat)
+        if chat_type is None:
+            return {}
+
+        info = {}
+
+        if chat_type == ChatType.chatTypePrivate:
+            user_id = chat["id"]
+            user = self.users.get_user(user_id)
+            user_info = self.users.get_user_full_info(user_id)
+            status = self.users.get_status(user_id)
+            info.update(
+                {
+                    chat["title"]: status,
+                    "Username": user.get("username", ""),
+                    "Phone": user.get("phone_number", ""),
+                    "Bio": user_info.get("bio", ""),
+                }
+            )
+
+        if chat_type == ChatType.chatTypeBasicGroup:
+            group_id = chat["type"]["basic_group_id"]
+            result = self.tg.get_basic_group_full_info(group_id)
+            result.wait()
+            chat_info = result.update
+            basic_info = self.tg.get_basic_group(group_id)
+            basic_info.wait()
+            basic_info = basic_info.update
+            info.update(
+                {
+                    chat["title"]: f"{basic_info['member_count']} members",
+                    "Info": chat_info["description"],
+                    "Share link": chat_info["invite_link"],
+                }
+            )
+
+        if chat_type == ChatType.chatTypeSupergroup:
+            result = self.tg.get_supergroup_full_info(
+                chat["type"]["supergroup_id"]
+            )
+            result.wait()
+            chat_info = result.update
+            info.update(
+                {
+                    chat["title"]: f"{chat_info['member_count']} members",
+                    "Info": chat_info["description"],
+                    "Share link": chat_info["invite_link"],
+                }
+            )
+
+        if chat_type == ChatType.channel:
+            chat_info = self.tg.get_supergroup_full_info(
+                chat["type"]["supergroup_id"]
+            )
+            info.update(
+                {
+                    chat["title"]: "subscribers",
+                    "Info": chat_info["description"],
+                    "Share link": chat_info["invite_link"],
+                }
+            )
+
+        if chat_type == ChatType.chatTypeSecret:
+            result = self.tg.get_secret_chat(chat["type"]["secret_chat_id"])
+            result.wait()
+            chat_info = result.update
+            enc_key = base64.b64decode(chat_info["key_hash"])[:32].hex()
+            hex_key = " ".join(
+                [enc_key[i : i + 2] for i in range(0, len(enc_key), 2)]
+            )
+
+            state = "Unknown"
+            try:
+                state = SecretChatState[chat_info["state"]["@type"]].value
+            except KeyError:
+                pass
+
+            user_id = chat_info["user_id"]
+            user_info = self.get_user_info(user_id)
+
+            info.update(
+                {**user_info, "State": state, "Encryption Key": hex_key}
+            )
+
+        info.update({"Type": chat_type.value, "Chat Id": chat["id"]})
+        return info
+
+    def get_user_info(self, user_id: int) -> Dict[str, Any]:
+        name = self.users.get_user_label(user_id)
+        status = self.users.get_status(user_id)
+        user = self.users.get_user(user_id)
+        user_info = self.users.get_user_full_info(user_id)
+        user_type = "Unknown"
+        try:
+            user_type = UserType[user["type"]["@type"]].value
+        except KeyError:
+            pass
+        info = {
+            name: status,
+            "Username": user.get("username", ""),
+            "Bio": user_info.get("bio", ""),
+            "Phone": user.get("phone_number", ""),
+            "User Id": user_id,
+            "Type": user_type,
+        }
+        return info
 
 
 class ChatModel:
