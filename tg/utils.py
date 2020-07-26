@@ -12,6 +12,7 @@ import shlex
 import struct
 import subprocess
 import sys
+import unicodedata
 from datetime import datetime
 from functools import lru_cache
 from logging.handlers import RotatingFileHandler
@@ -180,9 +181,24 @@ def notify(
     subprocess.Popen(notify_cmd, shell=True)
 
 
-def truncate_to_len(s: str, target_len: int) -> str:
-    target_len -= sum(map(bool, map(emoji_pattern.findall, s[:target_len])))
-    return s[: max(1, target_len - 1)]
+def string_len_dwc(string: str) -> int:
+    """Returns string len including count for double width characters"""
+    return sum(1 + (unicodedata.east_asian_width(c) in "WF") for c in string)
+
+
+def truncate_to_len(string: str, width: int) -> str:
+    real_len = string_len_dwc(string)
+    if real_len <= width:
+        return string
+
+    cur_len = 0
+    out_string = ""
+
+    for char in string:
+        cur_len += 2 if unicodedata.east_asian_width(char) in "WF" else 1
+        if cur_len < width:
+            out_string += char
+    return out_string
 
 
 def copy_to_clipboard(text: str) -> None:
