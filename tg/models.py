@@ -226,90 +226,90 @@ class Model:
         copy_to_clipboard("\n".join(buffer))
         return True
 
+    def get_private_chat_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
+        user_id = chat["id"]
+        user = self.users.get_user(user_id)
+        user_info = self.users.get_user_full_info(user_id)
+        status = self.users.get_status(user_id)
+        return {
+            chat["title"]: status,
+            "Username": user.get("username", ""),
+            "Phone": user.get("phone_number", ""),
+            "Bio": user_info.get("bio", ""),
+        }
+
+    def get_basic_group_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
+        group_id = chat["type"]["basic_group_id"]
+        result = self.tg.get_basic_group_full_info(group_id)
+        result.wait()
+        chat_info = result.update
+        basic_info = self.tg.get_basic_group(group_id)
+        basic_info.wait()
+        basic_info = basic_info.update
+        return {
+            chat["title"]: f"{basic_info['member_count']} members",
+            "Info": chat_info["description"],
+            "Share link": chat_info["invite_link"],
+        }
+
+    def get_supergroup_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
+        result = self.tg.get_supergroup_full_info(
+            chat["type"]["supergroup_id"]
+        )
+        result.wait()
+        chat_info = result.update
+        return {
+            chat["title"]: f"{chat_info['member_count']} members",
+            "Info": chat_info["description"],
+            "Share link": chat_info["invite_link"],
+        }
+
+    def get_channel_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
+        result = self.tg.get_supergroup_full_info(
+            chat["type"]["supergroup_id"]
+        )
+        result.wait()
+        chat_info = result.update
+        return {
+            chat["title"]: "subscribers",
+            "Info": chat_info["description"],
+            "Share link": chat_info["invite_link"],
+        }
+
+    def get_secret_chat_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
+        result = self.tg.get_secret_chat(chat["type"]["secret_chat_id"])
+        result.wait()
+        chat_info = result.update
+        enc_key = base64.b64decode(chat_info["key_hash"])[:32].hex()
+        hex_key = " ".join(
+            [enc_key[i : i + 2] for i in range(0, len(enc_key), 2)]
+        )
+
+        state = "Unknown"
+        try:
+            state = SecretChatState[chat_info["state"]["@type"]].value
+        except KeyError:
+            pass
+
+        user_id = chat_info["user_id"]
+        user_info = self.get_user_info(user_id)
+
+        return {**user_info, "State": state, "Encryption Key": hex_key}
+
     def get_chat_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
         chat_type = get_chat_type(chat)
         if chat_type is None:
             return {}
 
-        info = {}
+        handlers = {
+            ChatType.chatTypePrivate: self.get_private_chat_info,
+            ChatType.chatTypeBasicGroup: self.get_basic_group_info,
+            ChatType.chatTypeSupergroup: self.get_supergroup_info,
+            ChatType.channel: self.get_channel_info,
+            ChatType.chatTypeSecret: self.get_secret_chat_info,
+        }
 
-        if chat_type == ChatType.chatTypePrivate:
-            user_id = chat["id"]
-            user = self.users.get_user(user_id)
-            user_info = self.users.get_user_full_info(user_id)
-            status = self.users.get_status(user_id)
-            info.update(
-                {
-                    chat["title"]: status,
-                    "Username": user.get("username", ""),
-                    "Phone": user.get("phone_number", ""),
-                    "Bio": user_info.get("bio", ""),
-                }
-            )
-
-        if chat_type == ChatType.chatTypeBasicGroup:
-            group_id = chat["type"]["basic_group_id"]
-            result = self.tg.get_basic_group_full_info(group_id)
-            result.wait()
-            chat_info = result.update
-            basic_info = self.tg.get_basic_group(group_id)
-            basic_info.wait()
-            basic_info = basic_info.update
-            info.update(
-                {
-                    chat["title"]: f"{basic_info['member_count']} members",
-                    "Info": chat_info["description"],
-                    "Share link": chat_info["invite_link"],
-                }
-            )
-
-        if chat_type == ChatType.chatTypeSupergroup:
-            result = self.tg.get_supergroup_full_info(
-                chat["type"]["supergroup_id"]
-            )
-            result.wait()
-            chat_info = result.update
-            info.update(
-                {
-                    chat["title"]: f"{chat_info['member_count']} members",
-                    "Info": chat_info["description"],
-                    "Share link": chat_info["invite_link"],
-                }
-            )
-
-        if chat_type == ChatType.channel:
-            chat_info = self.tg.get_supergroup_full_info(
-                chat["type"]["supergroup_id"]
-            )
-            info.update(
-                {
-                    chat["title"]: "subscribers",
-                    "Info": chat_info["description"],
-                    "Share link": chat_info["invite_link"],
-                }
-            )
-
-        if chat_type == ChatType.chatTypeSecret:
-            result = self.tg.get_secret_chat(chat["type"]["secret_chat_id"])
-            result.wait()
-            chat_info = result.update
-            enc_key = base64.b64decode(chat_info["key_hash"])[:32].hex()
-            hex_key = " ".join(
-                [enc_key[i : i + 2] for i in range(0, len(enc_key), 2)]
-            )
-
-            state = "Unknown"
-            try:
-                state = SecretChatState[chat_info["state"]["@type"]].value
-            except KeyError:
-                pass
-
-            user_id = chat_info["user_id"]
-            user_info = self.get_user_info(user_id)
-
-            info.update(
-                {**user_info, "State": state, "Encryption Key": hex_key}
-            )
+        info = handlers.get(chat_type, lambda _: dict())(chat)
 
         info.update({"Type": chat_type.value, "Chat Id": chat["id"]})
         return info
