@@ -236,6 +236,7 @@ class suspend:
     def __enter__(self) -> "suspend":
         for view in (self.view.chats, self.view.msgs, self.view.status):
             view._refresh = view.win.noutrefresh
+        self.view.resize_handler = self.view.resize_mock
         curses.echo()
         curses.nocbreak()
         self.view.stdscr.keypad(False)
@@ -251,6 +252,7 @@ class suspend:
     ) -> None:
         for view in (self.view.chats, self.view.msgs, self.view.status):
             view._refresh = view.win.refresh
+        self.view.resize_handler = self.view.resize
         curses.noecho()
         curses.cbreak()
         self.view.stdscr.keypad(True)

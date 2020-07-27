@@ -1,4 +1,3 @@
-import curses
 import logging
 import os
 import shlex
@@ -757,8 +756,7 @@ class Controller:
                 log.exception("Error happend in key handle loop")
 
     def resize_handler(self, signum: int, frame: Any) -> None:
-        curses.endwin()
-        self.view.stdscr.refresh()
+        self.view.resize_handler()
         self.resize()
 
     def resize(self) -> None:
@@ -777,7 +775,7 @@ class Controller:
         self.view.chats.resize(rows, cols, chat_width)
         self.view.msgs.resize(rows, cols, msg_width)
         self.view.status.resize(rows, cols)
-        self.render()
+        self._render()
 
     def draw(self) -> None:
         while self.is_running:
