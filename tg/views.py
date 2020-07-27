@@ -10,7 +10,13 @@ from tg.colors import bold, cyan, get_color, magenta, reverse, white, yellow
 from tg.models import Model, UserModel
 from tg.msg import MsgProxy
 from tg.tdlib import ChatType, get_chat_type, is_group
-from tg.utils import emoji_pattern, get_color_by_str, num, truncate_to_len
+from tg.utils import (
+    emoji_pattern,
+    get_color_by_str,
+    num,
+    string_len_dwc,
+    truncate_to_len,
+)
 
 log = logging.getLogger(__name__)
 
@@ -173,6 +179,7 @@ class ChatView:
         self.win.erase()
         line = curses.ACS_VLINE  # type: ignore
         width = self.w - 1
+
         self.win.vline(0, width, line, self.h)
         self.win.addstr(
             0, 0, title.center(width)[:width], get_color(cyan, -1) | bold
@@ -186,6 +193,17 @@ class ChatView:
 
             last_msg_sender, last_msg = self._get_last_msg_data(chat)
             sender_label = f" {last_msg_sender}" if last_msg_sender else ""
+            flags = self._get_flags(chat)
+            flags_len = string_len_dwc(flags)
+
+            if flags:
+                self.win.addstr(
+                    i,
+                    max(0, width - flags_len),
+                    truncate_to_len(flags, width)[-width:],
+                    # flags[-width:],
+                    self._unread_color(is_selected),
+                )
 
             for attr, elem in zip(
                 self._chat_attributes(is_selected, title, last_msg_sender),
@@ -193,23 +211,12 @@ class ChatView:
             ):
                 if not elem:
                     continue
-                item = truncate_to_len(elem, max(0, width - offset))
+                item = truncate_to_len(
+                    elem, max(0, width - offset - flags_len)
+                )
                 if len(item) > 1:
                     self.win.addstr(i, offset, item, attr)
-                    offset += len(elem) + sum(
-                        map(len, emoji_pattern.findall(elem))
-                    )
-
-            if flags := self._get_flags(chat):
-                flags_len = len(flags) + sum(
-                    map(len, emoji_pattern.findall(flags))
-                )
-                self.win.addstr(
-                    i,
-                    max(0, width - flags_len),
-                    flags[-width:],
-                    self._unread_color(is_selected),
-                )
+                    offset += string_len_dwc(elem)
 
         self._refresh()
 
@@ -463,7 +470,7 @@ class MsgView:
             ):
                 if not elem:
                     continue
-                lines = (column + len(elem)) // self.w
+                lines = (column + string_len_dwc(elem)) // self.w
                 last_line = self.h == line_num + lines
                 # work around agaist curses behaviour, when you cant write
                 # char to the lower right coner of the window
@@ -481,11 +488,12 @@ class MsgView:
                         start, stop = stop, stop + self.w
                 else:
                     self.win.addstr(line_num, column, elem, attr)
-                column += len(elem)
+                column += string_len_dwc(elem)
 
         self.win.addstr(
             0, 0, self._msg_title(chat), get_color(cyan, -1) | bold
         )
+
         self._refresh()
 
     def _msg_title(self, chat: Dict[str, Any]) -> str:
