@@ -57,6 +57,14 @@ class View:
         self.msgs = msg_view
         self.status = status_view
         self.max_read = 2048
+        self.resize_handler = self.resize
+
+    def resize_mock(self) -> None:
+        pass
+
+    def resize(self) -> None:
+        curses.endwin()
+        self.stdscr.refresh()
 
     def get_keys(self) -> Tuple[int, str]:
         keys = repeat_factor = ""
