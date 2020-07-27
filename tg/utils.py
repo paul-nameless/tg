@@ -196,8 +196,9 @@ def truncate_to_len(string: str, width: int) -> str:
 
     for char in string:
         cur_len += 2 if unicodedata.east_asian_width(char) in "WF" else 1
-        if cur_len < width:
-            out_string += char
+        out_string += char
+        if cur_len >= width:
+            break
     return out_string
 
 
