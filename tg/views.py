@@ -4,7 +4,6 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from _curses import window  # type: ignore
-
 from tg import config
 from tg.colors import bold, cyan, get_color, magenta, reverse, white, yellow
 from tg.models import Model, UserModel
@@ -59,7 +58,7 @@ class View:
         self.max_read = 2048
         self.resize_handler = self.resize
 
-    def resize_mock(self) -> None:
+    def resize_stub(self) -> None:
         pass
 
     def resize(self) -> None:

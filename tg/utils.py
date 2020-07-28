@@ -158,7 +158,7 @@ def get_video_resolution(file_path: str) -> Tuple[int, int]:
 
 
 def get_waveform(file_path: str) -> str:
-    # mock for now
+    # stub for now
     waveform = (random.randint(0, 255) for _ in range(100))
     packed = struct.pack("100B", *waveform)
     return base64.b64encode(packed).decode()
@@ -236,7 +236,7 @@ class suspend:
     def __enter__(self) -> "suspend":
         for view in (self.view.chats, self.view.msgs, self.view.status):
             view._refresh = view.win.noutrefresh
-        self.view.resize_handler = self.view.resize_mock
+        self.view.resize_handler = self.view.resize_stub
         curses.echo()
         curses.nocbreak()
         self.view.stdscr.keypad(False)
