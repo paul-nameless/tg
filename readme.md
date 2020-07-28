@@ -21,12 +21,7 @@ Telegram terminal client.
 - [X] list contacts
 - [X] show user status
 - [X] secret chats
-- [X] create new chat
-
-TODO:
-
 - [ ] search
-- [ ] show members in chat
 - [ ] bots (bot keyboard)
 
 
@@ -66,7 +61,7 @@ pip3 install tg
 tg
 ```
 
-### Using setup.py
+### From sources
 
 This option is recommended for development:
 
@@ -74,7 +69,7 @@ This option is recommended for development:
 ```sh
 git clone https://github.com:paul-nameless/tg.git
 cd tg
-python setup.py install
+pip install .
 tg
 ```
 
