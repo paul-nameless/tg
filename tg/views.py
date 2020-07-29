@@ -4,18 +4,13 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from _curses import window  # type: ignore
+
 from tg import config
 from tg.colors import bold, cyan, get_color, magenta, reverse, white, yellow
 from tg.models import Model, UserModel
 from tg.msg import MsgProxy
 from tg.tdlib import ChatType, get_chat_type, is_group
-from tg.utils import (
-    emoji_pattern,
-    get_color_by_str,
-    num,
-    string_len_dwc,
-    truncate_to_len,
-)
+from tg.utils import get_color_by_str, num, string_len_dwc, truncate_to_len
 
 log = logging.getLogger(__name__)
 
@@ -405,7 +400,7 @@ class MsgView:
                     # if not channel add space between name and flags
                     flags = " " + flags
                 label_elements = f" {dt} ", user_id, flags
-                label_len = sum(len(e) for e in label_elements)
+                label_len = sum(string_len_dwc(e) for e in label_elements)
 
                 msg = self._format_msg(
                     msg_proxy, user_id_item, width_limit=self.w - label_len - 1
@@ -415,10 +410,8 @@ class MsgView:
                 for i, msg_line in enumerate(msg.split("\n")):
                     # count wide character utf-8 symbols that take > 1 bytes to
                     # print it causes invalid offset
-                    emojies_count = sum(
-                        map(len, emoji_pattern.findall(msg_line))
-                    )
-                    line_len = len(msg_line) + emojies_count
+                    line_len = string_len_dwc(msg_line)
+
                     # first line cotains msg lable, e.g user name, date
                     if i == 0:
                         line_len += label_len

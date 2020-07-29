@@ -7,7 +7,6 @@ import math
 import mimetypes
 import os
 import random
-import re
 import shlex
 import struct
 import subprocess
@@ -23,17 +22,6 @@ from typing import Any, Optional, Tuple, Type
 from tg import config
 
 log = logging.getLogger(__name__)
-emoji_pattern = re.compile(
-    "["
-    "\U0001F600-\U0001F64F"  # emoticons
-    "\U0001F300-\U0001F5FF"  # symbols & pictographs
-    "\U0001F680-\U0001F6FF"  # transport & map symbols
-    "\U0001F1E0-\U0001F1FF"  # flags (iOS)
-    # "\U00002702-\U000027B0"
-    # "\U000024C2-\U0001F251"
-    "]+",
-    flags=re.UNICODE,
-)
 units = {"B": 1, "KB": 10 ** 3, "MB": 10 ** 6, "GB": 10 ** 9, "TB": 10 ** 12}
 
 
