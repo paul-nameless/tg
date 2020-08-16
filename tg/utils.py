@@ -72,12 +72,19 @@ def get_mime(file_path: str) -> str:
     return mtype.split("/")[0]
 
 
+def get_mailcap():
+    if config.MAILCAP_FILE:
+        with open(config.MAILCAP_FILE) as f:
+            return mailcap.readmailcapfile(f)
+    return mailcap.getcaps()
+
+
 def get_file_handler(file_path: str) -> str:
     mtype, _ = mimetypes.guess_type(file_path)
     if not mtype:
         return config.DEFAULT_OPEN.format(file_path=shlex.quote(file_path))
 
-    caps = mailcap.getcaps()
+    caps = get_mailcap()
     handler, view = mailcap.findmatch(caps, mtype, filename=file_path)
     if not handler:
         return config.DEFAULT_OPEN.format(file_path=shlex.quote(file_path))

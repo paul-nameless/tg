@@ -15,6 +15,7 @@ _linux = "Linux"
 CONFIG_DIR = os.path.expanduser("~/.config/tg/")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "conf.py")
 FILES_DIR = os.path.expanduser("~/.cache/tg/")
+MAILCAP_FILE = None
 
 LOG_LEVEL = "INFO"
 LOG_PATH = os.path.expanduser("~/.local/share/tg/")

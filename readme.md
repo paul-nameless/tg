@@ -186,11 +186,13 @@ KEEP_MEDIA = 7
 
 FILE_PICKER_CMD = "ranger --choosefile={file_path}"
 # FILE_PICKER_CMD = "nnn -p {file_path}"
+
+MAILCAP_FILE = os.path.expanduser("~/.config/mailcap")
 ```
 
 ### Mailcap file
 
-Mailcap file is used for deciding how to open telegram files (docs, pics, voice notes, etc.).
+Mailcap file is used for deciding how to open telegram files (docs, pics, voice notes, etc.). Path to the file can be overriden with `MAILCAP_FILE` in config file.
 
 Example: `~/.mailcap`
 
