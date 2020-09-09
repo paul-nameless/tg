@@ -5,7 +5,7 @@ overwritten by external config file
 import os
 import platform
 import runpy
-from typing import Dict
+from typing import Dict, Optional
 
 _os_name = platform.system()
 _darwin = "Darwin"
@@ -15,6 +15,7 @@ _linux = "Linux"
 CONFIG_DIR = os.path.expanduser("~/.config/tg/")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "conf.py")
 FILES_DIR = os.path.expanduser("~/.cache/tg/")
+MAILCAP_FILE: Optional[str] = None
 
 LOG_LEVEL = "INFO"
 LOG_PATH = os.path.expanduser("~/.local/share/tg/")
