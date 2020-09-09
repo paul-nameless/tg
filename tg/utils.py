@@ -17,7 +17,7 @@ from functools import lru_cache
 from logging.handlers import RotatingFileHandler
 from subprocess import CompletedProcess
 from types import TracebackType
-from typing import Any, Optional, Tuple, Type
+from typing import Any, Dict, Optional, Tuple, Type
 
 from tg import config
 
@@ -72,10 +72,10 @@ def get_mime(file_path: str) -> str:
     return mtype.split("/")[0]
 
 
-def get_mailcap():
+def get_mailcap() -> Dict:
     if config.MAILCAP_FILE:
         with open(config.MAILCAP_FILE) as f:
-            return mailcap.readmailcapfile(f)
+            return mailcap.readmailcapfile(f)  # type: ignore
     return mailcap.getcaps()
 
 
