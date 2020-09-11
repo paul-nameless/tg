@@ -697,10 +697,7 @@ class Controller:
 
     @bind(chat_handler, ["r"])
     def read_msgs(self) -> None:
-        chat = self.model.chats.chats[self.model.current_chat]
-        chat_id = chat["id"]
-        msg_id = chat["last_message"]["id"]
-        self.tg.view_messages(chat_id, [msg_id])
+        self.model.view_all_msgs()
         self.render()
 
     @bind(chat_handler, ["m"])

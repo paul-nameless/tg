@@ -77,9 +77,11 @@ class Model:
         return self.current_msg["id"]
 
     def jump_bottom(self) -> bool:
+        res = False
         if chat_id := self.chats.id_by_index(self.current_chat):
-            return self.msgs.jump_bottom(chat_id)
-        return False
+            res = self.msgs.jump_bottom(chat_id)
+        self.view_current_msg()
+        return res
 
     def set_current_chat_by_id(self, chat_id: int) -> bool:
         idx = next(
@@ -122,13 +124,18 @@ class Model:
         if chat_id := self.chats.id_by_index(self.current_chat):
             self.tg.view_messages(chat_id, [msg_id])
 
+    def view_all_msgs(self) -> None:
+        chat = self.chats.chats[self.current_chat]
+        chat_id = chat["id"]
+        msg_id = chat["last_message"]["id"]
+        self.tg.view_messages(chat_id, [msg_id])
+
     def next_msg(self, step: int = 1) -> bool:
         chat_id = self.chats.id_by_index(self.current_chat)
         if not chat_id:
             return False
         is_next = self.msgs.next_msg(chat_id, step)
-        if is_next:
-            self.view_current_msg()
+        self.view_current_msg()
         return is_next
 
     def prev_msg(self, step: int = 1) -> bool:
@@ -155,6 +162,9 @@ class Model:
         chat_id = self.chats.id_by_index(self.current_chat)
         if chat_id is None:
             return False
+        # order is matter: this should be before send_message
+        # otherwise it vill view message that was sent
+        self.view_all_msgs()
         self.msgs.send_message(chat_id, text)
         return True
 
