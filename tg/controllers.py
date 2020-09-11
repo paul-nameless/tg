@@ -8,7 +8,6 @@ from tempfile import NamedTemporaryFile
 from typing import Any, Callable, Dict, List, Optional
 
 from telegram.utils import AsyncResult
-
 from tg import config
 from tg.models import Model
 from tg.msg import MsgProxy
@@ -263,6 +262,7 @@ class Controller:
             return
         reply_to_msg = self.model.current_msg_id
         if msg := self.view.status.get_input():
+            self.model.view_all_msgs()
             self.tg.reply_message(chat_id, reply_to_msg, msg)
             self.present_info("Message reply sent")
         else:
@@ -286,6 +286,7 @@ class Controller:
             s.call(config.LONG_MSG_CMD.format(file_path=shlex.quote(f.name)))
             with open(f.name) as f:
                 if replied_msg := strip_replied_msg(f.read().strip()):
+                    self.model.view_all_msgs()
                     self.tg.reply_message(chat_id, reply_to_msg, replied_msg)
                     self.present_info("Message sent")
                 else:
