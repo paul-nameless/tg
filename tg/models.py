@@ -163,7 +163,7 @@ class Model:
         if chat_id is None:
             return False
         # order is matter: this should be before send_message
-        # otherwise it vill view message that was sent
+        # otherwise it will view message that was sent
         self.view_all_msgs()
         self.msgs.send_message(chat_id, text)
         return True

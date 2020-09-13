@@ -8,6 +8,7 @@ from tempfile import NamedTemporaryFile
 from typing import Any, Callable, Dict, List, Optional
 
 from telegram.utils import AsyncResult
+
 from tg import config
 from tg.models import Model
 from tg.msg import MsgProxy
