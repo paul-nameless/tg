@@ -263,6 +263,7 @@ class Controller:
             return
         reply_to_msg = self.model.current_msg_id
         if msg := self.view.status.get_input():
+            self.model.view_all_msgs()
             self.tg.reply_message(chat_id, reply_to_msg, msg)
             self.present_info("Message reply sent")
         else:
@@ -286,6 +287,7 @@ class Controller:
             s.call(config.LONG_MSG_CMD.format(file_path=shlex.quote(f.name)))
             with open(f.name) as f:
                 if replied_msg := strip_replied_msg(f.read().strip()):
+                    self.model.view_all_msgs()
                     self.tg.reply_message(chat_id, reply_to_msg, replied_msg)
                     self.present_info("Message sent")
                 else:
@@ -697,10 +699,7 @@ class Controller:
 
     @bind(chat_handler, ["r"])
     def read_msgs(self) -> None:
-        chat = self.model.chats.chats[self.model.current_chat]
-        chat_id = chat["id"]
-        msg_id = chat["last_message"]["id"]
-        self.tg.view_messages(chat_id, [msg_id])
+        self.model.view_all_msgs()
         self.render()
 
     @bind(chat_handler, ["m"])
