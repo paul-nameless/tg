@@ -154,6 +154,7 @@ CHAT_FLAGS = {
     # last msg haven't been seen by recipient
     "unseen": "✓",
     "secret": "🔒",
+    "seen": "✓✓",  # leave empty if you don't want to see it
 }
 MSG_FLAGS = {
     "selected": "*",
@@ -163,6 +164,7 @@ MSG_FLAGS = {
     "edited": "E",
     "pending": "...",
     "failed": "💩",
+    "seen": "✓✓",  # leave empty if you don't want to see it
 }
 
 # use this app to open url when there are multiple
