@@ -75,6 +75,7 @@ KEEP_MEDIA = 7
 
 FILE_PICKER_CMD = "ranger --choosefile={file_path}"
 
+DOWNLOAD_DIR = os.path.expanduser("~/Downloads/")
 
 if os.path.isfile(CONFIG_FILE):
     config_params = runpy.run_path(CONFIG_FILE)
