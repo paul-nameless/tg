@@ -246,6 +246,12 @@ class ChatView:
         ):
             # last msg haven't been seen by recipient
             flags.append("unseen")
+        elif (
+            msg
+            and self.model.is_me(msg["sender_user_id"])
+            and msg["id"] <= chat["last_read_outbox_message_id"]
+        ):
+            flags.append("seen")
 
         if action_label := _get_action_label(self.model.users, chat):
             flags.append(action_label)
@@ -315,6 +321,11 @@ class MsgView:
         ):
             if not self.model.is_me(chat["id"]):
                 flags.append("unseen")
+        elif (
+            self.model.is_me(msg_proxy.sender_id)
+            and msg_proxy.msg_id <= chat["last_read_outbox_message_id"]
+        ):
+            flags.append("seen")
         if state := msg_proxy.msg.get("sending_state"):
             log.info("state: %s", state)
             state_type = state["@type"]
