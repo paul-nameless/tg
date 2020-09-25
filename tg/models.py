@@ -1,5 +1,6 @@
 import base64
 import logging
+import shutil
 import sys
 import time
 from collections import defaultdict, namedtuple
@@ -235,6 +236,21 @@ class Model:
                 buffer.append(msg.text_content)
         copy_to_clipboard("\n".join(buffer))
         return True
+
+    def copy_files(
+        self, chat_id: int, msg_ids: List[int], dest_dir: str
+    ) -> bool:
+        is_copied = False
+        for msg_id in msg_ids:
+            _msg = self.msgs.get_message(chat_id, msg_id)
+            if not _msg:
+                return False
+            msg = MsgProxy(_msg)
+            if msg.file_id and msg.local_path:
+                file_path = msg.local_path
+                shutil.copy2(file_path, dest_dir)
+                is_copied = True
+        return is_copied
 
     def get_private_chat_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
         user_id = chat["id"]

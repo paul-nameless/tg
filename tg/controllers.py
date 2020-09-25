@@ -100,6 +100,20 @@ class Controller:
                 "\n".join(f"{k}: {v}" for k, v in info.items() if v),
             )
 
+    @bind(msg_handler, ["O"])
+    def save_file_in_folder(self) -> None:
+        chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        if not chat_id:
+            return
+        msg_ids = self.model.selected[chat_id]
+        if not msg_ids:
+            msg = self.model.current_msg
+            msg_ids = [msg["id"]]
+        else:
+            self.discard_selected_msgs()
+        if self.model.copy_files(chat_id, msg_ids, config.DOWNLOAD_DIR):
+            self.present_info(f"Copied files to {config.DOWNLOAD_DIR}")
+
     @bind(msg_handler, ["o"])
     def open_url(self) -> None:
         msg = MsgProxy(self.model.current_msg)

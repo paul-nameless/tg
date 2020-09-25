@@ -190,6 +190,8 @@ FILE_PICKER_CMD = "ranger --choosefile={file_path}"
 # FILE_PICKER_CMD = "nnn -p {file_path}"
 
 MAILCAP_FILE = os.path.expanduser("~/.config/mailcap")
+
+DOWNLOAD_DIR = os.path.expanduser("~/Downloads/")  # copy file to this dir
 ```
 
 ### Mailcap file
