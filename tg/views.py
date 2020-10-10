@@ -379,19 +379,27 @@ class MsgView:
             msg = self._format_reply_msg(
                 msg_proxy.chat_id, msg, reply_to, width_limit
             )
+        if reply_markup := self._format_reply_markup(msg_proxy):
+            msg += reply_markup
+
+        return msg
+
+    @staticmethod
+    def _format_reply_markup(msg_proxy: MsgProxy) -> str:
+        msg = ""
         if reply_markup := msg_proxy.reply_markup:
             for row in reply_markup.get("rows", []):
                 msg += "\n"
                 for item in row:
-                    if text := item.get("text"):
-                        _type = item.get("type", {})
-                        if _type.get("@type") == "inlineKeyboardButtonTypeUrl":
-                            url = _type.get("url")
-                            if url:
-                                text = f"{text} ({url})"
-                        msg += f"| {text} "
+                    text = item.get("text")
+                    if not text:
+                        continue
+                    _type = item.get("type", {})
+                    if _type.get("@type") == "inlineKeyboardButtonTypeUrl":
+                        if url := _type.get("url"):
+                            text = f"{text} ({url})"
+                    msg += f"| {text} "
                 msg += "|"
-
         return msg
 
     def _collect_msgs_to_draw(
