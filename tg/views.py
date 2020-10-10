@@ -384,6 +384,11 @@ class MsgView:
                 msg += "\n"
                 for item in row:
                     if text := item.get("text"):
+                        _type = item.get("type", {})
+                        if _type.get("@type") == "inlineKeyboardButtonTypeUrl":
+                            url = _type.get("url")
+                            if url:
+                                text = f"{text} ({url})"
                         msg += f"| {text} "
                 msg += "|"
 
