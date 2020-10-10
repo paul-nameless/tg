@@ -387,19 +387,21 @@ class MsgView:
     @staticmethod
     def _format_reply_markup(msg_proxy: MsgProxy) -> str:
         msg = ""
-        if reply_markup := msg_proxy.reply_markup:
-            for row in reply_markup.get("rows", []):
-                msg += "\n"
-                for item in row:
-                    text = item.get("text")
-                    if not text:
-                        continue
-                    _type = item.get("type", {})
-                    if _type.get("@type") == "inlineKeyboardButtonTypeUrl":
-                        if url := _type.get("url"):
-                            text = f"{text} ({url})"
-                    msg += f"| {text} "
-                msg += "|"
+        reply_markup = msg_proxy.reply_markup
+        if not reply_markup:
+            return msg
+        for row in reply_markup.get("rows", []):
+            msg += "\n"
+            for item in row:
+                text = item.get("text")
+                if not text:
+                    continue
+                _type = item.get("type", {})
+                if _type.get("@type") == "inlineKeyboardButtonTypeUrl":
+                    if url := _type.get("url"):
+                        text = f"{text} ({url})"
+                msg += f"| {text} "
+            msg += "|"
         return msg
 
     def _collect_msgs_to_draw(
