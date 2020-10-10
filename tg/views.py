@@ -390,7 +390,7 @@ class MsgView:
         reply_markup = msg_proxy.reply_markup
         if not reply_markup:
             return msg
-        for row in reply_markup.get("rows", []):
+        for row in msg_proxy.reply_markup_rows:
             msg += "\n"
             for item in row:
                 text = item.get("text")
