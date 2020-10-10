@@ -280,7 +280,11 @@ class ChatView:
 
 
 class MsgView:
-    def __init__(self, stdscr: window, model: Model,) -> None:
+    def __init__(
+        self,
+        stdscr: window,
+        model: Model,
+    ) -> None:
         self.model = model
         self.stdscr = stdscr
         self.h = 0
@@ -353,7 +357,8 @@ class MsgView:
             msg = f"{reply_line}\n{msg}"
         return msg
 
-    def _format_url(self, msg_proxy: MsgProxy) -> str:
+    @staticmethod
+    def _format_url(msg_proxy: MsgProxy) -> str:
         if not msg_proxy.is_text or "web_page" not in msg_proxy.msg["content"]:
             return ""
         web = msg_proxy.msg["content"]["web_page"]
@@ -365,9 +370,7 @@ class MsgView:
             url += f"\n | {description}"
         return url
 
-    def _format_msg(
-        self, msg_proxy: MsgProxy, user_id_item: int, width_limit: int
-    ) -> str:
+    def _format_msg(self, msg_proxy: MsgProxy, width_limit: int) -> str:
         msg = self._parse_msg(msg_proxy)
         if caption := msg_proxy.caption:
             msg += "\n" + caption.replace("\n", " ")
@@ -376,6 +379,14 @@ class MsgView:
             msg = self._format_reply_msg(
                 msg_proxy.chat_id, msg, reply_to, width_limit
             )
+        if reply_markup := msg_proxy.reply_markup:
+            for row in reply_markup.get("rows", []):
+                msg += "\n"
+                for item in row:
+                    if text := item.get("text"):
+                        msg += f"| {text} "
+                msg += "|"
+
         return msg
 
     def _collect_msgs_to_draw(
@@ -409,12 +420,12 @@ class MsgView:
                 flags = self._get_flags(msg_proxy)
                 if user_id and flags:
                     # if not channel add space between name and flags
-                    flags = " " + flags
+                    flags = f" {flags}"
                 label_elements = f" {dt} ", user_id, flags
                 label_len = sum(string_len_dwc(e) for e in label_elements)
 
                 msg = self._format_msg(
-                    msg_proxy, user_id_item, width_limit=self.w - label_len - 1
+                    msg_proxy, width_limit=self.w - label_len - 1
                 )
                 elements = *label_elements, f" {msg}"
                 needed_lines = 0

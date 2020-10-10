@@ -204,6 +204,10 @@ class MsgProxy:
         return self.msg.get("reply_to_message_id")
 
     @property
+    def reply_markup(self) -> Optional[Dict[str, Any]]:
+        return self.msg.get("reply_markup")
+
+    @property
     def chat_id(self) -> int:
         return self.msg["chat_id"]
 
