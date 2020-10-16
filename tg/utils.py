@@ -102,7 +102,16 @@ def parse_size(size: str) -> int:
 def humanize_size(
     num: int,
     suffix: str = "B",
-    suffixes: Tuple[str, ...] = ("", "K", "M", "G", "T", "P", "E", "Z",),
+    suffixes: Tuple[str, ...] = (
+        "",
+        "K",
+        "M",
+        "G",
+        "T",
+        "P",
+        "E",
+        "Z",
+    ),
 ) -> str:
     magnitude = int(math.floor(math.log(num, 1024)))
     val = num / math.pow(1024, magnitude)
