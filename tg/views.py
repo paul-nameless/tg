@@ -145,7 +145,7 @@ class ChatView:
         self._refresh = self.win.refresh
         self.model = model
 
-    def resize(self, rows: int, cols: int, width: int) -> None:
+    def resize(self, rows: int, _: int, width: int) -> None:
         self.h = rows - 1
         self.w = width
         self.win.resize(self.h, self.w)
@@ -430,55 +430,33 @@ class MsgView:
             line_num = self.h
             for msg_idx, msg_item in msgs[ignore_before:]:
                 is_selected_msg = current_msg_idx == msg_idx
-                msg_proxy = MsgProxy(msg_item)
-                dt = msg_proxy.date.strftime("%H:%M:%S")
-                user_id_item = msg_proxy.sender_id
+                msg_elements, mgs_height, msg = self._get_msg_details(msg_item)
 
-                user_id = self.model.users.get_user_label(user_id_item)
-                flags = self._get_flags(msg_proxy)
-                if user_id and flags:
-                    # if not channel add space between name and flags
-                    flags = f" {flags}"
-                label_elements = f" {dt} ", user_id, flags
-                label_len = sum(string_len_dwc(e) for e in label_elements)
-
-                msg = self._format_msg(
-                    msg_proxy, width_limit=self.w - label_len - 1
-                )
-                elements = *label_elements, f" {msg}"
-                needed_lines = 0
-                for i, msg_line in enumerate(msg.split("\n")):
-                    # count wide character utf-8 symbols that take > 1 bytes to
-                    # print it causes invalid offset
-                    line_len = string_len_dwc(msg_line)
-
-                    # first line cotains msg lable, e.g user name, date
-                    if i == 0:
-                        line_len += label_len
-
-                    needed_lines += (line_len // self.w) + 1
-
-                line_num -= needed_lines
+                line_num -= mgs_height
                 if line_num < 0:
-                    tail_lines = needed_lines + line_num - 1
+                    tail_lines = mgs_height + line_num - 1
                     # try preview long message that did fit in the screen
                     if tail_lines > 0 and not is_selected_msg:
                         limit = self.w * tail_lines
-                        tail_chatacters = len(msg) - limit - 3
-                        elements = (
+                        tail_characters = len(msg) - limit - 3
+                        msg_elements = (
                             "",
                             "",
                             "",
-                            f" ...{msg[tail_chatacters:]}",
+                            f" ...{msg[tail_characters:]}",
                         )
-                        collected_items.append((elements, is_selected_msg, 0))
+                        collected_items.append(
+                            (msg_elements, is_selected_msg, 0)
+                        )
                     break
-                collected_items.append((elements, is_selected_msg, line_num))
+                collected_items.append(
+                    (msg_elements, is_selected_msg, line_num)
+                )
                 if is_selected_msg:
                     selected_item_idx = len(collected_items) - 1
             if (
                 # ignore first and last msg
-                selected_item_idx not in (0, len(msgs) - 1, None)
+                selected_item_idx not in (0, len(msgs) - 1)
                 and selected_item_idx is not None
                 and len(collected_items) - 1 - selected_item_idx
                 < min_msg_padding
@@ -486,6 +464,41 @@ class MsgView:
                 selected_item_idx = None
 
         return collected_items
+
+    def _get_mgs_height(self, label_len: int, msg: str) -> int:
+        mgs_height = 0
+        for i, msg_line in enumerate(msg.split("\n")):
+            # count wide character utf-8 symbols that take > 1 bytes to
+            # print it causes invalid offset
+            line_len = string_len_dwc(msg_line)
+
+            # first line contains msg label, e.g user name, date
+            if i == 0:
+                line_len += label_len
+            mgs_height += (line_len // self.w) + 1
+
+        return mgs_height
+
+    def _get_msg_details(
+        self, msg_item
+    ) -> Tuple[Tuple[str, str, str, str], int, str]:
+        msg_proxy = MsgProxy(msg_item)
+        user_id = self.model.users.get_user_label(msg_proxy.sender_id)
+        flags = self._get_flags(msg_proxy)
+        if user_id and flags:
+            # if not channel add space between name and flags
+            flags = f" {flags}"
+        label_elements: Tuple[str, str, str] = (
+            f" {msg_proxy.date.strftime('%H:%M:%S')} ",
+            user_id,
+            flags,
+        )
+        label_len = sum(string_len_dwc(e) for e in label_elements)
+        msg = self._format_msg(msg_proxy, width_limit=self.w - label_len - 1)
+        elements = *label_elements, f" {msg}"
+        mgs_height = self._get_mgs_height(label_len, msg)
+
+        return elements, mgs_height, msg
 
     def draw(
         self,
