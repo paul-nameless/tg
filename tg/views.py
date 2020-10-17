@@ -362,6 +362,9 @@ class MsgView:
         if not msg_proxy.is_text or "web_page" not in msg_proxy.msg["content"]:
             return ""
         web = msg_proxy.msg["content"]["web_page"]
+        page_type = web["type"]
+        if page_type == "photo":
+            return f"\n | photo: {web['url']}"
         name = web["site_name"]
         title = web["title"]
         description = web["description"].replace("\n", "")
