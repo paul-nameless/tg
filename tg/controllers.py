@@ -122,15 +122,16 @@ class Controller:
         text = msg["content"]["text"]["text"]
         urls = []
         for entity in msg["content"]["text"]["entities"]:
-            if entity["type"]["@type"] != "textEntityTypeUrl":
+            _type = entity["type"]["@type"]
+            if _type == "textEntityTypeUrl":
+                offset = entity["offset"]
+                length = entity["length"]
+                url = text[offset : offset + length]
+            elif _type == "textEntityTypeTextUrl":
+                url = entity["type"]["url"]
+            else:
                 continue
-            offset = entity["offset"]
-            length = entity["length"]
-            url = text[offset : offset + length]
             urls.append(url)
-        if web_url := msg["content"].get("web_page", {}).get("url"):
-            urls.append(web_url)
-
         if not urls:
             return self.present_error("No url to open")
         if len(urls) == 1:
