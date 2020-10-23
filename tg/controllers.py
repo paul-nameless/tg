@@ -118,23 +118,27 @@ class Controller:
     def open_url(self) -> None:
         msg = MsgProxy(self.model.current_msg)
         if not msg.is_text:
-            self.present_error("Does not contain urls")
-            return
+            return self.present_error("Does not contain urls")
         text = msg["content"]["text"]["text"]
         urls = []
         for entity in msg["content"]["text"]["entities"]:
-            if entity["type"]["@type"] != "textEntityTypeUrl":
+            _type = entity["type"]["@type"]
+            if _type == "textEntityTypeUrl":
+                offset = entity["offset"]
+                length = entity["length"]
+                url = text[offset : offset + length]
+            elif _type == "textEntityTypeTextUrl":
+                url = entity["type"]["url"]
+            else:
                 continue
-            offset = entity["offset"]
-            length = entity["length"]
-            url = text[offset : offset + length]
             urls.append(url)
         if not urls:
-            self.present_error("No url to open")
-            return
+            return self.present_error("No url to open")
         if len(urls) == 1:
             with suspend(self.view) as s:
-                s.call(config.DEFAULT_OPEN.format(file_path=shlex.quote(url)))
+                s.call(
+                    config.DEFAULT_OPEN.format(file_path=shlex.quote(urls[0]))
+                )
             return
         with suspend(self.view) as s:
             s.run_with_input(config.URL_VIEW, "\n".join(urls))
@@ -347,8 +351,7 @@ class Controller:
         is_deleted = self.model.delete_msgs()
         self.discard_selected_msgs()
         if not is_deleted:
-            self.present_error("Can't delete msg(s)")
-            return
+            return self.present_error("Can't delete msg(s)")
         self.present_info("Message deleted")
 
     @bind(msg_handler, ["S"])
