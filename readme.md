@@ -273,3 +273,14 @@ For navigation arrow keys also can be used.
 - `c`: show chat info (e.g. secret chat encryption key, chat id, state, etc.)
 - `?`: show help
 - `!`: open msg with custom cmd
+
+## Publish
+
+```sh
+# increase version in tg/__init__.py
+git commit -m 'Release 0.7.0'
+git tag v0.7.0
+flit publish
+git log --pretty=format:"%cn: %s" v0.6.0...v0.7.0  | grep -v -e "Merge pull request" | grep -v "Release"
+git push origin master
+```
