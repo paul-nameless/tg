@@ -259,7 +259,7 @@ class ChatView:
         if self.model.users.is_online(chat["id"]):
             flags.append("online")
 
-        if chat["is_pinned"]:
+        if "is_pinned" in chat and chat["is_pinned"]:
             flags.append("pinned")
 
         if chat["notification_settings"]["mute_for"]:
@@ -367,7 +367,7 @@ class MsgView:
             return f"\n | photo: {web['url']}"
         name = web["site_name"]
         title = web["title"]
-        description = web["description"].replace("\n", "")
+        description = web["description"]["text"].replace("\n", "")
         url = f"\n | {name}: {title}"
         if description:
             url += f"\n | {description}"

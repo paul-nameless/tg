@@ -436,6 +436,12 @@ class ChatModel:
         chat_id = chat["id"]
         if chat_id in self.chat_ids:
             return
+
+        if len(chat["positions"]) > 0:
+            chat["order"] = chat["positions"][0]["order"]
+        else:
+            chat["order"] = 0 #str(sys.maxsize)
+
         if int(chat["order"]) == 0:
             self.inactive_chats[chat_id] = chat
             return

@@ -78,7 +78,7 @@ def update_new_message(controller: Controller, update: Dict[str, Any]) -> None:
 
     controller.notify_for_message(msg.chat_id, msg)
 
-
+#outdated
 @update_handler("updateChatOrder")
 def update_chat_order(controller: Controller, update: Dict[str, Any]) -> None:
     current_chat_id = controller.model.current_chat_id
@@ -88,6 +88,16 @@ def update_chat_order(controller: Controller, update: Dict[str, Any]) -> None:
     if controller.model.chats.update_chat(chat_id, order=order):
         controller.refresh_current_chat(current_chat_id)
 
+@update_handler("updateChatPosition")
+def update_chat_position(controller: Controller, update: Dict[str, Any]) -> None:
+    current_chat_id = controller.model.current_chat_id
+    chat_id = update["chat_id"]
+    info = {}
+    info["order"] = update["position"]["order"]
+    if "is_pinned" in update:
+        info["is_pinned"] = update["is_pinned"]
+    if controller.model.chats.update_chat(chat_id, **info):
+        controller.refresh_current_chat(current_chat_id)
 
 @update_handler("updateChatTitle")
 def update_chat_title(controller: Controller, update: Dict[str, Any]) -> None:
@@ -189,12 +199,14 @@ def update_chat_last_message(
         # according to documentation it can be null
         log.warning("last_message is null: %s", update)
         return
-    order = update["order"]
+
+    info = {}
+    info["last_message"] = last_message
+    if len(update["positions"]) > 0:
+        info["order"] = update["positions"][0]["order"]
 
     current_chat_id = controller.model.current_chat_id
-    if controller.model.chats.update_chat(
-        chat_id, last_message=last_message, order=order
-    ):
+    if controller.model.chats.update_chat(chat_id, **info):
         controller.refresh_current_chat(current_chat_id)
 
 
