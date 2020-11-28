@@ -873,7 +873,7 @@ class Controller:
             return
 
         # notify
-        if self.model.is_me(msg["sender_user_id"]):
+        if self.model.is_me(msg["sender"].get("user_id")):
             return
         user = self.model.users.get_user(msg.sender_id)
         name = f"{user['first_name']} {user['last_name']}"
