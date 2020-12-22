@@ -245,6 +245,7 @@ For navigation arrow keys also can be used.
 - `j,k`: move up/down
 - `J,K`: move 10 msgs up/down
 - `G`: move to the last msg (at the bottom)
+- `D`: download file
 - `l`: if video, pics or audio then open app specified in mailcap file, for example:
   ```ini
   # Images
