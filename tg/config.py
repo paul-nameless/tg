@@ -57,7 +57,10 @@ else:
     DEFAULT_OPEN = "open {file_path}"
 
 if _os_name == _linux:
-    COPY_CMD = "xclip -selection c"
+    if os.environ.get("WAYLAND_DISPLAY"):
+        COPY_CMD = "wl-copy"
+    else:
+        COPY_CMD = "xclip -selection c"
 else:
     COPY_CMD = "pbcopy"
 
