@@ -66,7 +66,7 @@ tg
 This option is recommended for development:
 
 ```sh
-git clone https://github.com:paul-nameless/tg.git
+git clone https://github.com/paul-nameless/tg.git
 cd tg
 pip install python-telegram
 pip install .
