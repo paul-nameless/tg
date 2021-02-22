@@ -280,11 +280,7 @@ class ChatView:
 
 
 class MsgView:
-    def __init__(
-        self,
-        stdscr: window,
-        model: Model,
-    ) -> None:
+    def __init__(self, stdscr: window, model: Model,) -> None:
         self.model = model
         self.stdscr = stdscr
         self.h = 0
