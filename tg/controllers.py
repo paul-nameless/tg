@@ -52,14 +52,14 @@ def bind(
             return fun(*args, **kwargs)
 
         @wraps(fun)
-        def _no_repeat_factor(self: "Controller", _: bool) -> Any:
+        def _no_repeat_factor(self: "Controller", _: bool) -> Optional[str]:
             return fun(self)
 
         for key in keys:
             assert (
                 key not in binding
             ), f"Key {key} already binded to {binding[key]}"
-            binding[key] = fun if repeat_factor else _no_repeat_factor
+            binding[key] = fun if repeat_factor else _no_repeat_factor  # type: ignore
 
         return wrapper
 
@@ -869,7 +869,7 @@ class Controller:
             return
 
         # notify
-        if self.model.is_me(msg["sender_user_id"]):
+        if self.model.is_me(msg["sender"].get("user_id")):
             return
         user = self.model.users.get_user(msg.sender_id)
         name = f"{user['first_name']} {user['last_name']}"

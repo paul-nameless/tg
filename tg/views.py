@@ -240,7 +240,7 @@ class ChatView:
         msg = chat.get("last_message")
         if (
             msg
-            and self.model.is_me(msg["sender_user_id"])
+            and self.model.is_me(msg["sender"].get("user_id"))
             and msg["id"] > chat["last_read_outbox_message_id"]
             and not self.model.is_me(chat["id"])
         ):
@@ -248,7 +248,7 @@ class ChatView:
             flags.append("unseen")
         elif (
             msg
-            and self.model.is_me(msg["sender_user_id"])
+            and self.model.is_me(msg["sender"].get("user_id"))
             and msg["id"] <= chat["last_read_outbox_message_id"]
         ):
             flags.append("seen")
@@ -259,7 +259,7 @@ class ChatView:
         if self.model.users.is_online(chat["id"]):
             flags.append("online")
 
-        if chat["is_pinned"]:
+        if "is_pinned" in chat and chat["is_pinned"]:
             flags.append("pinned")
 
         if chat["notification_settings"]["mute_for"]:
@@ -363,7 +363,7 @@ class MsgView:
             return f"\n | photo: {web['url']}"
         name = web["site_name"]
         title = web["title"]
-        description = web["description"].replace("\n", "")
+        description = web["description"]["text"].replace("\n", "")
         url = f"\n | {name}: {title}"
         if description:
             url += f"\n | {description}"
@@ -584,7 +584,7 @@ def get_last_msg(
     if not last_msg:
         return None, "<No messages yet>"
     return (
-        last_msg["sender_user_id"],
+        last_msg["sender"].get("user_id"),
         parse_content(MsgProxy(last_msg), users),
     )
 
