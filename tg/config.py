@@ -5,7 +5,6 @@ overwritten by external config file
 import os
 import platform
 import runpy
-from pathlib import Path
 from typing import Dict, Optional
 
 _os_name = platform.system()
@@ -79,7 +78,7 @@ FILE_PICKER_CMD = "ranger --choosefile={file_path}"
 DOWNLOAD_DIR = os.path.expanduser("~/Downloads/")
 
 if os.path.isfile(CONFIG_FILE):
-    config_params = runpy.run_path(CONFIG_FILE)
+    config_params = runpy.run_path(CONFIG_FILE)  # type: ignore
     for param, value in config_params.items():
         if param.isupper():
             globals()[param] = value

@@ -52,14 +52,14 @@ def bind(
             return fun(*args, **kwargs)
 
         @wraps(fun)
-        def _no_repeat_factor(self: "Controller", _: bool) -> Any:
+        def _no_repeat_factor(self: "Controller", _: bool) -> Optional[str]:
             return fun(self)
 
         for key in keys:
             assert (
                 key not in binding
             ), f"Key {key} already binded to {binding[key]}"
-            binding[key] = fun if repeat_factor else _no_repeat_factor
+            binding[key] = fun if repeat_factor else _no_repeat_factor  # type: ignore
 
         return wrapper
 
