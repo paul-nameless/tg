@@ -31,13 +31,13 @@ case $ARG in
         sed -i '' 's/0\.8\.0/0\.9\.0/g' tg/__init__.py
 
         git add -u tg/__init__.py
-        git commit -m "Release $NEW_VERSION"
-        git tag $NEW_VERSION
+        git commit -m "Release v$NEW_VERSION"
+        git tag v$NEW_VERSION
 
         flit publish
-        git log --pretty=format:"%cn: %s" $CURRENT_VERSION...$NEW_VERSION  | grep -v -e "Merge" | grep -v "Release"| awk '!x[$0]++' > changelog.md
+        git log --pretty=format:"%cn: %s" v$CURRENT_VERSION...v$NEW_VERSION  | grep -v -e "Merge" | grep -v "Release"| awk '!x[$0]++' > changelog.md
         git push origin master --tags
-        gh release create $NEW_VERSION -F changelog.md
+        gh release create v$NEW_VERSION -F changelog.md
         ;;
 
     check)
