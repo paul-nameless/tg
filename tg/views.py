@@ -116,7 +116,9 @@ class StatusView:
                 line = buff[-(self.w - 1) :]
                 self.win.addstr(0, 0, f"{prefix}{line}")
 
-                key = self.win.get_wch(0, min(len(buff + prefix), self.w - 1))
+                key = self.win.get_wch(
+                    0, min(string_len_dwc(buff + prefix), self.w - 1)
+                )
                 key = ord(key)
                 if key == 10:  # return
                     break
