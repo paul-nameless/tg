@@ -33,13 +33,13 @@ class Win:
     def __init__(self, win: window):
         self.win = win
 
-    def addstr(self, *args, **kwargs):
+    def addstr(self, y: int, x: int, _str: str, attr: Any = None) -> None:
         try:
-            return self.win.addstr(*args, **kwargs)
+            return self.win.addstr(y, x, _str, attr)
         except Exception:
-            log.exception("Error drawing: %s", (args, kwargs))
+            log.exception(f"Error drawing: {y=}, {x=}, {_str=}, {attr=}")
 
-    def __getattribute__(self, name):
+    def __getattribute__(self, name: str) -> Any:
         if name in ("win", "addstr"):
             return object.__getattribute__(self, name)
         return self.win.__getattribute__(name)
