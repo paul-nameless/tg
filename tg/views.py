@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from _curses import window  # type: ignore
+
 from tg import config
 from tg.colors import bold, cyan, get_color, magenta, reverse, white, yellow
 from tg.models import Model, UserModel
@@ -29,6 +30,7 @@ MULTICHAR_KEYBINDINGS = (
 
 class Win:
     """Proxy for win object to log error and continue working"""
+
     def __init__(self, win: window):
         self.win = win
 
@@ -42,6 +44,7 @@ class Win:
         if name in ("win", "addstr"):
             return object.__getattribute__(self, name)
         return self.win.__getattribute__(name)
+
 
 class View:
     def __init__(
