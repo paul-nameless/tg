@@ -1,6 +1,5 @@
-from setuptools import setup
-
 import tg
+from setuptools import setup
 
 with open("readme.md", "r") as fh:
     readme = fh.read()
@@ -18,9 +17,10 @@ setup(
     classifiers=[
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
     ],
     packages=["tg"],
     entry_points={"console_scripts": ["tg = tg.__main__:main"]},
     python_requires=">=3.8",
-    install_requires=["python-telegram==0.12.0"],
+    install_requires=["python-telegram==0.14.0"],
 )
