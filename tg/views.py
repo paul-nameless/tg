@@ -4,7 +4,6 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from _curses import window  # type: ignore
-
 from tg import config
 from tg.colors import bold, cyan, get_color, magenta, reverse, white, yellow
 from tg.models import Model, UserModel
@@ -236,6 +235,7 @@ class ChatView:
                 item = truncate_to_len(
                     elem, max(0, width - offset - flags_len)
                 )
+
                 if len(item) > 1:
                     self.win.addstr(i, offset, item, attr)
                     offset += string_len_dwc(elem)
@@ -246,6 +246,7 @@ class ChatView:
         self, chat: Dict[str, Any]
     ) -> Tuple[Optional[str], Optional[str]]:
         user, last_msg = get_last_msg(chat, self.model.users)
+        last_msg = last_msg.replace("\n", " ")
         if user:
             last_msg_sender = self.model.users.get_user_label(user)
             chat_type = get_chat_type(chat)
