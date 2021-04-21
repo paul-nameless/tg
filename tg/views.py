@@ -28,6 +28,24 @@ MULTICHAR_KEYBINDINGS = (
 )
 
 
+class Win:
+    """Proxy for win object to log error and continue working"""
+
+    def __init__(self, win: window):
+        self.win = win
+
+    def addstr(self, y: int, x: int, _str: str, attr: Any = None) -> None:
+        try:
+            return self.win.addstr(y, x, _str, attr)
+        except Exception:
+            log.exception(f"Error drawing: {y=}, {x=}, {_str=}, {attr=}")
+
+    def __getattribute__(self, name: str) -> Any:
+        if name in ("win", "addstr"):
+            return object.__getattribute__(self, name)
+        return self.win.__getattribute__(name)
+
+
 class View:
     def __init__(
         self,
@@ -92,7 +110,7 @@ class StatusView:
         self.y = curses.LINES - 1
         self.x = 0
         self.stdscr = stdscr
-        self.win = stdscr.subwin(self.h, self.w, self.y, self.x)
+        self.win = Win(stdscr.subwin(self.h, self.w, self.y, self.x))
         self._refresh = self.win.refresh
 
     def resize(self, rows: int, cols: int) -> None:
@@ -143,7 +161,7 @@ class ChatView:
         self.stdscr = stdscr
         self.h = 0
         self.w = 0
-        self.win = stdscr.subwin(self.h, self.w, 0, 0)
+        self.win = Win(stdscr.subwin(self.h, self.w, 0, 0))
         self._refresh = self.win.refresh
         self.model = model
 
@@ -218,6 +236,7 @@ class ChatView:
                 item = truncate_to_len(
                     elem, max(0, width - offset - flags_len)
                 )
+
                 if len(item) > 1:
                     self.win.addstr(i, offset, item, attr)
                     offset += string_len_dwc(elem)
@@ -228,6 +247,7 @@ class ChatView:
         self, chat: Dict[str, Any]
     ) -> Tuple[Optional[str], Optional[str]]:
         user, last_msg = get_last_msg(chat, self.model.users)
+        last_msg = last_msg.replace("\n", " ")
         if user:
             last_msg_sender = self.model.users.get_user_label(user)
             chat_type = get_chat_type(chat)
@@ -292,7 +312,7 @@ class MsgView:
         self.h = 0
         self.w = 0
         self.x = 0
-        self.win = self.stdscr.subwin(self.h, self.w, 0, self.x)
+        self.win = Win(self.stdscr.subwin(self.h, self.w, 0, self.x))
         self._refresh = self.win.refresh
         self.states = {
             "messageSendingStateFailed": "failed",
