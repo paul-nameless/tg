@@ -38,6 +38,7 @@ case $ARG in
         git log --pretty=format:"%cn: %s" v$CURRENT_VERSION...v$NEW_VERSION  | grep -v -e "Merge" | grep -v "Release"| awk '!x[$0]++' > changelog.md
         git push origin master --tags
         gh release create v$NEW_VERSION -F changelog.md
+        rm changelog.md
         ;;
 
     check)
