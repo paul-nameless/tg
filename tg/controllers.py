@@ -427,7 +427,8 @@ class Controller:
         self.tg.send_video(file_path, chat_id, width, height, duration)
 
     def send_file(
-        self, send_file_fun: Callable[[str, int], AsyncResult],
+        self,
+        send_file_fun: Callable[[str, int], AsyncResult],
     ) -> None:
         _input = self.view.status.get_input()
         if _input is None:
@@ -551,7 +552,10 @@ class Controller:
     def _get_user_ids(self, is_multiple: bool = False) -> List[int]:
         users = self.model.users.get_users()
         _, cols = self.view.stdscr.getmaxyx()
-        limit = min(int(cols / 2), max(len(user.name) for user in users),)
+        limit = min(
+            int(cols / 2),
+            max(len(user.name) for user in users),
+        )
         users_out = "\n".join(
             f"{user.id}\t{user.name:<{limit}} | {user.status}"
             for user in sorted(users, key=lambda user: user.order)
