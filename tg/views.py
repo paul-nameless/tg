@@ -4,7 +4,6 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from _curses import window  # type: ignore
-
 from tg import config
 from tg.colors import bold, cyan, get_color, magenta, reverse, white, yellow
 from tg.models import Model, UserModel
@@ -116,7 +115,7 @@ class StatusView:
                 line = buff[-(self.w - 1) :]
                 self.win.addstr(0, 0, f"{prefix}{line}")
 
-                key = self.win.get_wch(0, min(len(buff + prefix), self.w - 1))
+                key = self.win.get_wch(0, min(string_len_dwc(buff + prefix), self.w - 1))
                 key = ord(key)
                 if key == 10:  # return
                     break
