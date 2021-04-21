@@ -4,7 +4,6 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from _curses import window  # type: ignore
-
 from tg import config
 from tg.colors import bold, cyan, get_color, magenta, reverse, white, yellow
 from tg.models import Model, UserModel
@@ -27,6 +26,22 @@ MULTICHAR_KEYBINDINGS = (
     "bp",
 )
 
+
+class Win:
+    """Proxy for win object to log error and continue working"""
+    def __init__(self, win: window):
+        self.win = win
+
+    def addstr(self, *args, **kwargs):
+        try:
+            return self.win.addstr(*args, **kwargs)
+        except Exception:
+            log.exception("Error drawing: %s", (args, kwargs))
+
+    def __getattribute__(self, name):
+        if name in ("win", "addstr"):
+            return object.__getattribute__(self, name)
+        return self.win.__getattribute__(name)
 
 class View:
     def __init__(
@@ -92,7 +107,7 @@ class StatusView:
         self.y = curses.LINES - 1
         self.x = 0
         self.stdscr = stdscr
-        self.win = stdscr.subwin(self.h, self.w, self.y, self.x)
+        self.win = Win(stdscr.subwin(self.h, self.w, self.y, self.x))
         self._refresh = self.win.refresh
 
     def resize(self, rows: int, cols: int) -> None:
@@ -143,7 +158,7 @@ class ChatView:
         self.stdscr = stdscr
         self.h = 0
         self.w = 0
-        self.win = stdscr.subwin(self.h, self.w, 0, 0)
+        self.win = Win(stdscr.subwin(self.h, self.w, 0, 0))
         self._refresh = self.win.refresh
         self.model = model
 
@@ -292,7 +307,7 @@ class MsgView:
         self.h = 0
         self.w = 0
         self.x = 0
-        self.win = self.stdscr.subwin(self.h, self.w, 0, self.x)
+        self.win = Win(self.stdscr.subwin(self.h, self.w, 0, self.x))
         self._refresh = self.win.refresh
         self.states = {
             "messageSendingStateFailed": "failed",
