@@ -28,7 +28,7 @@ case $ARG in
 
         NEW_VERSION=$(echo $CURRENT_VERSION | awk -F. '{print $1 "." $2+1 "." $3}')
         echo New version $NEW_VERSION
-        sed -i '' 's|$CURRENT_VERSION|$NEW_VERSION|g' tg/__init__.py
+        sed -i '' "s|$CURRENT_VERSION|$NEW_VERSION|g" tg/__init__.py
 
         git add -u tg/__init__.py
         git commit -m "Release v$NEW_VERSION"

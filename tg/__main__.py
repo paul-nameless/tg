@@ -42,8 +42,17 @@ def run(tg: Tdlib, stdscr: window) -> None:
 
     controller.draw()
 
+def parse_args():
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] in ("-v", "--version"):
+        import tg
+        print("Terminal Telegram client")
+        print("Version:", tg.__version__)
+        exit(0)
+
 
 def main() -> None:
+    parse_args()
     utils.cleanup_cache()
     tg = Tdlib(
         api_id=config.API_ID,
@@ -63,11 +72,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    import sys
-    if len(sys.argv) > 1 and sys.argv[1] in ("-v", "--version"):
-        import tg
-        print("Terminal Telegram client")
-        # print("Version:", tg.__version__)
-        print("Version:", tg.__version__)
-        exit(0)
     main()
