@@ -42,10 +42,13 @@ def run(tg: Tdlib, stdscr: window) -> None:
 
     controller.draw()
 
-def parse_args():
+
+def parse_args() -> None:
     import sys
+
     if len(sys.argv) > 1 and sys.argv[1] in ("-v", "--version"):
         import tg
+
         print("Terminal Telegram client")
         print("Version:", tg.__version__)
         exit(0)
