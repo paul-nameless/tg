@@ -18,10 +18,10 @@ python = "^3.8"
 python-telegram = "0.14.0"
 
 [tool.poetry.dev-dependencies]
+black = "20.8b1"
 flake8 = "3.8.4"
 isort = "5.6.2"
 mypy = "0.812"
-black = "20.8b1"
 
 [tool.poetry.scripts]
 tg = "tg.__main__:main"
