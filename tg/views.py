@@ -34,7 +34,7 @@ class Win:
     def __init__(self, win: window):
         self.win = win
 
-    def addstr(self, y: int, x: int, _str: str, attr: Any = None) -> None:
+    def addstr(self, y: int, x: int, _str: str, attr: int = 0) -> None:
         try:
             return self.win.addstr(y, x, _str, attr)
         except Exception:
