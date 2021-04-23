@@ -277,11 +277,8 @@ For navigation arrow keys also can be used.
 
 ## Publish
 
+Run script to automatically increase version and release
+
 ```sh
-# increase version in tg/__init__.py
-git commit -m 'Release 0.7.0'
-git tag v0.7.0
-flit publish
-git log --pretty=format:"%cn: %s" v0.6.0...v0.7.0  | grep -v -e "Merge pull request" | grep -v "Release"
-git push origin master --tags
+./do release
 ```

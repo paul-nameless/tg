@@ -1,20 +1,20 @@
-[tool.flit.metadata]
-module = "tg"
-dist-name = "tg"
-description-file = "readme.md"
-author = "Paul Nameless"
-author-email = "reacsdas@gmail.com"
-home-page = 'https://github.com/paul-nameless/tg'
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-]
-requires-python = ">=3.8"
-requires = ['python-telegram==0.14.0']
+# [tool.flit.metadata]
+# module = "tg"
+# dist-name = "tg"
+# description-file = "readme.md"
+# author = "Paul Nameless"
+# author-email = "reacsdas@gmail.com"
+# home-page = 'https://github.com/paul-nameless/tg'
+# classifiers = [
+#     "Programming Language :: Python :: 3",
+#     "Programming Language :: Python :: 3.8",
+#     "Programming Language :: Python :: 3.9",
+# ]
+# requires-python = ">=3.8"
+# requires = ['python-telegram==0.14.0']
 
-[tool.flit.scripts]
-tg = "tg.__main__:main"
+# [tool.flit.scripts]
+# tg = "tg.__main__:main"
 
 [tool.black]
 line-length = 79
@@ -23,3 +23,27 @@ line-length = 79
 line_length = 79
 multi_line_output = 3
 include_trailing_comma = true
+
+[tool.poetry]
+name = "tg"
+version = "0.11.0"
+description = "Terminal Telegram client"
+authors = ["Paul Nameless <reacsdas@gmail.com>"]
+license = "Unlicense"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+python-telegram = "0.14.0"
+
+[tool.poetry.dev-dependencies]
+flake8 = "3.8.4"
+isort = "5.6.2"
+mypy = "0.812"
+black = "20.8b1"
+
+[tool.poetry.scripts]
+tg = "tg.__main__:main"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
