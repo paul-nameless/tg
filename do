@@ -30,7 +30,7 @@ case $ARG in
         sed -i '' "s|$CURRENT_VERSION|$NEW_VERSION|g" tg/__init__.py
         poetry version $NEW_VERSION
 
-        git add -u tg/__init__.py
+        git add -u tg/__init__.py pyproject.toml
         git commit -m "Release v$NEW_VERSION"
         git tag v$NEW_VERSION
 
