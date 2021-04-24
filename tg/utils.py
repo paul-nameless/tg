@@ -181,8 +181,8 @@ def notify(
     notify_cmd = cmd.format(
         icon_path=shlex.quote(config.ICON_PATH),
         title=shlex.quote(title),
-        subtitle=shlex.quote(shlex.escape(subtitle)),
-        msg=shlex.quote(shlex.escape(msg)),
+        subtitle=shlex.quote(subtitle.replace("'", "'\\''") + "'"),
+        msg=shlex.quote(msg.replace("'", "'\\''") + "'"),
     )
     subprocess.Popen(notify_cmd, shell=True)
 
