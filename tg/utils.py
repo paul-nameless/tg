@@ -182,7 +182,7 @@ def notify(
         icon_path=shlex.quote(config.ICON_PATH),
         title=shlex.quote(title),
         subtitle=shlex.quote(subtitle),
-        msg=shlex.quote(msg),
+        msg=shlex.quote(msg.replace("'", "'\\''") + "'"),
     )
     subprocess.Popen(notify_cmd, shell=True)
 
