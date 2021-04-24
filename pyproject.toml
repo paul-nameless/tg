@@ -8,7 +8,7 @@ include_trailing_comma = true
 
 [tool.poetry]
 name = "tg"
-version = "0.12.0"
+version = "0.13.0"
 description = "Terminal Telegram client"
 authors = ["Paul Nameless <reacsdas@gmail.com>"]
 license = "Unlicense"
