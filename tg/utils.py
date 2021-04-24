@@ -181,10 +181,10 @@ def notify(
     notify_cmd = cmd.format(
         icon_path=shlex.quote(config.ICON_PATH),
         title=shlex.quote(title),
-        subtitle=shlex.quote(subtitle.replace("'", "'\\''") + "'"),
-        msg=shlex.quote(msg.replace("'", "'\\''") + "'"),
+        subtitle=shlex.quote(subtitle),
+        msg=shlex.quote(msg),
     )
-    subprocess.Popen(notify_cmd, shell=True)
+    subprocess.Popen(notify_cmd, shell=False)
 
 
 def string_len_dwc(string: str) -> int:
