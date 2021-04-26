@@ -33,7 +33,7 @@ jobs:
         sh check.sh
 
     - name: build and deploy master image to ghcr.io
-      if: ${{ github.ref == 'refs/heads/master' }}
+      # if: ${{ github.ref == 'refs/heads/master' }}
       env:
         GITHUB_PACKAGE_TOKEN: ${{ secrets.PKG_TOKEN }}
         USERNAME: ${{ github.actor }}
