@@ -29,7 +29,7 @@ Telegram terminal client.
 
 To use tg, you'll need to have the following installed:
 
-- [Python 3.8](https://www.python.org/downloads/release/python-380/)
+- [Python >= 3.8](https://www.python.org/downloads/)
 
 
 ## Optional dependencies
