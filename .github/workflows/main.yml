@@ -31,3 +31,16 @@ jobs:
     - name: Check formatting and run linters
       run: |
         sh check.sh
+
+    - name: build and deploy master image to ghcr.io
+      # if: ${{ github.ref == 'refs/heads/master' }}
+      env:
+        PKG_TOKEN: ${{ secrets.PKG_TOKEN }}
+        USERNAME: ${{ github.actor }}
+      run: |
+        git_hash=$(git rev-parse --short "$GITHUB_SHA")
+        git_branch="$(echo ${GITHUB_REF} | cut -d'/' -f3)"
+        echo ${PKG_TOKEN} | docker login ghcr.io -u ${USERNAME} --password-stdin
+        docker build -t ghcr.io/${USERNAME}/tg:${git_branch}-${git_hash} -t ghcr.io/${USERNAME}/tg:latest .
+        docker push ghcr.io/${USERNAME}/tg:${git_branch}-${git_hash}
+        docker push ghcr.io/${USERNAME}/tg:latest

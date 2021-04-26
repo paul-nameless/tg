@@ -61,6 +61,13 @@ pip3 install tg
 tg
 ```
 
+### Homebrew
+
+```sh
+brew tap paul-nameless/homebrew-repo
+brew install tg
+```
+
 ### From sources
 
 This option is recommended for development:
@@ -75,10 +82,10 @@ tg
 
 ### Using Docker
 
-> Please note that voice recordings and notifications won't work when using Docker.
+> Note that voice recordings and notifications won't work when using Docker.
 
 ```sh
-docker run -it --rm tg
+docker run -it --rm ghcr.io/paul-nameless/tg
 ```
 
 ### From the AUR
