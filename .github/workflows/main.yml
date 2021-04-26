@@ -34,12 +34,8 @@ jobs:
 
     - name: build and deploy master image to ghcr.io
       # if: ${{ github.ref == 'refs/heads/master' }}
-      env:
-        GITHUB_PACKAGE_TOKEN: ${{ secrets.PKG_TOKEN }}
-        USERNAME: ${{ github.actor }}
-        GITHUB_REF: ${{ github.ref }}
       run: |
-        ref="$(echo ${GITHUB_REF} | cut -d'/' -f3)"
-        echo GITHUB_REF - $ref
-        echo ${GITHUB_PACKAGE_TOKEN} | docker login ghcr.io -u ${USERNAME} --password-stdin
-        docker build --push -t ghcr.io/${USERNAME}/tg:${ref} ghcr.io/${USERNAME}/tg:latest
+        git_hash=$(git rev-parse --short "$GITHUB_SHA")
+        git_branch=${GITHUB_REF#refs/heads/}
+        echo ${secrets.PKG_TOKEN} | docker login ghcr.io -u ${USERNAME} --password-stdin
+        docker build --push -t ghcr.io/${github.actor}/tg:${git_branch}-${git_hash} ghcr.io/${github.actor}/tg:latest
