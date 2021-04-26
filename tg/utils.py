@@ -170,6 +170,9 @@ def get_waveform(file_path: str) -> str:
     return base64.b64encode(packed).decode()
 
 
+safe_map = str.maketrans({"'": "", "`": "", "\"": ""})
+
+
 def notify(
     msg: str,
     subtitle: str = "",
@@ -181,10 +184,10 @@ def notify(
     notify_cmd = cmd.format(
         icon_path=shlex.quote(config.ICON_PATH),
         title=shlex.quote(title),
-        subtitle=shlex.quote(subtitle),
-        msg=shlex.quote(msg),
+        subtitle=shlex.quote(subtitle.translate(safe_map)),
+        msg=shlex.quote(msg.translate(safe_map)),
     )
-    subprocess.Popen(notify_cmd, shell=False)
+    subprocess.Popen(notify_cmd, shell=True)
 
 
 def string_len_dwc(string: str) -> int:
