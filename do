@@ -46,22 +46,23 @@ case $ARG in
         CURRENT_VERSION=$(cat tg/__init__.py | grep version | cut -d '"' -f 2)
         echo Current version $CURRENT_VERSION
 
-        URL="https://github.com/paul-nameless/tg/archive/refs/tags/v$NEW_VERSION.tar.gz"
-        wget $URL -o /tmp/tg.tar.gz
-        HASH=$(sha256sum /tmp/tg.tar.gz)
+        URL="https://github.com/paul-nameless/tg/archive/refs/tags/v$CURRENT_VERSION.tar.gz"
+        echo $URL
+        wget $URL -O /tmp/tg.tar.gz
+        HASH=$(sha256sum /tmp/tg.tar.gz | cut -d ' ' -f 1)
         rm /tmp/tg.tar.gz
 
         cd /opt/homebrew/Library/Taps/paul-nameless/homebrew-repo
-        sed -i '' "6s|.*|  url \"https://github.com/paul-nameless/tg/archive/refs/tags/v0.$NEW_VERSION.0.tar.gz\"|" tg.rb
+        sed -i '' "6s|.*|  url \"https://github.com/paul-nameless/tg/archive/refs/tags/v$CURRENT_VERSION.tar.gz\"|" tg.rb
         sed -i '' "7s|.*|  sha256 \"$HASH\"|" tg.rb
 
         brew audit --new tg
-        brew uninstall tg
+        brew uninstall tg || true
         brew install tg
         brew test tg
 
         git add -u tg.rb
-        git commit -m "Release tg.rb v$NEW_VERSION"
+        git commit -m "Release tg.rb v$CURRENT_VERSION"
         git push origin master
         ;;
 
