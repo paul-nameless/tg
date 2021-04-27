@@ -12,6 +12,10 @@ version = "0.16.0"
 description = "Terminal Telegram client"
 authors = ["Paul Nameless <reacsdas@gmail.com>"]
 license = "Unlicense"
+packages = [{ include = "tg"}]
+readme = "readme.md"
+homepage = "https://github.com/paul-nameless/tg"
+repository = "https://github.com/paul-nameless/tg"
 
 [tool.poetry.dependencies]
 python = "^3.8"
