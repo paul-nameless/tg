@@ -170,7 +170,7 @@ def get_waveform(file_path: str) -> str:
     return base64.b64encode(packed).decode()
 
 
-safe_map = str.maketrans({"'": "", "`": "", "\"": ""})
+safe_map = str.maketrans({"'": "", "`": "", '"': ""})
 
 
 def notify(
