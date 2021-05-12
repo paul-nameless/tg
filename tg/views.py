@@ -143,6 +143,18 @@ class StatusView:
                 elif key == 127:  # del
                     if buff:
                         buff = buff[:-1]
+                elif key == 8:  # ^H - delete previous char
+                    if buff:
+                        buff = buff[:-1]
+                elif key == 23: # ^W - delete previous word
+                    if buff:
+                        last_space = buff.rfind(' ')
+                        if last_space > 0:
+                            buff = buff[:last_space]
+                        else:
+                            buff = ''
+                elif key == 21: # ^U - delete to the beginning of line
+                    buff = ''
                 elif key in (7, 27):  # (^G, <esc>) cancel
                     return None
                 elif chr(key).isprintable():
