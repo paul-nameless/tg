@@ -211,6 +211,22 @@ def truncate_to_len(string: str, width: int) -> str:
     return out_string
 
 
+def word_forth(string: str) -> int:
+    """Returns the index of the first word"""
+    ind = string.find(' ')
+    if ind < 0:
+        return len(string)
+    s = string[ind:].lstrip()
+    return ind + len(string[ind:]) - len(s)
+
+
+def word_back(string: str) -> int:
+    """Returns the index of the last word"""
+    s = string.rstrip()
+    prev_space = s.rfind(' ')
+    return prev_space + 1
+
+
 def copy_to_clipboard(text: str) -> None:
     subprocess.run(
         config.COPY_CMD, universal_newlines=True, input=text, shell=True

@@ -10,7 +10,7 @@ from tg.colors import bold, cyan, get_color, magenta, reverse, white, yellow
 from tg.models import Model, UserModel
 from tg.msg import MsgProxy
 from tg.tdlib import ChatType, get_chat_type, is_group
-from tg.utils import get_color_by_str, num, string_len_dwc, truncate_to_len
+from tg.utils import get_color_by_str, num, string_len_dwc, truncate_to_len, word_forth, word_back
 
 log = logging.getLogger(__name__)
 
@@ -111,6 +111,7 @@ class StatusView:
         self.x = 0
         self.stdscr = stdscr
         self.win = Win(stdscr.subwin(self.h, self.w, self.y, self.x))
+        self.win.keypad(True)
         self._refresh = self.win.refresh
 
     def resize(self, rows: int, cols: int) -> None:
@@ -127,26 +128,88 @@ class StatusView:
     def get_input(self, prefix: str = "") -> Optional[str]:
         curses.curs_set(1)
         buff = ""
+        pos = 0 # cursor position within the buffer
+        x0 = 0 # index of the first displayed char
+        wline = self.w - string_len_dwc(prefix) # max. width of the displayed part of the buffer
 
         try:
             while True:
                 self.win.erase()
-                line = buff[-(self.w - 1) :]
+                line = buff[x0:x0+wline-1]
                 self.win.addstr(0, 0, f"{prefix}{line}")
 
                 key = self.win.get_wch(
-                    0, min(string_len_dwc(buff + prefix), self.w - 1)
+                        0, string_len_dwc(line[:pos-x0] + prefix)
                 )
-                key = ord(key)
-                if key == 10:  # return
-                    break
-                elif key == 127:  # del
-                    if buff:
-                        buff = buff[:-1]
-                elif key in (7, 27):  # (^G, <esc>) cancel
-                    return None
-                elif chr(key).isprintable():
-                    buff += chr(key)
+
+                if isinstance(key, str):
+                    key = ord(key)
+                    if key == 10:  # return
+                        break
+                    elif key in (7, 27):  # (^G, <esc>) cancel
+                        return None
+                    elif key == 8 or key == 127: # ^H or backspace: delete previous char
+                        buff = buff[:pos-1] + buff[pos:]
+                        pos -= 1
+                    elif key == 23: # ^W: delete previous word
+                        npos = word_back(buff[:pos])
+                        buff = buff[:npos] + buff[pos:]
+                        pos = npos
+                    elif key == 21: # ^U: delete to the beginning of line
+                        buff = buff[pos:]
+                        pos = 0
+                    elif key == 2: # ^B: same as KEY_HOME
+                        pos = 0
+                    elif key == 5: # ^E: same as KEY_END
+                        pos = len(buff)
+                    elif chr(key).isprintable():
+                        buff = buff[:pos] + chr(key) + buff[pos:]
+                        pos += 1
+
+                else: # get_wch returned an integer: function/arrow keys,...
+                    if key == curses.KEY_LEFT:
+                        pos -= 1
+                    elif key == curses.KEY_RIGHT:
+                        pos += 1
+                    elif key == curses.KEY_HOME:
+                        pos = 0
+                    elif key == curses.KEY_END:
+                        pos = len(buff)
+                    elif key == curses.KEY_DC: # delete key
+                        if pos == len(buff):
+                            buff = buff[:pos-1] + buff[pos:]
+                            pos -= 1
+                        else:
+                            buff = buff[:pos] + buff[pos+1:]
+                    elif key == curses.KEY_BACKSPACE:
+                        buff = buff[:pos-1] + buff[pos:]
+                        pos -= 1
+                    else:
+                        # the integer result of get_wch for ctrl+arrows, ctrl+del, etc. is terminal-dependent.
+                        # getkey() returns key names that seem more universal
+                        curses.ungetch(key)
+                        key = self.win.getkey()
+                        if key == 'kDC5': # ctrl+delete: delete word after cursor
+                            npos = pos + word_forth(buff[pos:])
+                            buff = buff[:pos] + buff[npos:]
+                        elif key == 'kLFT5': # ctrl+left: move left by a word
+                            pos = word_back(buff[:pos])
+                        elif key == 'kRIT5': # ctrl+right: move right by a word
+                            pos += word_forth(buff[pos:])
+
+                if pos > len(buff):
+                    pos = len(buff)
+                if pos < 0:
+                    pos = 0
+
+                # check if we need to shift the displayed part along the buffer
+                if pos > x0 and string_len_dwc(buff[x0:pos]) >= wline - 1:
+                    x0 = string_len_dwc(buff[:pos]) - wline + 1
+                if pos <= x0 + wline//2:
+                    x0 = pos - wline//2
+                if x0 < 0:
+                    x0 = 0
+
         finally:
             self.win.clear()
             curses.curs_set(0)
