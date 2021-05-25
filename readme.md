@@ -210,9 +210,9 @@ Example: `~/.mailcap`
 ```ini
 # media
 video/*; mpv "%s"
-audio/ogg; mpv --speed 1.33 "%s"
+audio/ogg; mpv --speed=1.33 "%s"
 audio/mpeg; mpv --no-video "%s"
-image/*; qView "%s"
+image/*; qview "%s"
 
 # text
 text/html; w3m "%s"
