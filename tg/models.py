@@ -704,6 +704,8 @@ class UserModel:
     def get_status(self, user_id: int) -> str:
         if user_id not in self.users:
             return ""
+        if self.is_bot(user_id):
+            return "bot"
         user_status = self.users[user_id]["status"]
 
         try:
@@ -746,6 +748,12 @@ class UserModel:
             UserStatus.userStatusLastMonth: 3,
         }
         return order.get(status, sys.maxsize)
+
+    def is_bot(self, user_id: int) -> bool:
+        user = self.get_user(user_id)
+        if user and user["type"]["@type"] == "userTypeBot":
+            return True
+        return False
 
     def is_online(self, user_id: int) -> bool:
         user = self.get_user(user_id)
