@@ -140,7 +140,7 @@ class StatusView:
                 key = ord(key)
                 if key == 10:  # return
                     break
-                elif key == 127:  # del
+                elif key == 127 or key == 8:  # del
                     if buff:
                         buff = buff[:-1]
                 elif key in (7, 27):  # (^G, <esc>) cancel
