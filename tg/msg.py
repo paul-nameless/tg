@@ -48,6 +48,8 @@ class MsgProxy:
                 doc = doc[field]
             else:
                 doc = doc.get(field)
+            if "file" in doc:
+                return doc["file"]
             if doc is None:
                 return {}
         return doc
