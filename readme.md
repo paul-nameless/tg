@@ -270,6 +270,7 @@ For navigation arrow keys also can be used.
 - `I or A`: open vim to write long msg and send
 - `v`: record and send voice message
 - `r,R`: reply to a current msg
+- `S`: calls a file picker
 - `sv`: send video
 - `sa`: send audio
 - `sp`: send picture
