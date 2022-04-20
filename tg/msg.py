@@ -220,7 +220,7 @@ class MsgProxy:
 
     @property
     def sender_id(self) -> int:
-        return self.msg["sender"].get("user_id") or self.msg["sender"].get(
+        return self.msg["sender_id"].get("user_id") or self.msg["sender_id"].get(
             "chat_id"
         )
 
