@@ -175,7 +175,9 @@ class Model:
         return False
 
     def can_be_deleted(self, chat_id: int, msg: Dict[str, Any]) -> bool:
-        c_id = msg["sender_id"].get("chat_id") or msg["sender_id"].get("user_id")
+        c_id = msg["sender_id"].get("chat_id") or msg["sender_id"].get(
+            "user_id"
+        )
         if chat_id == c_id:
             return msg["can_be_deleted_only_for_self"]
         return msg["can_be_deleted_for_all_users"]

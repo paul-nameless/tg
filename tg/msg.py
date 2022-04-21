@@ -220,9 +220,9 @@ class MsgProxy:
 
     @property
     def sender_id(self) -> int:
-        return self.msg["sender_id"].get("user_id") or self.msg["sender_id"].get(
-            "chat_id"
-        )
+        return self.msg["sender_id"].get("user_id") or self.msg[
+            "sender_id"
+        ].get("chat_id")
 
     @property
     def forward(self) -> Optional[Dict[str, Any]]:

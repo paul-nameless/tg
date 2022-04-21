@@ -1,5 +1,6 @@
-import tg
 from setuptools import setup
+
+import tg
 
 with open("readme.md", "r") as fh:
     readme = fh.read()
