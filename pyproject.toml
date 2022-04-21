@@ -11,7 +11,7 @@ repository = "https://github.com/paul-nameless/tg"
 
 [tool.poetry.dependencies]
 python = "^3.8"
-python-telegram = "0.14.0"
+python-telegram = "0.15.0"
 
 [tool.poetry.dev-dependencies]
 black = "20.8b1"
