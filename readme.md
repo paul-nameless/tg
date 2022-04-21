@@ -285,8 +285,8 @@ For navigation arrow keys also can be used.
 
 ## Publish
 
-Run script to automatically increase version and release
+Run task to automatically increase version and release (https://taskfile.dev):
 
 ```sh
-./do release
+task release
 ```
