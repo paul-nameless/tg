@@ -412,6 +412,17 @@ class Tdlib(Telegram):
         }
         return self._send_data(data)
 
+    def search_chat_messages_for_member(
+        self, chat_id: int, user_id: Any
+    ) -> AsyncResult:
+        data = {
+            "@type": "searchChatMessages",
+            "chat_id": chat_id,
+            "sender": {'@type': "messageSenderUser", 'user_id': user_id},
+            "limit": 100,
+        }
+        return self._send_data(data, block=True)
+
     def get_user(self, user_id: int) -> AsyncResult:
         data = {
             "@type": "getUser",

@@ -17,6 +17,7 @@ log = logging.getLogger(__name__)
 MAX_KEYBINDING_LENGTH = 5
 MULTICHAR_KEYBINDINGS = (
     "dd",
+    "dm",
     "sd",
     "sp",
     "sa",

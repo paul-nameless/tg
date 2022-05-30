@@ -242,6 +242,7 @@ For navigation arrow keys also can be used.
 - `r`: read current chat
 - `c`: show list of contacts
 - `dd`: delete chat or remove history
+- `dm`: delete last 100 messages in current chat (telegram has limits on delete messages; you may have to wait a few minutes between calls this command)
 - `ng`: create new group chat
 - `ns`: create new secret chat
 - `/`: search in chats
