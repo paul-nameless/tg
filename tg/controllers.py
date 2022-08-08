@@ -635,6 +635,38 @@ class Controller:
 
         self.present_info("Chat was deleted")
 
+    @bind(chat_handler, ["dm"])
+    def delete_messages_in_chat(self) -> None:
+        """Delete last 100 user messages in the group"""
+        
+        chat = self.model.chats.chats[self.model.current_chat]
+        chat_type = get_chat_type(chat)
+        if chat_type in (
+            ChatType.chatTypeSupergroup,
+            ChatType.chatTypeBasicGroup,
+        ):
+            resp = self.view.status.get_input(
+                "Are you sure want to delete last 100 yours messages in this group?[y/N]"
+            )
+            if is_no(resp or ""):
+                return self.present_info("Deleting messages discarded")
+            
+            rv = self.tg.search_chat_messages_for_member(
+                chat["id"], self.model.get_me()["id"]
+                )
+            messages = rv.update["messages"]
+            message_ids = [message["id"] for message in messages if message["can_be_deleted_for_all_users"]]
+            total_count = int(rv.update["total_count"])
+            if total_count == 0:
+                return self.present_info("No messages to delete")
+            elif len(message_ids) == 0:
+                return self.present_info(f"Total messages: {str(total_count)}. Error receiving messages! Try it in a few minutes.")
+            else:
+                self.tg.delete_messages(chat["id"], message_ids, revoke=True)
+                return self.present_info(f"Deleted {len(message_ids)}/{total_count} messages.")
+        else:
+            return self.present_info("This is not a group")
+
     @bind(chat_handler, ["n"])
     def next_found_chat(self) -> None:
         """Go to next found chat"""
