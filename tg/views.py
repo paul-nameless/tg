@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union, cast
 from _curses import window  # type: ignore
 
 from tg import config
-from tg.colors import bold, cyan, get_color, magenta, reverse, white, yellow
+from tg.colors import bold, get_color, reverse, white
 from tg.models import Model, UserModel
 from tg.msg import MsgProxy
 from tg.tdlib import ChatType, get_chat_type, is_group
@@ -171,13 +171,13 @@ class ChatView:
         self.win.resize(self.h, self.w)
 
     def _msg_color(self, is_selected: bool = False) -> int:
-        color = get_color(white, -1)
+        color = get_color(config.COLOR_MSG_LAST, -1)
         if is_selected:
             return color | reverse
         return color
 
     def _unread_color(self, is_selected: bool = False) -> int:
-        color = get_color(magenta, -1)
+        color = get_color(config.COLOR_UNREAD_COUNT, -1)
         if is_selected:
             return color | reverse
         return color
@@ -186,7 +186,7 @@ class ChatView:
         self, is_selected: bool, title: str, user: Optional[str]
     ) -> Tuple[int, ...]:
         attrs = (
-            get_color(cyan, -1),
+            get_color(config.COLOR_TIME, -1),
             get_color(get_color_by_str(title), -1),
             get_color(get_color_by_str(user or ""), -1),
             self._msg_color(is_selected),
@@ -204,7 +204,7 @@ class ChatView:
 
         self.win.vline(0, width, line, self.h)
         self.win.addstr(
-            0, 0, title.center(width)[:width], get_color(cyan, -1) | bold
+            0, 0, title.center(width)[:width], get_color(config.COLOR_TITLE, -1) | bold
         )
 
         for i, chat in enumerate(chats, 1):
@@ -365,11 +365,12 @@ class MsgView:
 
     def _format_reply_msg(
         self, chat_id: int, msg: str, reply_to: int, width_limit: int
-    ) -> str:
+    ) -> Tuple[str, bool]:
         _msg = self.model.msgs.get_message(chat_id, reply_to)
         if not _msg:
-            return msg
+            return msg, False
         reply_msg = MsgProxy(_msg)
+        is_reply = False
         if reply_msg_content := self._parse_msg(reply_msg):
             reply_sender = self.model.users.get_user_label(reply_msg.sender_id)
             sender_name = f" {reply_sender}:" if reply_sender else ""
@@ -377,37 +378,42 @@ class MsgView:
             if len(reply_line) >= width_limit:
                 reply_line = f"{reply_line[:width_limit - 4]}..."
             msg = f"{reply_line}\n{msg}"
-        return msg
+            is_reply = True
+        return msg, is_reply
 
     @staticmethod
-    def _format_url(msg_proxy: MsgProxy) -> str:
+    def _format_url(msg_proxy: MsgProxy) -> Tuple[str, bool]:
         if not msg_proxy.is_text or "web_page" not in msg_proxy.msg["content"]:
-            return ""
+            return "", False
         web = msg_proxy.msg["content"]["web_page"]
         page_type = web["type"]
         if page_type == "photo":
-            return f"\n | photo: {web['url']}"
+            return f"\n | photo: {web['url']}", True
         name = web["site_name"]
         title = web["title"]
         description = web["description"]["text"].replace("\n", "")
         url = f"\n | {name}: {title}"
         if description:
             url += f"\n | {description}"
-        return url
+        return url, True
 
-    def _format_msg(self, msg_proxy: MsgProxy, width_limit: int) -> str:
+    def _format_msg(self, msg_proxy: MsgProxy, width_limit: int) -> Tuple[str, bool, bool, bool, bool]:
+        is_reply = False
         msg = self._parse_msg(msg_proxy)
+        is_media = not msg_proxy.is_text
+        is_me =  self.model.is_me(msg_proxy["sender_id"].get("user_id"))
         if caption := msg_proxy.caption:
             msg += "\n" + caption.replace("\n", " ")
-        msg += self._format_url(msg_proxy)
+        msg_fmt, is_url = self._format_url(msg_proxy)
+        msg += msg_fmt
         if reply_to := msg_proxy.reply_msg_id:
-            msg = self._format_reply_msg(
+            msg, is_reply = self._format_reply_msg(
                 msg_proxy.chat_id, msg, reply_to, width_limit
             )
         if reply_markup := self._format_reply_markup(msg_proxy):
             msg += reply_markup
 
-        return msg
+        return msg, is_url, is_reply, is_media, is_me
 
     @staticmethod
     def _format_reply_markup(msg_proxy: MsgProxy) -> str:
@@ -434,7 +440,7 @@ class MsgView:
         current_msg_idx: int,
         msgs: List[Tuple[int, Dict[str, Any]]],
         min_msg_padding: int,
-    ) -> List[Tuple[Tuple[str, ...], bool, int]]:
+    ) -> List[Tuple[Tuple[str, ...], bool, bool, bool, bool, bool, int]]:
         """
         Tries to collect list of messages that will satisfy `min_msg_padding`
         theshold. Long messages could prevent other messages from displaying on
@@ -444,7 +450,7 @@ class MsgView:
         message could be visible on the screen.
         """
         selected_item_idx: Optional[int] = None
-        collected_items: List[Tuple[Tuple[str, ...], bool, int]] = []
+        collected_items: List[Tuple[Tuple[str, ...], bool, bool, bool, bool, bool, int]] = []
         for ignore_before in range(len(msgs)):
             if selected_item_idx is not None:
                 break
@@ -464,7 +470,7 @@ class MsgView:
                 label_elements = f" {dt} ", user_id, flags
                 label_len = sum(string_len_dwc(e) for e in label_elements)
 
-                msg = self._format_msg(
+                msg, is_url, is_reply, is_media, is_me = self._format_msg(
                     msg_proxy, width_limit=self.w - label_len - 1
                 )
                 elements = *label_elements, f" {msg}"
@@ -493,9 +499,9 @@ class MsgView:
                             "",
                             f" ...{msg[tail_chatacters:]}",
                         )
-                        collected_items.append((elements, is_selected_msg, 0))
+                        collected_items.append((elements, is_selected_msg, is_url, is_reply, is_media, is_me, 0))
                     break
-                collected_items.append((elements, is_selected_msg, line_num))
+                collected_items.append((elements, is_selected_msg, is_url, is_reply, is_media, is_me, line_num))
                 if is_selected_msg:
                     selected_item_idx = len(collected_items) - 1
             if (
@@ -524,11 +530,11 @@ class MsgView:
         if not msgs_to_draw:
             log.error("Can't collect message for drawing!")
 
-        for elements, selected, line_num in msgs_to_draw:
+        for elements, selected, is_url, is_reply, is_media, is_me, line_num in msgs_to_draw:
             column = 0
             user = elements[1]
             for attr, elem in zip(
-                self._msg_attributes(selected, user), elements
+                self._msg_attributes(selected, is_url, is_reply, is_media, is_me, user), elements
             ):
                 if not elem:
                     continue
@@ -553,7 +559,7 @@ class MsgView:
                 column += string_len_dwc(elem)
 
         self.win.addstr(
-            0, 0, self._msg_title(chat), get_color(cyan, -1) | bold
+            0, 0, self._msg_title(chat), get_color(config.COLOR_TITLE, -1) | bold
         )
 
         self._refresh()
@@ -584,12 +590,27 @@ class MsgView:
 
         return f"{chat['title']}: {status}".center(self.w)[: self.w]
 
-    def _msg_attributes(self, is_selected: bool, user: str) -> Tuple[int, ...]:
+    def _msg_attributes(self, is_selected: bool, is_url: bool, is_reply: bool, is_media: bool, is_me: bool, user: str) -> Tuple[int, ...]:
+        if is_me:
+            bgcolor = config.BGCOLOR_MSG_MINE
+        else:
+            bgcolor = -1
+        if is_me and config.COLOR_MSG_MINE != -1:
+            textcolor = config.COLOR_MSG_MINE 
+        elif is_media and config.COLOR_MSG_MEDIA != -1:
+            textcolor = config.COLOR_MSG_MEDIA
+        elif is_url and config.COLOR_MSG_URL != -1:
+            textcolor = config.COLOR_MSG_URL
+        elif is_reply and config.COLOR_MSG_REPLY != -1:
+            textcolor = config.COLOR_MSG_REPLY
+        else:
+            textcolor = config.COLOR_MSG_NORMAL
+
         attrs = (
-            get_color(cyan, -1),
+            get_color(config.COLOR_TIME, -1),
             get_color(get_color_by_str(user), -1),
-            get_color(yellow, -1),
-            get_color(white, -1),
+            get_color(config.COLOR_FLAGS, -1),
+            get_color(textcolor, bgcolor),
         )
 
         if is_selected:
