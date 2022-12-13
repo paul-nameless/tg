@@ -2,6 +2,8 @@ import curses
 import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from tempfile import NamedTemporaryFile
+import shlex
 
 from _curses import window  # type: ignore
 
@@ -10,7 +12,7 @@ from tg.colors import bold, cyan, get_color, magenta, reverse, white, yellow
 from tg.models import Model, UserModel
 from tg.msg import MsgProxy
 from tg.tdlib import ChatType, get_chat_type, is_group
-from tg.utils import get_color_by_str, num, string_len_dwc, truncate_to_len
+from tg.utils import get_color_by_str, num, string_len_dwc, truncate_to_len, suspend
 
 log = logging.getLogger(__name__)
 
@@ -124,7 +126,7 @@ class StatusView:
         self.win.addstr(0, 0, msg.replace("\n", " ")[: self.w])
         self._refresh()
 
-    def get_input(self, prefix: str = "") -> Optional[str]:
+    def get_input(self, prefix: str = "", view: Optional[View] = None) -> Optional[str]:
         curses.curs_set(1)
         buff = ""
 
@@ -140,10 +142,38 @@ class StatusView:
                 key = ord(key)
                 if key == 10:  # return
                     break
-                elif key == 127 or key == 8:  # del
+                elif key in (127, 8):  # del
                     if buff:
                         buff = buff[:-1]
                 elif key in (7, 27):  # (^G, <esc>) cancel
+                    self.win.nodelay(True)
+                    extra = []
+                    while True:
+                        c = self.win.getch()
+                        if c == -1:
+                            break
+                        else:
+                            extra.append(c)
+                    self.win.nodelay(False)
+                    curses.flushinp()
+                    if len(extra) >= 2 and extra[0] == 91:
+                        if extra[1] == 68: #left arrow, treat as delete
+                            if buff:
+                                buff = buff[:-1]
+                                continue
+                        elif view: #another control key, open editor
+                            with NamedTemporaryFile("w+", suffix=".txt") as f, suspend(
+                                view
+                            ) as s:
+                                f.write(buff)
+                                f.seek(0)
+                                proc = s.call(config.LONG_MSG_CMD.format(file_path=shlex.quote(f.name)))
+                                if proc.returncode == 0:
+                                    with open(f.name) as f:
+                                        buff = f.read().strip()
+                                    continue
+                        else:
+                            continue #ignore
                     return None
                 elif chr(key).isprintable():
                     buff += chr(key)
