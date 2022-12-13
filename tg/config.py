@@ -5,6 +5,7 @@ overwritten by external config file
 import os
 import platform
 import runpy
+import tg.colors
 from typing import Dict, Optional
 
 _os_name = platform.system()
@@ -73,6 +74,20 @@ ICON_PATH = os.path.join(os.path.dirname(__file__), "resources", "tg.png")
 URL_VIEW = "urlview"
 
 USERS_COLORS = tuple(range(2, 16))
+
+COLOR_TITLE = tg.colors.cyan
+COLOR_TIME = tg.colors.cyan
+COLOR_FLAGS = tg.colors.yellow
+COLOR_UNREAD_COUNT = tg.colors.yellow
+COLOR_MSG_MINE = -1 #unset
+BGCOLOR_MSG_MINE = tg.colors.black
+COLOR_MSG_MEDIA = tg.colors.magenta
+COLOR_MSG_URL = tg.colors.blue
+COLOR_MSG_REPLY = tg.colors.cyan
+COLOR_MSG_NORMAL = tg.colors.white
+
+#preview of last message in chat window
+COLOR_MSG_LAST = tg.colors.white
 
 KEEP_MEDIA = 7
 
