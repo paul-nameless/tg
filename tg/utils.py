@@ -22,7 +22,7 @@ from typing import Any, Dict, Optional, Tuple, Type
 from tg import config
 
 log = logging.getLogger(__name__)
-units = {"B": 1, "KB": 10 ** 3, "MB": 10 ** 6, "GB": 10 ** 9, "TB": 10 ** 12}
+units = {"B": 1, "KB": 10**3, "MB": 10**6, "GB": 10**9, "TB": 10**12}
 
 
 class LogWriter:
@@ -85,7 +85,9 @@ def get_file_handler(file_path: str) -> str:
         return config.DEFAULT_OPEN.format(file_path=shlex.quote(file_path))
 
     caps = get_mailcap()
-    handler, view = mailcap.findmatch(caps, mtype, filename=shlex.quote(file_path))
+    handler, view = mailcap.findmatch(
+        caps, mtype, filename=shlex.quote(file_path)
+    )
     if not handler:
         return config.DEFAULT_OPEN.format(file_path=shlex.quote(file_path))
     return handler
@@ -230,7 +232,7 @@ class suspend:
         if proc.returncode:
             input(f"Command <{cmd}> failed: press <enter> to continue")
 
-    def open_file(self, file_path: str, cmd: str = None) -> None:
+    def open_file(self, file_path: str, cmd: Optional[str] = None) -> None:
         if cmd:
             cmd = cmd % shlex.quote(file_path)
         else:

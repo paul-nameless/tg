@@ -403,7 +403,7 @@ class ChatModel:
         """
         if self.have_full_chat_list:
             return None
-        offset_order = 2 ** 63 - 1
+        offset_order = 2**63 - 1
         offset_chat_id = 0
         if len(self.chats):
             offset_chat_id = self.chats[-1]["id"]
@@ -655,7 +655,6 @@ User = namedtuple("User", ["id", "name", "status", "order"])
 
 
 class UserModel:
-
     types = {
         "userTypeUnknown": "unknown",
         "userTypeBot": "bot",
