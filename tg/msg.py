@@ -8,7 +8,6 @@ log = logging.getLogger(__name__)
 
 
 class MsgProxy:
-
     fields_mapping = {
         "messageDocument": ("document", "document"),
         "messageVoiceNote": ("voice_note", "voice"),

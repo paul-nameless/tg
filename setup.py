@@ -19,9 +19,11 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
     ],
     packages=["tg"],
     entry_points={"console_scripts": ["tg = tg.__main__:main"]},
     python_requires=">=3.8",
-    install_requires=["python-telegram==0.15.0"],
+    install_requires=["python-telegram==0.18.0"],
 )
