@@ -16,7 +16,7 @@ def expand_path(path):
 
 CONFIG_HOME = expand_path(os.getenv("XDG_CONFIG_HOME", "~/.config"))
 CACHE_HOME = expand_path(os.getenv("XDG_CACHE_HOME", "~/.cache"))
-DATA_HOME = expand_path(os.getenv("XD_GDATA_HOME", "~/.local/share"))
+DATA_HOME = expand_path(os.getenv("XDG_DATA_HOME", "~/.local/share"))
 DOWNLOAD_DIR = expand_path(os.getenv("XDG_DOWNLOAD_DIR", "~/Downloads"))
 
 CONFIG_DIR = os.path.join(CONFIG_HOME, "tg/")
