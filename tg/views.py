@@ -91,15 +91,19 @@ class View:
 
         for _ in range(MAX_KEYBINDING_LENGTH):
             ch = self.stdscr.getch()
-            log.info("raw ch without unctrl: %s", ch)
-            try:
-                key = curses.unctrl(ch).decode()
-            except Exception:
-                log.warning("cant uncrtl: %s", ch)
-                break
-            if key.isdigit():
-                repeat_factor += key
-                continue
+            if ch == 208 or ch == 209:
+                second_ch = self.stdscr.getch()
+                key = (ch.to_bytes() + second_ch.to_bytes()).decode('utf-8')
+            else:
+                log.info("raw ch without unctrl: %s", ch)
+                try:
+                    key = curses.unctrl(ch).decode()
+                except Exception:
+                    log.warning("cant uncrtl: %s", ch)
+                    break
+                if key.isdigit():
+                    repeat_factor += key
+                    continue
             keys += key
             # if match found or there are not any shortcut matches at all
             if all(
