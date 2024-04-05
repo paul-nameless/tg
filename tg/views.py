@@ -26,6 +26,14 @@ MULTICHAR_KEYBINDINGS = (
     "ng",
     "bp",
 )
+if config.LAYOUT_MAPPING:
+    mapped_bindings = []
+    for binding in MULTICHAR_KEYBINDINGS:
+        mapped_binding = ""
+        for char in binding:
+            mapped_binding += config.LAYOUT_MAPPING[char]
+        mapped_bindings.append(mapped_binding)
+    MULTICHAR_KEYBINDINGS = (*MULTICHAR_KEYBINDINGS, *mapped_bindings)
 
 
 class Win:
