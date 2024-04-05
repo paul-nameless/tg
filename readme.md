@@ -199,6 +199,14 @@ FILE_PICKER_CMD = "ranger --choosefile={file_path}"
 MAILCAP_FILE = os.path.expanduser("~/.config/mailcap")
 
 DOWNLOAD_DIR = os.path.expanduser("~/Downloads/")  # copy file to this dir
+
+# to map key bindings to a different language or a different keyboard layout
+LAYOUT_MAPPING = {
+    eng: rus for (eng, rus) in zip(
+        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
+        "фисвуапршолдьтщзйкыегмцчняФИСВУАПРШОЛДЬТЩЗЙКЫЕГМЦЧНЯ"
+    )
+}
 ```
 
 ### Mailcap file
