@@ -13,7 +13,8 @@ dependencies = ["python-telegram==0.15.0"]
 packages = [{ include = "tg" }]
 
 [tool.poetry.group.dev.dependencies]
-mypy = "0.812"
+mypy = "^1.15.0"
+ruff = "^0.11.5"
 
 [project.scripts]
 tg = "tg.__main__:main"
