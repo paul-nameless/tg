@@ -2,45 +2,42 @@ name: CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 jobs:
-
   build:
-
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8]
+        python-version: [3.9]
 
     steps:
+      - uses: actions/checkout@v2
 
-    - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Install tools
+        run: |
+          pip install poetry && poetry config virtualenvs.create false && poetry install --no-interaction --no-ansi
 
-    - name: Install tools
-      run: |
-        pip install poetry && poetry config virtualenvs.create false && poetry install --no-interaction --no-ansi
+      - name: Check formatting and run linters
+        run: |
+          sh check.sh
 
-    - name: Check formatting and run linters
-      run: |
-        sh check.sh
-
-    - name: build and deploy master image to ghcr.io
-      # if: ${{ github.ref == 'refs/heads/master' }}
-      env:
-        PKG_TOKEN: ${{ secrets.PKG_TOKEN }}
-        USERNAME: ${{ github.actor }}
-      run: |
-        git_hash=$(git rev-parse --short "$GITHUB_SHA")
-        git_branch="$(echo ${GITHUB_REF} | cut -d'/' -f3)"
-        echo ${PKG_TOKEN} | docker login ghcr.io -u ${USERNAME} --password-stdin
-        docker build -t ghcr.io/${USERNAME}/tg:${git_branch}-${git_hash} -t ghcr.io/${USERNAME}/tg:latest .
-        docker push ghcr.io/${USERNAME}/tg:${git_branch}-${git_hash}
-        docker push ghcr.io/${USERNAME}/tg:latest
+      - name: build and deploy master image to ghcr.io
+        # if: ${{ github.ref == 'refs/heads/master' }}
+        env:
+          PKG_TOKEN: ${{ secrets.PKG_TOKEN }}
+          USERNAME: ${{ github.actor }}
+        run: |
+          git_hash=$(git rev-parse --short "$GITHUB_SHA")
+          git_branch="$(echo ${GITHUB_REF} | cut -d'/' -f3)"
+          echo ${PKG_TOKEN} | docker login ghcr.io -u ${USERNAME} --password-stdin
+          docker build -t ghcr.io/${USERNAME}/tg:${git_branch}-${git_hash} -t ghcr.io/${USERNAME}/tg:latest .
+          docker push ghcr.io/${USERNAME}/tg:${git_branch}-${git_hash}
+          docker push ghcr.io/${USERNAME}/tg:latest
