@@ -6,8 +6,8 @@ authors = [{ name = "Paul Nameless", email = "reacsdas@gmail.com" }]
 license = { text = "Unlicense" }
 readme = "readme.md"
 urls = { homepage = "https://github.com/paul-nameless/tg", repository = "https://github.com/paul-nameless/tg" }
-requires-python = ">=3.9"
-dependencies = ["python-telegram==0.15.0", "setuptools (>=78.1.0,<79.0.0)"]
+requires-python = ">=3.9,<4.0.0"
+dependencies = ["python-telegram==0.19.0"]
 
 [tool.poetry]
 packages = [{ include = "tg" }]
