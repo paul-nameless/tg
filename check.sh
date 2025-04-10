@@ -2,8 +2,8 @@
 
 set -ex
 
-echo Checking and formatting with black...
-black --check .
+echo Checking and formatting with ruff...
+ruff format --check .
 
 echo Python type checking...
 mypy tg --warn-redundant-casts --warn-unused-ignores \
@@ -13,8 +13,5 @@ mypy tg --warn-redundant-casts --warn-unused-ignores \
     --disallow-incomplete-defs --check-untyped-defs \
     --disallow-untyped-decorators
 
-echo Checking import sorting...
-isort -c tg/*.py
-
-echo Checking unused imports...
-flake8 --select=F401
+echo Checking imports and linting with ruff...
+ruff check tg/

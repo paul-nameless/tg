@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 # https://taskfile.dev
 
 tasks:
@@ -56,7 +56,6 @@ tasks:
     - python3 -m pip install --upgrade twine
     - python3 -m twine upload --repository testpypi dist/*
 
-  check:
-    - black .
-    - flake8 .
-    - isort .
+  ch:
+    - ruff check --fix --extend-select I
+    - ruff format .
