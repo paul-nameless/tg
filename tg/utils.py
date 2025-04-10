@@ -2,7 +2,7 @@ import base64
 import curses
 import hashlib
 import logging
-import mailcap
+import mailcap_fix as mailcap
 import math
 import mimetypes
 import os
