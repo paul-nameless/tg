@@ -1,0 +1,76 @@
+name: Build TDLib
+
+on:
+  workflow_dispatch: # Manual trigger
+  schedule:
+    - cron: "0 0 1 * *" # Run monthly on the 1st day
+
+jobs:
+  build-tdlib:
+    strategy:
+      matrix:
+        include:
+          - os: macos-14
+            platform: arm64
+            name: macos-arm64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          repository: tdlib/td
+          fetch-depth: 1
+
+      - name: Install dependencies (macOS)
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          brew install gperf cmake openssl
+          echo "OPENSSL_ROOT_DIR=$(brew --prefix openssl)" >> $GITHUB_ENV
+
+      - name: Install dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y make git zlib1g-dev libssl-dev gperf cmake g++
+
+      - name: Configure CMake
+        run: |
+          mkdir build
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release -DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR ..
+
+      - name: Build TDLib
+        working-directory: build
+        run: cmake --build . --target install -j$(nproc)
+
+      - name: Prepare artifact
+        run: |
+          mkdir -p tdlib-${{ matrix.name }}
+          if [[ "${{ matrix.os }}" == macos* ]]; then
+            cp -R build/libtdjson.dylib tdlib-${{ matrix.name }}/
+          else
+            cp -R build/libtdjson.so tdlib-${{ matrix.name }}/
+          fi
+          # Include version info
+          git describe --tags > tdlib-${{ matrix.name }}/version.txt
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: tdlib-${{ matrix.name }}
+          path: tdlib-${{ matrix.name }}
+
+      - name: Create release
+        if: github.event_name == 'workflow_dispatch'
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: TDLib Build ${{ github.run_number }}
+          tag_name: tdlib-build-${{ github.run_number }}
+          files: tdlib-${{ matrix.name }}/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
