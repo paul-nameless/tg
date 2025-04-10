@@ -1,9 +1,8 @@
 import curses
 import logging
+from _curses import window  # type: ignore
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
-
-from _curses import window  # type: ignore
 
 from tg import config
 from tg.colors import bold, cyan, get_color, magenta, reverse, white, yellow
@@ -94,10 +93,7 @@ class View:
                 continue
             keys += key
             # if match found or there are not any shortcut matches at all
-            if all(
-                p == keys or not p.startswith(keys)
-                for p in MULTICHAR_KEYBINDINGS
-            ):
+            if all(p == keys or not p.startswith(keys) for p in MULTICHAR_KEYBINDINGS):
                 break
 
         return cast(int, num(repeat_factor, default=1)), keys or "UNKNOWN"
@@ -203,9 +199,7 @@ class ChatView:
         width = self.w - 1
 
         self.win.vline(0, width, line, self.h)
-        self.win.addstr(
-            0, 0, title.center(width)[:width], get_color(cyan, -1) | bold
-        )
+        self.win.addstr(0, 0, title.center(width)[:width], get_color(cyan, -1) | bold)
 
         for i, chat in enumerate(chats, 1):
             is_selected = i == current + 1
@@ -233,9 +227,7 @@ class ChatView:
             ):
                 if not elem:
                     continue
-                item = truncate_to_len(
-                    elem, max(0, width - offset - flags_len)
-                )
+                item = truncate_to_len(elem, max(0, width - offset - flags_len))
 
                 if len(item) > 1:
                     self.win.addstr(i, offset, item, attr)
@@ -375,7 +367,7 @@ class MsgView:
             sender_name = f" {reply_sender}:" if reply_sender else ""
             reply_line = f">{sender_name} {reply_msg_content}"
             if len(reply_line) >= width_limit:
-                reply_line = f"{reply_line[:width_limit - 4]}..."
+                reply_line = f"{reply_line[: width_limit - 4]}..."
             msg = f"{reply_line}\n{msg}"
         return msg
 
@@ -401,9 +393,7 @@ class MsgView:
             msg += "\n" + caption.replace("\n", " ")
         msg += self._format_url(msg_proxy)
         if reply_to := msg_proxy.reply_msg_id:
-            msg = self._format_reply_msg(
-                msg_proxy.chat_id, msg, reply_to, width_limit
-            )
+            msg = self._format_reply_msg(msg_proxy.chat_id, msg, reply_to, width_limit)
         if reply_markup := self._format_reply_markup(msg_proxy):
             msg += reply_markup
 
@@ -464,9 +454,7 @@ class MsgView:
                 label_elements = f" {dt} ", user_id, flags
                 label_len = sum(string_len_dwc(e) for e in label_elements)
 
-                msg = self._format_msg(
-                    msg_proxy, width_limit=self.w - label_len - 1
-                )
+                msg = self._format_msg(msg_proxy, width_limit=self.w - label_len - 1)
                 elements = *label_elements, f" {msg}"
                 needed_lines = 0
                 for i, msg_line in enumerate(msg.split("\n")):
@@ -502,8 +490,7 @@ class MsgView:
                 # ignore first and last msg
                 selected_item_idx not in (0, len(msgs) - 1, None)
                 and selected_item_idx is not None
-                and len(collected_items) - 1 - selected_item_idx
-                < min_msg_padding
+                and len(collected_items) - 1 - selected_item_idx < min_msg_padding
             ):
                 selected_item_idx = None
 
@@ -527,9 +514,7 @@ class MsgView:
         for elements, selected, line_num in msgs_to_draw:
             column = 0
             user = elements[1]
-            for attr, elem in zip(
-                self._msg_attributes(selected, user), elements
-            ):
+            for attr, elem in zip(self._msg_attributes(selected, user), elements):
                 if not elem:
                     continue
                 lines = (column + string_len_dwc(elem)) // self.w
@@ -552,9 +537,7 @@ class MsgView:
                     self.win.addstr(line_num, column, elem, attr)
                 column += string_len_dwc(elem)
 
-        self.win.addstr(
-            0, 0, self._msg_title(chat), get_color(cyan, -1) | bold
-        )
+        self.win.addstr(0, 0, self._msg_title(chat), get_color(cyan, -1) | bold)
 
         self._refresh()
 
@@ -567,9 +550,7 @@ class MsgView:
         elif chat_type == ChatType.chatTypePrivate:
             status = self.model.users.get_status(chat["id"])
         elif chat_type == ChatType.chatTypeBasicGroup:
-            if group := self.model.users.get_group_info(
-                chat["type"]["basic_group_id"]
-            ):
+            if group := self.model.users.get_group_info(chat["type"]["basic_group_id"]):
                 status = f"{group['member_count']} members"
         elif chat_type == ChatType.chatTypeSupergroup:
             if supergroup := self.model.users.get_supergroup_info(
@@ -603,9 +584,7 @@ class MsgView:
         return "unknown msg type: " + str(msg["content"])
 
 
-def get_last_msg(
-    chat: Dict[str, Any], users: UserModel
-) -> Tuple[Optional[int], str]:
+def get_last_msg(chat: Dict[str, Any], users: UserModel) -> Tuple[Optional[int], str]:
     last_msg = chat.get("last_message")
     if not last_msg:
         return None, "<No messages yet>"
@@ -636,14 +615,12 @@ def parse_content(msg: MsgProxy, users: UserModel) -> str:
     _type = content["@type"]
 
     if _type == "messageBasicGroupChatCreate":
-        return f"[created the group \"{content['title']}\"]"
+        return f'[created the group "{content["title"]}"]'
     if _type == "messageChatAddMembers":
         user_ids = content["member_user_ids"]
         if user_ids[0] == msg.sender_id:
             return "[joined the group]"
-        users_name = ", ".join(
-            users.get_user_label(user_id) for user_id in user_ids
-        )
+        users_name = ", ".join(users.get_user_label(user_id) for user_id in user_ids)
         return f"[added {users_name}]"
     if _type == "messageChatDeleteMember":
         user_id = content["user_id"]
@@ -652,7 +629,7 @@ def parse_content(msg: MsgProxy, users: UserModel) -> str:
         user_name = users.get_user_label(user_id)
         return f"[removed {user_name}]"
     if _type == "messageChatChangeTitle":
-        return f"[changed the group name to \"{content['title']}\"]"
+        return f'[changed the group name to "{content["title"]}"]'
 
     if not msg.content_type:
         # not implemented

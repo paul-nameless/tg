@@ -56,9 +56,7 @@ def bind(
             return fun(self)
 
         for key in keys:
-            assert (
-                key not in binding
-            ), f"Key {key} already binded to {binding[key]}"
+            assert key not in binding, f"Key {key} already binded to {binding[key]}"
             binding[key] = fun if repeat_factor else _no_repeat_factor  # type: ignore
 
         return wrapper
@@ -136,9 +134,7 @@ class Controller:
             return self.present_error("No url to open")
         if len(urls) == 1:
             with suspend(self.view) as s:
-                s.call(
-                    config.DEFAULT_OPEN.format(file_path=shlex.quote(urls[0]))
-                )
+                s.call(config.DEFAULT_OPEN.format(file_path=shlex.quote(urls[0])))
             return
         with suspend(self.view) as s:
             s.run_with_input(config.URL_VIEW, "\n".join(urls))
@@ -297,9 +293,7 @@ class Controller:
             return
         reply_to_msg = self.model.current_msg_id
         msg = MsgProxy(self.model.current_msg)
-        with NamedTemporaryFile("w+", suffix=".txt") as f, suspend(
-            self.view
-        ) as s:
+        with NamedTemporaryFile("w+", suffix=".txt") as f, suspend(self.view) as s:
             f.write(insert_replied_msg(msg))
             f.seek(0)
             s.call(config.LONG_MSG_CMD.format(file_path=shlex.quote(f.name)))
@@ -331,9 +325,7 @@ class Controller:
         if not self.can_send_msg() or chat_id is None:
             self.present_info("Can't send msg in this chat")
             return
-        with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(
-            self.view
-        ) as s:
+        with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(self.view) as s:
             self.tg.send_chat_action(chat_id, ChatAction.chatActionTyping)
             s.call(config.LONG_MSG_CMD.format(file_path=shlex.quote(f.name)))
             with open(f.name) as f:
@@ -341,9 +333,7 @@ class Controller:
                     self.model.send_message(text=msg)
                     self.present_info("Message sent")
                 else:
-                    self.tg.send_chat_action(
-                        chat_id, ChatAction.chatActionCancel
-                    )
+                    self.tg.send_chat_action(chat_id, ChatAction.chatActionCancel)
                     self.present_info("Message wasn't sent")
 
     @bind(msg_handler, ["dd"])
@@ -378,9 +368,7 @@ class Controller:
         }
         mime = get_mime(file_path)
         if mime in ("image", "video", "animation"):
-            resp = self.view.status.get_input(
-                f"Upload <{file_path}> compressed?[Y/n]"
-            )
+            resp = self.view.status.get_input(f"Upload <{file_path}> compressed?[Y/n]")
             self.render_status()
             if resp is None:
                 return self.present_info("Uploading cancelled")
@@ -445,11 +433,7 @@ class Controller:
     def record_voice(self) -> None:
         file_path = f"/tmp/voice-{datetime.now()}.oga"
         with suspend(self.view) as s:
-            s.call(
-                config.VOICE_RECORD_CMD.format(
-                    file_path=shlex.quote(file_path)
-                )
-            )
+            s.call(config.VOICE_RECORD_CMD.format(file_path=shlex.quote(file_path)))
         resp = self.view.status.get_input(
             f"Do you want to send recording: {file_path}? [Y/n]"
         )
@@ -538,9 +522,7 @@ class Controller:
         if not msg.can_be_edited:
             return self.present_error("Meessage can't be edited!")
 
-        with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(
-            self.view
-        ) as s:
+        with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(self.view) as s:
             f.write(msg.text_content)
             f.flush()
             s.call(f"{config.EDITOR} {f.name}")
@@ -638,17 +620,13 @@ class Controller:
     @bind(chat_handler, ["n"])
     def next_found_chat(self) -> None:
         """Go to next found chat"""
-        if self.model.set_current_chat_by_id(
-            self.model.chats.next_found_chat()
-        ):
+        if self.model.set_current_chat_by_id(self.model.chats.next_found_chat()):
             self.render()
 
     @bind(chat_handler, ["N"])
     def prev_found_chat(self) -> None:
         """Go to previous found chat"""
-        if self.model.set_current_chat_by_id(
-            self.model.chats.next_found_chat(True)
-        ):
+        if self.model.set_current_chat_by_id(self.model.chats.next_found_chat(True)):
             self.render()
 
     @bind(chat_handler, ["/"])
@@ -854,9 +832,7 @@ class Controller:
             msgs_left_scroll_threshold=MSGS_LEFT_SCROLL_THRESHOLD,
         )
         chat = self.model.chats.chats[self.model.current_chat]
-        self.view.msgs.draw(
-            current_msg_idx, msgs, MSGS_LEFT_SCROLL_THRESHOLD, chat
-        )
+        self.view.msgs.draw(current_msg_idx, msgs, MSGS_LEFT_SCROLL_THRESHOLD, chat)
 
     def notify_for_message(self, chat_id: int, msg: MsgProxy) -> None:
         # do not notify, if muted
@@ -907,9 +883,5 @@ def insert_replied_msg(msg: MsgProxy) -> str:
 
 def strip_replied_msg(msg: str) -> str:
     return "\n".join(
-        [
-            line
-            for line in msg.split("\n")
-            if not line.startswith(REPLY_MSG_PREFIX)
-        ]
+        [line for line in msg.split("\n") if not line.startswith(REPLY_MSG_PREFIX)]
     )

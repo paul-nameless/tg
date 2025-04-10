@@ -2,6 +2,7 @@
 Every parameter (except for CONFIG_FILE) can be
 overwritten by external config file
 """
+
 import os
 import platform
 import runpy
@@ -39,9 +40,7 @@ FZF = "fzf"
 
 if _os_name == _linux:
     # for more info see https://trac.ffmpeg.org/wiki/Capture/ALSA
-    VOICE_RECORD_CMD = (
-        "ffmpeg -f alsa -i hw:0 -c:a libopus -b:a 32k {file_path}"
-    )
+    VOICE_RECORD_CMD = "ffmpeg -f alsa -i hw:0 -c:a libopus -b:a 32k {file_path}"
 else:
     VOICE_RECORD_CMD = (
         "ffmpeg -f avfoundation -i ':0' -c:a libopus -b:a 32k {file_path}"

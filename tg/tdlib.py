@@ -231,9 +231,7 @@ class Tdlib(Telegram):
         }
         return self._send_data(data)
 
-    def toggle_chat_is_pinned(
-        self, chat_id: int, is_pinned: bool
-    ) -> AsyncResult:
+    def toggle_chat_is_pinned(self, chat_id: int, is_pinned: bool) -> AsyncResult:
         data = {
             "@type": "toggleChatIsPinned",
             "chat_id": chat_id,
@@ -262,9 +260,7 @@ class Tdlib(Telegram):
         }
         return self._send_data(data)
 
-    def open_message_content(
-        self, chat_id: int, message_id: int
-    ) -> AsyncResult:
+    def open_message_content(self, chat_id: int, message_id: int) -> AsyncResult:
         data = {
             "@type": "openMessageContent",
             "chat_id": chat_id,
@@ -430,10 +426,7 @@ class Tdlib(Telegram):
 def get_chat_type(chat: Dict[str, Any]) -> Optional[ChatType]:
     try:
         chat_type = ChatType[chat["type"]["@type"]]
-        if (
-            chat_type == ChatType.chatTypeSupergroup
-            and chat["type"]["is_channel"]
-        ):
+        if chat_type == ChatType.chatTypeSupergroup and chat["type"]["is_channel"]:
             chat_type = ChatType.channel
         return chat_type
     except KeyError:

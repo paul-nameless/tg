@@ -86,11 +86,7 @@ class Model:
 
     def set_current_chat_by_id(self, chat_id: int) -> bool:
         idx = next(
-            iter(
-                i
-                for i, chat in enumerate(self.chats.chats)
-                if chat["id"] == chat_id
-            )
+            iter(i for i, chat in enumerate(self.chats.chats) if chat["id"] == chat_id)
         )
         return self.set_current_chat(idx)
 
@@ -175,9 +171,7 @@ class Model:
         return False
 
     def can_be_deleted(self, chat_id: int, msg: Dict[str, Any]) -> bool:
-        c_id = msg["sender_id"].get("chat_id") or msg["sender_id"].get(
-            "user_id"
-        )
+        c_id = msg["sender_id"].get("chat_id") or msg["sender_id"].get("user_id")
         if chat_id == c_id:
             return msg["can_be_deleted_only_for_self"]
         return msg["can_be_deleted_for_all_users"]
@@ -240,9 +234,7 @@ class Model:
         copy_to_clipboard("\n".join(buffer))
         return True
 
-    def copy_files(
-        self, chat_id: int, msg_ids: List[int], dest_dir: str
-    ) -> bool:
+    def copy_files(self, chat_id: int, msg_ids: List[int], dest_dir: str) -> bool:
         is_copied = False
         for msg_id in msg_ids:
             _msg = self.msgs.get_message(chat_id, msg_id)
@@ -282,9 +274,7 @@ class Model:
         }
 
     def get_supergroup_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
-        result = self.tg.get_supergroup_full_info(
-            chat["type"]["supergroup_id"]
-        )
+        result = self.tg.get_supergroup_full_info(chat["type"]["supergroup_id"])
         result.wait()
         chat_info = result.update
         return {
@@ -294,9 +284,7 @@ class Model:
         }
 
     def get_channel_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
-        result = self.tg.get_supergroup_full_info(
-            chat["type"]["supergroup_id"]
-        )
+        result = self.tg.get_supergroup_full_info(chat["type"]["supergroup_id"])
         result.wait()
         chat_info = result.update
         return {
@@ -310,9 +298,7 @@ class Model:
         result.wait()
         chat_info = result.update
         enc_key = base64.b64decode(chat_info["key_hash"])[:32].hex()
-        hex_key = " ".join(
-            [enc_key[i : i + 2] for i in range(0, len(enc_key), 2)]
-        )
+        hex_key = " ".join([enc_key[i : i + 2] for i in range(0, len(enc_key), 2)])
 
         state = "Unknown"
         try:
@@ -388,9 +374,7 @@ class ChatModel:
             return None
         return self.chats[index]["id"]
 
-    def fetch_chats(
-        self, offset: int = 0, limit: int = 10
-    ) -> List[Dict[str, Any]]:
+    def fetch_chats(self, offset: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
         if offset + limit > len(self.chats):
             self._load_next_chats()
 
@@ -403,7 +387,7 @@ class ChatModel:
         """
         if self.have_full_chat_list:
             return None
-        offset_order = 2 ** 63 - 1
+        offset_order = 2**63 - 1
         offset_chat_id = 0
         if len(self.chats):
             offset_chat_id = self.chats[-1]["id"]
@@ -469,9 +453,7 @@ class ChatModel:
             if int(chat["order"]) == 0:
                 self.inactive_chats[chat_id] = chat
                 self.chat_ids.discard(chat_id)
-                self.chats = [
-                    _chat for _chat in self.chats if _chat["id"] != chat_id
-                ]
+                self.chats = [_chat for _chat in self.chats if _chat["id"] != chat_id]
                 log.info(f"Removing chat '{chat['title']}'")
             else:
                 self._sort_chats()
@@ -568,9 +550,7 @@ class MsgModel:
         # that is the last case to implement
         # https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1update_message_content_opened.html
 
-    def update_msg(
-        self, chat_id: int, msg_id: int, **fields: Dict[str, Any]
-    ) -> None:
+    def update_msg(self, chat_id: int, msg_id: int, **fields: Dict[str, Any]) -> None:
         msg = self.msgs[chat_id].get(msg_id)
         if not msg:
             return
@@ -617,17 +597,13 @@ class MsgModel:
         self, chat_id: int, offset: int = 0, limit: int = 10
     ) -> List[Tuple[int, Dict[str, Any]]]:
         if offset + limit > len(self.msg_ids[chat_id]):
-            msgs = self._fetch_msgs_until_limit(
-                chat_id, offset, offset + limit
-            )
+            msgs = self._fetch_msgs_until_limit(chat_id, offset, offset + limit)
             for msg in msgs:
                 self.add_message(chat_id, msg)
 
         return [
             (i, self.msgs[chat_id][msg_id])
-            for i, msg_id in enumerate(
-                self.msg_ids[chat_id][offset : offset + limit]
-            )
+            for i, msg_id in enumerate(self.msg_ids[chat_id][offset : offset + limit])
         ]
 
     def edit_message(self, chat_id: int, message_id: int, text: str) -> bool:
@@ -655,7 +631,6 @@ User = namedtuple("User", ["id", "name", "status", "order"])
 
 
 class UserModel:
-
     types = {
         "userTypeUnknown": "unknown",
         "userTypeBot": "bot",
@@ -684,9 +659,7 @@ class UserModel:
         self.me = result.update
         return self.me
 
-    def get_user_action(
-        self, chat_id: int
-    ) -> Tuple[Optional[int], Optional[str]]:
+    def get_user_action(self, chat_id: int) -> Tuple[Optional[int], Optional[str]]:
         action = self.actions.get(chat_id)
         if action is None:
             return None, None
@@ -803,9 +776,7 @@ class UserModel:
         self.tg.get_basic_group(group_id)
         return None
 
-    def get_supergroup_info(
-        self, supergroup_id: int
-    ) -> Optional[Dict[str, Any]]:
+    def get_supergroup_info(self, supergroup_id: int) -> Optional[Dict[str, Any]]:
         if supergroup_id in self.supergroups:
             return self.supergroups[supergroup_id]
         self.tg.get_supergroup(supergroup_id)
@@ -829,10 +800,10 @@ class UserModel:
             return ""
         user = self.get_user(user_id)
         if user.get("first_name") and user.get("last_name"):
-            return f'{user["first_name"]} {user["last_name"]}'[:20]
+            return f"{user['first_name']} {user['last_name']}"[:20]
 
         if user.get("first_name"):
-            return f'{user["first_name"]}'[:20]
+            return f"{user['first_name']}"[:20]
 
         if user.get("username"):
             return "@" + user["username"]

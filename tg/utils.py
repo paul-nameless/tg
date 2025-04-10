@@ -22,7 +22,7 @@ from typing import Any, Dict, Optional, Tuple, Type
 from tg import config
 
 log = logging.getLogger(__name__)
-units = {"B": 1, "KB": 10 ** 3, "MB": 10 ** 6, "GB": 10 ** 9, "TB": 10 ** 12}
+units = {"B": 1, "KB": 10**3, "MB": 10**6, "GB": 10**9, "TB": 10**12}
 
 
 class LogWriter:
@@ -210,9 +210,7 @@ def truncate_to_len(string: str, width: int) -> str:
 
 
 def copy_to_clipboard(text: str) -> None:
-    subprocess.run(
-        config.COPY_CMD, universal_newlines=True, input=text, shell=True
-    )
+    subprocess.run(config.COPY_CMD, universal_newlines=True, input=text, shell=True)
 
 
 class suspend:
@@ -224,9 +222,7 @@ class suspend:
         return subprocess.run(cmd, shell=True)
 
     def run_with_input(self, cmd: str, text: str) -> None:
-        proc = subprocess.run(
-            cmd, universal_newlines=True, input=text, shell=True
-        )
+        proc = subprocess.run(cmd, universal_newlines=True, input=text, shell=True)
         if proc.returncode:
             input(f"Command <{cmd}> failed: press <enter> to continue")
 
@@ -306,9 +302,7 @@ def pretty_ts(ts: int) -> str:
 
 @lru_cache(maxsize=256)
 def get_color_by_str(user: str) -> int:
-    index = int(hashlib.sha1(user.encode()).hexdigest(), 16) % len(
-        config.USERS_COLORS
-    )
+    index = int(hashlib.sha1(user.encode()).hexdigest(), 16) % len(config.USERS_COLORS)
     return config.USERS_COLORS[index]
 
 
