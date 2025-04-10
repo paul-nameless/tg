@@ -638,7 +638,9 @@ class Controller:
             return self.present_info("Search discarded")
 
         rv = self.tg.search_contacts(msg)
-        chat_ids = rv.update["chat_ids"]
+        if rv.error:
+            return self.present_info("Search error")
+        chat_ids = rv.update.get("chat_ids", [])
         if not chat_ids:
             return self.present_info("Chat not found")
 

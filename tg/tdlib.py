@@ -59,32 +59,39 @@ class Tdlib(Telegram):
     def parse_text_entities(
         self,
         text: str,
-        parse_mode: TextParseModeInput = TextParseModeInput.textParseModeMarkdown,
+        parse_mode: Union[
+            TextParseModeInput, str
+        ] = TextParseModeInput.textParseModeMarkdown,
         version: int = 2,
     ) -> AsyncResult:
         """Offline synchronous method which returns parsed entities"""
         data = {
             "@type": "parseTextEntities",
             "text": text,
-            "parse_mode": {"@type": parse_mode.name, "version": version},
+            "parse_mode": {
+                "@type": parse_mode.name if hasattr(parse_mode, "name") else parse_mode,
+                "version": version,
+            },
         }
 
         return self._send_data(data)
 
-    def send_message(self, chat_id: int, msg: str) -> AsyncResult:
-        text = {"@type": "formattedText", "text": msg}
+    def send_message(
+        self, chat_id: int, text: str, entities: Optional[List[Dict[Any, Any]]] = None
+    ) -> AsyncResult:
+        formatted_text = {"@type": "formattedText", "text": text}
 
-        result = self.parse_text_entities(msg)
+        result = self.parse_text_entities(text)
         result.wait()
         if not result.error:
-            text = result.update
+            formatted_text = result.update  # type: ignore
 
         data = {
             "@type": "sendMessage",
             "chat_id": chat_id,
             "input_message_content": {
                 "@type": "inputMessageText",
-                "text": text,
+                "text": formatted_text,
             },
         }
 
@@ -97,7 +104,7 @@ class Tdlib(Telegram):
         offset: int = 0,
         limit: int = 0,
         synchronous: bool = False,
-    ) -> None:
+    ) -> AsyncResult:
         data = {
             "@type": "downloadFile",
             "file_id": file_id,

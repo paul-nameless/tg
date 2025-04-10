@@ -2,7 +2,6 @@ import base64
 import curses
 import hashlib
 import logging
-import mailcap_fix as mailcap
 import math
 import mimetypes
 import os
@@ -18,6 +17,8 @@ from logging.handlers import RotatingFileHandler
 from subprocess import CompletedProcess
 from types import TracebackType
 from typing import Any, Dict, Optional, Tuple, Type
+
+import mailcap_fix as mailcap
 
 from tg import config
 
@@ -75,7 +76,7 @@ def get_mime(file_path: str) -> str:
 def get_mailcap() -> Dict:
     if config.MAILCAP_FILE:
         with open(config.MAILCAP_FILE) as f:
-            return mailcap.readmailcapfile(f)  # type: ignore
+            return mailcap.readmailcapfile(f)
     return mailcap.getcaps()
 
 

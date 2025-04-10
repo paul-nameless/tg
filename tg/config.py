@@ -21,7 +21,7 @@ MAILCAP_FILE: Optional[str] = None
 LOG_LEVEL = "INFO"
 LOG_PATH = os.path.expanduser("~/.local/share/tg/")
 
-API_ID = "559815"
+API_ID = 559815
 API_HASH = "fd121358f59d764c57c55871aa0807ca"
 
 PHONE = None
