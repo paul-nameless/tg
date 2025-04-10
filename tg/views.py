@@ -1,6 +1,6 @@
 import curses
 import logging
-from _curses import window  # type: ignore
+from _curses import window
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
@@ -195,7 +195,7 @@ class ChatView:
         self, current: int, chats: List[Dict[str, Any]], title: str = "Chats"
     ) -> None:
         self.win.erase()
-        line = curses.ACS_VLINE  # type: ignore
+        line = curses.ACS_VLINE
         width = self.w - 1
 
         self.win.vline(0, width, line, self.h)

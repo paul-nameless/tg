@@ -297,8 +297,9 @@ class Controller:
             f.write(insert_replied_msg(msg))
             f.seek(0)
             s.call(config.LONG_MSG_CMD.format(file_path=shlex.quote(f.name)))
-            with open(f.name) as f:
-                if replied_msg := strip_replied_msg(f.read().strip()):
+            # Use a different variable name to avoid overwriting the NamedTemporaryFile
+            with open(f.name) as input_file:
+                if replied_msg := strip_replied_msg(input_file.read().strip()):
                     self.model.view_all_msgs()
                     self.tg.reply_message(chat_id, reply_to_msg, replied_msg)
                     self.present_info("Message sent")
@@ -328,8 +329,8 @@ class Controller:
         with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(self.view) as s:
             self.tg.send_chat_action(chat_id, ChatAction.chatActionTyping)
             s.call(config.LONG_MSG_CMD.format(file_path=shlex.quote(f.name)))
-            with open(f.name) as f:
-                if msg := f.read().strip():
+            with open(f.name) as input_file:
+                if msg := input_file.read().strip():
                     self.model.send_message(text=msg)
                     self.present_info("Message sent")
                 else:
@@ -354,8 +355,8 @@ class Controller:
         try:
             with NamedTemporaryFile("w") as f, suspend(self.view) as s:
                 s.call(config.FILE_PICKER_CMD.format(file_path=f.name))
-                with open(f.name) as f:
-                    file_path = f.read().strip()
+                with open(f.name) as input_file:
+                    file_path = input_file.read().strip()
         except FileNotFoundError:
             pass
         if not file_path or not os.path.isfile(file_path):
@@ -472,7 +473,7 @@ class Controller:
         chat = self.model.chats.chats[self.model.current_chat]
         return chat["permissions"]["can_send_messages"]
 
-    def _open_msg(self, msg: MsgProxy, cmd: str = None) -> None:
+    def _open_msg(self, msg: MsgProxy, cmd: Optional[str] = None) -> None:
         if msg.is_text:
             with NamedTemporaryFile("w", suffix=".txt") as f:
                 f.write(msg.text_content)
@@ -526,8 +527,8 @@ class Controller:
             f.write(msg.text_content)
             f.flush()
             s.call(f"{config.EDITOR} {f.name}")
-            with open(f.name) as f:
-                if text := f.read().strip():
+            with open(f.name) as input_file:
+                if text := input_file.read().strip():
                     self.model.edit_message(text=text)
                     self.present_info("Message edited")
 

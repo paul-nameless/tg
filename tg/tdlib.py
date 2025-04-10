@@ -341,7 +341,7 @@ class Tdlib(Telegram):
         return self._send_data(data)
 
     def send_chat_action(
-        self, chat_id: int, action: ChatAction, progress: int = None
+        self, chat_id: int, action: ChatAction, progress: Optional[int] = None
     ) -> AsyncResult:
         data = {
             "@type": "sendChatAction",

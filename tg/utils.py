@@ -51,7 +51,7 @@ def setup_log() -> None:
             maxBytes=parse_size("32MB"),
             backupCount=1,
         )
-        handler.setLevel(level)  # type: ignore
+        handler.setLevel(level)
         handlers.append(handler)
 
     logging.basicConfig(
@@ -59,7 +59,7 @@ def setup_log() -> None:
         handlers=handlers,
     )
     logging.getLogger().setLevel(config.LOG_LEVEL)
-    sys.stderr = LogWriter(log.error)  # type: ignore
+    sys.stderr = LogWriter(log.error)
     logging.captureWarnings(True)
 
 
@@ -226,7 +226,7 @@ class suspend:
         if proc.returncode:
             input(f"Command <{cmd}> failed: press <enter> to continue")
 
-    def open_file(self, file_path: str, cmd: str = None) -> None:
+    def open_file(self, file_path: str, cmd: Optional[str] = None) -> None:
         if cmd:
             cmd = cmd % shlex.quote(file_path)
         else:
