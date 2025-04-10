@@ -17,11 +17,10 @@ setup(
     author_email="reacsdas@gmail.com",
     classifiers=[
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
     ],
     packages=["tg"],
     entry_points={"console_scripts": ["tg = tg.__main__:main"]},
-    python_requires=">=3.8",
+    python_requires=">=3.9",
     install_requires=["python-telegram==0.15.0"],
 )

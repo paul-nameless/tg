@@ -3,7 +3,7 @@ version: "3"
 
 tasks:
   default:
-    - python3 -m tg
+    - poetry run python -m tg
 
   release:
     - |
