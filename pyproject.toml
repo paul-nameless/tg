@@ -1,6 +1,6 @@
 [project]
 name = "tg"
-version = "0.20.0"
+version = "0.21.0"
 description = "Terminal Telegram client"
 authors = [{ name = "Paul Nameless", email = "reacsdas@gmail.com" }]
 license = { text = "Unlicense" }
@@ -11,7 +11,7 @@ dependencies = ["python-telegram==0.19.0", "mailcap-fix (>=1.0.1,<2.0.0)"]
 
 [tool.poetry]
 name = "tg"
-version = "0.20.0"
+version = "0.21.0"
 description = "Terminal Telegram client"
 authors = ["Paul Nameless <reacsdas@gmail.com>"]
 license = "Unlicense"
