@@ -124,8 +124,10 @@ class Model:
     def view_all_msgs(self) -> None:
         chat = self.chats.chats[self.current_chat]
         chat_id = chat["id"]
-        msg_id = chat["last_message"]["id"]
-        self.tg.view_messages(chat_id, [msg_id])
+        # Handle case where chat might not have last_message
+        if "last_message" in chat and chat["last_message"] is not None:
+            msg_id = chat["last_message"]["id"]
+            self.tg.view_messages(chat_id, [msg_id])
 
     def next_msg(self, step: int = 1) -> bool:
         chat_id = self.chats.id_by_index(self.current_chat)
