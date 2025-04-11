@@ -471,7 +471,7 @@ class Controller:
 
     def can_send_msg(self) -> bool:
         chat = self.model.chats.chats[self.model.current_chat]
-        return chat["permissions"]["can_send_messages"]
+        return chat["permissions"]["can_send_basic_messages"]
 
     def _open_msg(self, msg: MsgProxy, cmd: Optional[str] = None) -> None:
         if msg.is_text:
