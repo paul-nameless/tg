@@ -21,10 +21,8 @@ tasks:
 
       poetry build
       POETRY_PYPI_TOKEN_PYPI=$(pass show i/pypi-tg-token | head -n 1) poetry publish
-      git log --pretty=format:'%cn: %s' v$CURRENT_VERSION...v$NEW_VERSION | grep -v -e "Merge" | grep -v "Release" | awk '!x[$0]++' > changelog.md
       git push origin master --tags
-      # gh release create v$NEW_VERSION -F changelog.md
-      # rm changelog.md
+      /opt/homebrew/bin/gh $NEW_VERSION release create --generate-notes
 
   release-brew:
     - |
