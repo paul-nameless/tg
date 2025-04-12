@@ -313,7 +313,7 @@ class Controller:
             self.present_info("Can't send msg in this chat")
             return
         self.tg.send_chat_action(chat_id, ChatAction.chatActionTyping)
-        if msg := self.view.status.get_input():
+        if msg := self.view.status.get_input(view=self.view):
             self.model.send_message(text=msg)
             self.present_info("Message sent")
         else:
