@@ -28,6 +28,42 @@ PHONE = None
 ENC_KEY = ""
 
 TDLIB_PATH = None
+
+if _os_name == _darwin and platform.machine() == "arm64":
+    import hashlib
+    import urllib.request
+    import zipfile
+
+    TDLIB_URL = "https://github.com/ForNeVeR/tdlib.native/releases/download/v1.8.45/tdlib.native.macos.aarch64.zip"
+    EXPECTED_HASH = "8b0a61cd0f567391599f7afa6d5ad4f5067cb4f804cd87792ab7714d571cee9f"
+    ZIP_PATH = os.path.join(FILES_DIR, "tdlib.native.macos.aarch64.zip")
+    TDLIB_LIB_PATH = os.path.join(FILES_DIR, "libtdjson.dylib")
+
+    try:
+        os.makedirs(FILES_DIR, exist_ok=True)
+
+        if not os.path.exists(TDLIB_LIB_PATH):
+            print(f"Downloading tdlib for macOS ARM from {TDLIB_URL}...")
+            urllib.request.urlretrieve(TDLIB_URL, ZIP_PATH)
+
+            with open(ZIP_PATH, "rb") as f:
+                file_hash = hashlib.sha256(f.read()).hexdigest()
+
+            if file_hash == EXPECTED_HASH:
+                with zipfile.ZipFile(ZIP_PATH, "r") as zip_ref:
+                    zip_ref.extractall(FILES_DIR)
+                print("Successfully downloaded and verified tdlib library")
+                TDLIB_PATH = TDLIB_LIB_PATH
+            else:
+                print("Checksum verification failed for tdlib library")
+                # Clean up downloaded file
+                if os.path.exists(ZIP_PATH):
+                    os.remove(ZIP_PATH)
+        else:
+            TDLIB_PATH = TDLIB_LIB_PATH
+    except Exception as e:
+        print(f"Error downloading or verifying tdlib library for macOS ARM: {e}")
+
 TDLIB_VERBOSITY = 0
 
 MAX_DOWNLOAD_SIZE = "10MB"
