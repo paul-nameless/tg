@@ -22,7 +22,7 @@ tasks:
       poetry build
       POETRY_PYPI_TOKEN_PYPI=$(pass show i/pypi-tg-token | head -n 1) poetry publish
       git push origin master --tags
-      /opt/homebrew/bin/gh $NEW_VERSION release create --generate-notes
+      /opt/homebrew/bin/gh release create $NEW_VERSION --generate-notes
 
   release-brew:
     - |
