@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from tg import config
-from tg.colors import bold, cyan, get_color, magenta, reverse, white, yellow
+from tg.colors import bold, cyan, get_color, magenta, reverse, underline, white, yellow
 from tg.models import Model, UserModel
 from tg.msg import MsgProxy
 from tg.tdlib import ChatType, get_chat_type, is_group
@@ -169,13 +169,13 @@ class ChatView:
     def _msg_color(self, is_selected: bool = False) -> int:
         color = get_color(white, -1)
         if is_selected:
-            return color | reverse
+            return color | underline | bold
         return color
 
     def _unread_color(self, is_selected: bool = False) -> int:
         color = get_color(magenta, -1)
         if is_selected:
-            return color | reverse
+            return color | underline | bold
         return color
 
     def _chat_attributes(
@@ -188,7 +188,7 @@ class ChatView:
             self._msg_color(is_selected),
         )
         if is_selected:
-            return tuple(attr | reverse for attr in attrs)
+            return tuple(attr | underline | bold for attr in attrs)
         return attrs
 
     def draw(
@@ -574,7 +574,7 @@ class MsgView:
         )
 
         if is_selected:
-            return tuple(attr | reverse for attr in attrs)
+            return tuple(attr | underline | bold for attr in attrs)
         return attrs
 
     def _parse_msg(self, msg: MsgProxy) -> str:
