@@ -61,12 +61,6 @@ pip3 install tg
 tg
 ```
 
-### Homebrew
-
-```sh
-brew tap paul-nameless/homebrew-repo
-brew install tg
-```
 
 ### From sources
 
