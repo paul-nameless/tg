@@ -12,14 +12,21 @@ _os_name = platform.system()
 _darwin = "Darwin"
 _linux = "Linux"
 
+def expand_path(path):
+    return os.path.expandvars(os.path.expanduser(path))
 
-CONFIG_DIR = os.path.expanduser("~/.config/tg/")
+CONFIG_HOME = expand_path(os.getenv("XDG_CONFIG_HOME", "~/.config"))
+CACHE_HOME = expand_path(os.getenv("XDG_CACHE_HOME", "~/.cache"))
+DATA_HOME = expand_path(os.getenv("XDG_DATA_HOME", "~/.local/share"))
+DOWNLOAD_DIR = expand_path(os.getenv("XDG_DOWNLOAD_DIR", "~/Downloads"))
+
+CONFIG_DIR = os.path.join(CONFIG_HOME, "tg/")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "conf.py")
-FILES_DIR = os.path.expanduser("~/.cache/tg/")
+FILES_DIR = os.path.join(CACHE_HOME, "tg/")
 MAILCAP_FILE: Optional[str] = None
 
 LOG_LEVEL = "INFO"
-LOG_PATH = os.path.expanduser("~/.local/share/tg/")
+LOG_PATH = expand_path(DATA_HOME + "/tg/")
 
 API_ID = 559815
 API_HASH = "fd121358f59d764c57c55871aa0807ca"
@@ -112,8 +119,6 @@ USERS_COLORS = tuple(range(2, 16))
 KEEP_MEDIA = 7
 
 FILE_PICKER_CMD = "ranger --choosefile={file_path}"
-
-DOWNLOAD_DIR = os.path.expanduser("~/Downloads/")
 
 if os.path.isfile(CONFIG_FILE):
     config_params = runpy.run_path(CONFIG_FILE)
