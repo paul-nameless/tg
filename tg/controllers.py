@@ -5,7 +5,7 @@ from datetime import datetime
 from functools import partial, wraps
 from queue import Queue
 from tempfile import NamedTemporaryFile
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Set
 
 from telegram.utils import AsyncResult
 
@@ -37,6 +37,17 @@ HandlerType = Callable[[Any], Optional[str]]
 
 chat_handler: Dict[str, HandlerType] = {}
 msg_handler: Dict[str, HandlerType] = {}
+layout_maps: Set[str] = set()
+
+
+def map_key_to_layout(key:str, lang_map: Dict[str, str]):
+    mapped_key = ""
+    for char in key:
+        if char in lang_map:
+            mapped_key += lang_map[char]
+        else:
+            mapped_key += char
+    return mapped_key
 
 
 def bind(
@@ -58,6 +69,10 @@ def bind(
         for key in keys:
             assert key not in binding, f"Key {key} already binded to {binding[key]}"
             binding[key] = fun if repeat_factor else _no_repeat_factor  # type: ignore
+
+            mapped_key = map_key_to_layout(key, config.LAYOUT_MAPPING)
+            binding[mapped_key] = fun if repeat_factor else _no_repeat_factor
+            layout_maps.add(mapped_key)
 
         return wrapper
 
@@ -144,6 +159,7 @@ class Controller:
         return "\n".join(
             f"{key}\t{fun.__name__}\t{fun.__doc__ or ''}"
             for key, fun in sorted(bindings.items())
+            if key not in layout_maps
         )
 
     @bind(chat_handler, ["?"])
