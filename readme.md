@@ -21,6 +21,7 @@ Telegram terminal client.
 - [X] list contacts
 - [X] show user status
 - [X] secret chats
+- [X] Arabic/Persian text rendering (reshaping + BiDi)
 - [ ] search
 - [ ] bots (bot keyboard)
 
@@ -61,7 +62,6 @@ pip3 install tg
 tg
 ```
 
-
 ### From sources
 
 This option is recommended for development:
@@ -69,7 +69,6 @@ This option is recommended for development:
 ```sh
 git clone https://github.com/paul-nameless/tg.git
 cd tg
-pip install python-telegram
 pip install .
 tg
 ```
@@ -193,6 +192,9 @@ FILE_PICKER_CMD = "ranger --choosefile={file_path}"
 MAILCAP_FILE = os.path.expanduser("~/.config/mailcap")
 
 DOWNLOAD_DIR = os.path.expanduser("~/Downloads/")  # copy file to this dir
+
+# Set to False to disable Arabic/Persian text reshaping and BiDi reordering.
+USE_RTL_LAYOUT = True
 ```
 
 ### Mailcap file
@@ -217,6 +219,21 @@ text/plain; less "%s"
 text/*; vim "%s"
 ```
 
+
+## RTL support (Arabic/Persian)
+
+Arabic and Persian text requires two processing steps before a terminal can display it correctly:
+
+1. **Letter reshaping** — Arabic/Persian letters change shape depending on their neighbours (isolated, initial, medial, final forms). Without reshaping, every character appears in its isolated form.
+2. **BiDi reordering** — terminals render text left-to-right, so right-to-left text must be pre-reordered into visual order before being drawn.
+
+Both steps are handled automatically using [arabic-reshaper](https://github.com/mpcabd/python-arabic-reshaper) and [python-bidi](https://github.com/MeirKriheli/python-bidi), which are included as standard dependencies. Mixed LTR/RTL text (e.g. a Persian sentence with an English URL) is handled correctly — only the RTL segments are reordered.
+
+To disable RTL rendering, add the following to `~/.config/tg/conf.py`:
+
+```python
+USE_RTL_LAYOUT = False
+```
 
 ## Keybindings
 

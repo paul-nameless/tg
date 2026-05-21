@@ -103,6 +103,9 @@ CHAT_FLAGS: Dict[str, str] = {}
 
 MSG_FLAGS: Dict[str, str] = {}
 
+# Set to False to disable Arabic/Persian text reshaping and BiDi layout support.
+USE_RTL_LAYOUT = True
+
 ICON_PATH = os.path.join(os.path.dirname(__file__), "resources", "tg.png")
 
 URL_VIEW = "urlview"

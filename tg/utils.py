@@ -18,12 +18,42 @@ from subprocess import CompletedProcess
 from types import TracebackType
 from typing import Any, Dict, Optional, Tuple, Type
 
+import arabic_reshaper
 import mailcap
+from bidi.algorithm import get_display as _bidi_get_display
 
 from tg import config
 
 log = logging.getLogger(__name__)
 units = {"B": 1, "KB": 10**3, "MB": 10**6, "GB": 10**9, "TB": 10**12}
+
+# RTL characters: Arabic Letter (AL), Right-to-Left (R), Arabic Number (AN)
+_RTL_BIDIR_CATS = frozenset(("R", "AL", "AN"))
+
+
+def _has_rtl(text: str) -> bool:
+    return any(unicodedata.bidirectional(c) in _RTL_BIDIR_CATS for c in text)
+
+
+def reshape_rtl(text: str) -> str:
+    """
+    Reshape Arabic/Persian characters and apply the BiDi visual-order algorithm
+    so that terminals (which render left-to-right) display RTL text correctly.
+
+    Works line-by-line so mixed LTR/RTL multiline strings are handled properly.
+    Lines with no RTL characters are returned as-is, so pure LTR text is
+    unaffected. Set USE_RTL_LAYOUT = False in ~/.config/tg/conf.py to disable.
+    """
+    if not config.USE_RTL_LAYOUT:
+        return text
+    lines = text.split("\n")
+    result = []
+    for line in lines:
+        if _has_rtl(line):
+            result.append(_bidi_get_display(arabic_reshaper.reshape(line)))
+        else:
+            result.append(line)
+    return "\n".join(result)
 
 
 class LogWriter:
