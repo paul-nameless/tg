@@ -9,7 +9,7 @@ from tg.colors import bold, cyan, get_color, magenta, reverse, white, yellow
 from tg.models import Model, UserModel
 from tg.msg import MsgProxy
 from tg.tdlib import ChatType, get_chat_type, is_group
-from tg.utils import get_color_by_str, num, string_len_dwc, truncate_to_len
+from tg.utils import get_color_by_str, num, reshape_rtl, string_len_dwc, truncate_to_len
 
 log = logging.getLogger(__name__)
 
@@ -204,7 +204,7 @@ class ChatView:
         for i, chat in enumerate(chats, 1):
             is_selected = i == current + 1
             date = get_date(chat)
-            title = chat["title"]
+            title = reshape_rtl(chat["title"])
             offset = 0
 
             last_msg_sender, last_msg = self._get_last_msg_data(chat)
@@ -567,7 +567,7 @@ class MsgView:
             ):
                 status = f"{supergroup['member_count']} subscribers"
 
-        return f"{chat['title']}: {status}".center(self.w)[: self.w]
+        return f"{reshape_rtl(chat['title'])}: {status}".center(self.w)[: self.w]
 
     def _msg_attributes(self, is_selected: bool, user: str) -> Tuple[int, ...]:
         attrs = (
@@ -613,7 +613,7 @@ def get_date(chat: Dict[str, Any]) -> str:
 
 def parse_content(msg: MsgProxy, users: UserModel) -> str:
     if msg.is_text:
-        return msg.text_content.replace("\n", " ")
+        return reshape_rtl(msg.text_content.replace("\n", " "))
 
     content = msg["content"]
     _type = content["@type"]
