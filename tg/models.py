@@ -383,27 +383,25 @@ class ChatModel:
         return self.chats[offset:limit]
 
     def _load_next_chats(self) -> None:
-        """
-        based on
-        https://github.com/tdlib/td/issues/56#issuecomment-364221408
-        """
+        """Load another page from TDLib's main chat list."""
         if self.have_full_chat_list:
             return None
-        offset_order = 2**63 - 1
-        offset_chat_id = 0
-        if len(self.chats):
-            offset_chat_id = self.chats[-1]["id"]
-            offset_order = self.chats[-1]["order"]
-        result = self.tg.get_chats(
-            offset_chat_id=offset_chat_id, offset_order=offset_order
-        )
+
+        # python-telegram 2.x follows the current TDLib getChats API. It no
+        # longer accepts offsets, so request a growing prefix and process only
+        # IDs that have not already been loaded.
+        result = self.tg.get_chats(limit=max(100, len(self.chat_ids) + 100))
 
         result.wait()
         if result.error:
             log.error(f"get chat ids error: {result.error_info}")
             return None
 
-        chat_ids = result.update["chat_ids"]
+        chat_ids = [
+            chat_id
+            for chat_id in result.update.get("chat_ids", [])
+            if chat_id not in self.chat_ids
+        ]
         if not chat_ids:
             self.have_full_chat_list = True
             return

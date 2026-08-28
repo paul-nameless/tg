@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.9]
+        python-version: ["3.10", "3.13", "3.14"]
 
     steps:
       - uses: actions/checkout@v4
@@ -28,3 +28,7 @@ jobs:
       - name: Check formatting and run linters
         run: |
           sh check.sh
+
+      - name: Run tests
+        run: |
+          python -m unittest discover -s tests
