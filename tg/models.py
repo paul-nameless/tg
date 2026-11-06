@@ -352,6 +352,9 @@ class Model:
         return info
 
 
+CHATS_PAGE_SIZE = 100
+
+
 class ChatModel:
     def __init__(self, tg: Tdlib) -> None:
         self.tg = tg
@@ -359,6 +362,7 @@ class ChatModel:
         self.inactive_chats: Dict[int, Dict[str, Any]] = {}
         self.chat_ids: Set[int] = set()
         self.have_full_chat_list = False
+        self.chats_limit = 0
         self.title: str = "Chats"
         self.found_chats: List[int] = []
         self.found_chat_idx: int = 0
@@ -384,19 +388,16 @@ class ChatModel:
 
     def _load_next_chats(self) -> None:
         """
-        based on
-        https://github.com/tdlib/td/issues/56#issuecomment-364221408
+        TDLib's getChats has no offsets: it returns the first ``limit`` chats
+        of the main chat list (loading more from the server when needed), so
+        ask for one more page each time. Fewer ids than requested means the
+        whole list has been loaded.
+        https://core.telegram.org/tdlib/getting-started#getting-the-lists-of-chats
         """
         if self.have_full_chat_list:
             return None
-        offset_order = 2**63 - 1
-        offset_chat_id = 0
-        if len(self.chats):
-            offset_chat_id = self.chats[-1]["id"]
-            offset_order = self.chats[-1]["order"]
-        result = self.tg.get_chats(
-            offset_chat_id=offset_chat_id, offset_order=offset_order
-        )
+        self.chats_limit += CHATS_PAGE_SIZE
+        result = self.tg.get_chats(limit=self.chats_limit)
 
         result.wait()
         if result.error:
@@ -404,13 +405,15 @@ class ChatModel:
             return None
 
         chat_ids = result.update["chat_ids"]
-        if not chat_ids:
+        if len(chat_ids) < self.chats_limit:
             self.have_full_chat_list = True
-            return
 
         for chat_id in chat_ids:
+            if chat_id in self.chat_ids or chat_id in self.inactive_chats:
+                continue
             chat = self.fetch_chat(chat_id)
-            self.add_chat(chat)
+            if chat:
+                self.add_chat(chat)
 
     def fetch_chat(self, chat_id: int) -> Dict[str, Any]:
         result = self.tg.get_chat(chat_id)
