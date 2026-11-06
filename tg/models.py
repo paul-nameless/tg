@@ -359,13 +359,14 @@ def is_main_list(position: Dict[str, Any]) -> bool:
     return position.get("list", {}).get("@type", "chatListMain") == "chatListMain"
 
 
-def main_list_order(positions: List[Dict[str, Any]]) -> int:
-    """Order of the chat in the main chat list, 0 if it is not there.
-    TDLib also reports positions in the archive and in chat folders."""
+def main_list_order(positions: List[Dict[str, Any]]) -> str:
+    """Order of the chat in the main chat list, "0" if it is not there.
+    TDLib also reports positions in the archive and in chat folders.
+    Kept as a string, like TDLib sends int64 values."""
     for position in positions:
         if is_main_list(position):
-            return int(position["order"])
-    return 0
+            return str(position["order"])
+    return "0"
 
 
 class ChatModel:
@@ -463,7 +464,7 @@ class ChatModel:
             reverse=True,
         )
 
-    def update_chat(self, chat_id: int, **updates: Dict[str, Any]) -> bool:
+    def update_chat(self, chat_id: int, **updates: Any) -> bool:
         for i, chat in enumerate(self.chats):
             if chat["id"] != chat_id:
                 continue
