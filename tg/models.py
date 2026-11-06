@@ -355,6 +355,19 @@ class Model:
 CHATS_PAGE_SIZE = 100
 
 
+def is_main_list(position: Dict[str, Any]) -> bool:
+    return position.get("list", {}).get("@type", "chatListMain") == "chatListMain"
+
+
+def main_list_order(positions: List[Dict[str, Any]]) -> int:
+    """Order of the chat in the main chat list, 0 if it is not there.
+    TDLib also reports positions in the archive and in chat folders."""
+    for position in positions:
+        if is_main_list(position):
+            return int(position["order"])
+    return 0
+
+
 class ChatModel:
     def __init__(self, tg: Tdlib) -> None:
         self.tg = tg
@@ -429,10 +442,10 @@ class ChatModel:
         if chat_id in self.chat_ids:
             return
 
-        if len(chat["positions"]) > 0:
-            chat["order"] = chat["positions"][0]["order"]
-        else:
-            chat["order"] = 0  # str(sys.maxsize)
+        # keep an order that an update already set (re-activated chat);
+        # otherwise take it from the chat's position in the main list
+        if "order" not in chat:
+            chat["order"] = main_list_order(chat.get("positions", []))
 
         if int(chat["order"]) == 0:
             self.inactive_chats[chat_id] = chat
@@ -446,7 +459,7 @@ class ChatModel:
             self.chats,
             # recommended chat order, for more info see
             # https://core.telegram.org/tdlib/getting-started#getting-the-lists-of-chats
-            key=lambda it: (it["order"], it["id"]),
+            key=lambda it: (int(it["order"]), it["id"]),
             reverse=True,
         )
 
