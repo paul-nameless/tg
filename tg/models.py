@@ -505,10 +505,11 @@ class MsgModel:
         self.msg_ids: Dict[int, List[int]] = defaultdict(list)
 
     def jump_to_msg_by_id(self, chat_id: int, msg_id: int) -> bool:
-        if index := self.msg_ids[chat_id].index(msg_id):
-            self.current_msgs[chat_id] = index
-            return True
-        return False
+        ids = self.msg_ids[chat_id]
+        if msg_id not in ids:
+            return False
+        self.current_msgs[chat_id] = ids.index(msg_id)
+        return True
 
     def next_msg(self, chat_id: int, step: int = 1) -> bool:
         current_msg = self.current_msgs[chat_id]

@@ -43,6 +43,16 @@ class SelectionTest(unittest.TestCase):
         self.model.remove_messages(10, [1])
         self.assertEqual(self.model.current_msgs[10], 2)
 
+    def test_jump_to_newest_message(self) -> None:
+        self.model.current_msgs[10] = 3
+        self.assertTrue(self.model.jump_to_msg_by_id(10, 4))
+        self.assertEqual(self.selected(), 4)
+
+    def test_jump_to_missing_message(self) -> None:
+        self.model.current_msgs[10] = 2
+        self.assertFalse(self.model.jump_to_msg_by_id(10, 99))
+        self.assertEqual(self.selected(), 2)
+
 
 if __name__ == "__main__":
     unittest.main()
