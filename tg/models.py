@@ -352,6 +352,23 @@ class Model:
         return info
 
 
+CHATS_PAGE_SIZE = 100
+
+
+def is_main_list(position: Dict[str, Any]) -> bool:
+    return position.get("list", {}).get("@type", "chatListMain") == "chatListMain"
+
+
+def main_list_order(positions: List[Dict[str, Any]]) -> str:
+    """Order of the chat in the main chat list, "0" if it is not there.
+    TDLib also reports positions in the archive and in chat folders.
+    Kept as a string, like TDLib sends int64 values."""
+    for position in positions:
+        if is_main_list(position):
+            return str(position["order"])
+    return "0"
+
+
 class ChatModel:
     def __init__(self, tg: Tdlib) -> None:
         self.tg = tg
@@ -359,6 +376,7 @@ class ChatModel:
         self.inactive_chats: Dict[int, Dict[str, Any]] = {}
         self.chat_ids: Set[int] = set()
         self.have_full_chat_list = False
+        self.chats_limit = 0
         self.title: str = "Chats"
         self.found_chats: List[int] = []
         self.found_chat_idx: int = 0
@@ -384,19 +402,16 @@ class ChatModel:
 
     def _load_next_chats(self) -> None:
         """
-        based on
-        https://github.com/tdlib/td/issues/56#issuecomment-364221408
+        TDLib's getChats has no offsets: it returns the first ``limit`` chats
+        of the main chat list (loading more from the server when needed), so
+        ask for one more page each time. Fewer ids than requested means the
+        whole list has been loaded.
+        https://core.telegram.org/tdlib/getting-started#getting-the-lists-of-chats
         """
         if self.have_full_chat_list:
             return None
-        offset_order = 2**63 - 1
-        offset_chat_id = 0
-        if len(self.chats):
-            offset_chat_id = self.chats[-1]["id"]
-            offset_order = self.chats[-1]["order"]
-        result = self.tg.get_chats(
-            offset_chat_id=offset_chat_id, offset_order=offset_order
-        )
+        self.chats_limit += CHATS_PAGE_SIZE
+        result = self.tg.get_chats(limit=self.chats_limit)
 
         result.wait()
         if result.error:
@@ -404,13 +419,15 @@ class ChatModel:
             return None
 
         chat_ids = result.update["chat_ids"]
-        if not chat_ids:
+        if len(chat_ids) < self.chats_limit:
             self.have_full_chat_list = True
-            return
 
         for chat_id in chat_ids:
+            if chat_id in self.chat_ids or chat_id in self.inactive_chats:
+                continue
             chat = self.fetch_chat(chat_id)
-            self.add_chat(chat)
+            if chat:
+                self.add_chat(chat)
 
     def fetch_chat(self, chat_id: int) -> Dict[str, Any]:
         result = self.tg.get_chat(chat_id)
@@ -426,10 +443,10 @@ class ChatModel:
         if chat_id in self.chat_ids:
             return
 
-        if len(chat["positions"]) > 0:
-            chat["order"] = chat["positions"][0]["order"]
-        else:
-            chat["order"] = 0  # str(sys.maxsize)
+        # keep an order that an update already set (re-activated chat);
+        # otherwise take it from the chat's position in the main list
+        if "order" not in chat:
+            chat["order"] = main_list_order(chat.get("positions", []))
 
         if int(chat["order"]) == 0:
             self.inactive_chats[chat_id] = chat
@@ -443,11 +460,11 @@ class ChatModel:
             self.chats,
             # recommended chat order, for more info see
             # https://core.telegram.org/tdlib/getting-started#getting-the-lists-of-chats
-            key=lambda it: (it["order"], it["id"]),
+            key=lambda it: (int(it["order"]), it["id"]),
             reverse=True,
         )
 
-    def update_chat(self, chat_id: int, **updates: Dict[str, Any]) -> bool:
+    def update_chat(self, chat_id: int, **updates: Any) -> bool:
         for i, chat in enumerate(self.chats):
             if chat["id"] != chat_id:
                 continue

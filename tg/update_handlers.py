@@ -4,6 +4,7 @@ from typing import Any, Callable, Dict
 
 from tg import config, utils
 from tg.controllers import Controller
+from tg.models import is_main_list, main_list_order
 from tg.msg import MsgProxy
 
 log = logging.getLogger(__name__)
@@ -88,10 +89,10 @@ def update_chat_order(controller: Controller, update: Dict[str, Any]) -> None:
 def update_chat_position(controller: Controller, update: Dict[str, Any]) -> None:
     current_chat_id = controller.model.current_chat_id
     chat_id = update["chat_id"]
-    info = {}
-    info["order"] = update["position"]["order"]
-    if "is_pinned" in update:
-        info["is_pinned"] = update["is_pinned"]
+    position = update["position"]
+    if not is_main_list(position):
+        return  # archive / folder positions don't affect the main list
+    info = {"order": position["order"], "is_pinned": position.get("is_pinned", False)}
     if controller.model.chats.update_chat(chat_id, **info):
         controller.refresh_current_chat(current_chat_id)
 
@@ -169,7 +170,12 @@ def update_chat_draft_message(controller: Controller, update: Dict[str, Any]) ->
     chat_id = update["chat_id"]
     # FIXME: ignoring draft message itself for now because UI can't show it
     # draft_message = update["draft_message"]
-    order = update["order"]
+    if "positions" in update:
+        order = main_list_order(update["positions"])
+    elif "order" in update:  # old TDLib
+        order = update["order"]
+    else:
+        return
 
     current_chat_id = controller.model.current_chat_id
     if controller.model.chats.update_chat(chat_id, order=order):
@@ -187,8 +193,8 @@ def update_chat_last_message(controller: Controller, update: Dict[str, Any]) -> 
 
     info = {}
     info["last_message"] = last_message
-    if len(update["positions"]) > 0:
-        info["order"] = update["positions"][0]["order"]
+    if any(is_main_list(p) for p in update.get("positions", [])):
+        info["order"] = main_list_order(update["positions"])
 
     current_chat_id = controller.model.current_chat_id
     if controller.model.chats.update_chat(chat_id, **info):
