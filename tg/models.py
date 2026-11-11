@@ -542,23 +542,43 @@ class MsgModel:
             return None
         return result.update
 
+    def _selected_id(self, chat_id: int) -> Optional[int]:
+        ids = self.msg_ids[chat_id]
+        index = self.current_msgs[chat_id]
+        return ids[index] if 0 < index < len(ids) else None
+
+    def _reselect(self, chat_id: int, selected: Optional[int]) -> None:
+        if selected is None:
+            return
+        ids = self.msg_ids[chat_id]
+        if selected in ids:
+            self.current_msgs[chat_id] = ids.index(selected)
+        else:
+            self.current_msgs[chat_id] = min(
+                self.current_msgs[chat_id], max(len(ids) - 1, 0)
+            )
+
     def remove_messages(self, chat_id: int, msg_ids: List[int]) -> None:
         log.info(f"removing msg {msg_ids=}")
+        selected = self._selected_id(chat_id)
         for msg_id in msg_ids:
             try:
                 self.msg_ids[chat_id].remove(msg_id)
             except ValueError:
                 pass
             self.msgs[chat_id].pop(msg_id, None)
+        self._reselect(chat_id, selected)
 
     def add_message(self, chat_id: int, msg: Dict[str, Any]) -> None:
         log.info(f"adding {msg=}")
         msg_id = msg["id"]
         ids = self.msg_ids[chat_id]
+        selected = self._selected_id(chat_id)
         self.msgs[chat_id][msg_id] = msg
         ids.insert(0, msg_id)
         if len(ids) >= 2 and msg_id < ids[1]:
             self.msg_ids[chat_id].sort(reverse=True)
+        self._reselect(chat_id, selected)
 
     def update_msg_content_opened(self, chat_id: int, msg_id: int) -> None:
         msg = self.msgs[chat_id].get(msg_id)
