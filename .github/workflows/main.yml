@@ -28,3 +28,7 @@ jobs:
       - name: Check formatting and run linters
         run: |
           sh check.sh
+
+      - name: Run tests
+        run: |
+          python -m unittest discover -s tests -t .

@@ -213,6 +213,27 @@ text/*; vim "%s"
 ```
 
 
+## Command line and agents
+
+Besides the TUI, `tg` has commands that print compact text (or JSON with `--json`) and exit, so scripts and AI agents can read your Telegram:
+
+```sh
+tg unread                        # unread chats with their newest unread messages
+tg chats --unread                # list chats
+tg history @alice --limit 50     # messages of a chat
+tg search "invoice" --chat me    # search messages
+tg download @alice 12345 --out ~/Downloads
+tg mark-read @alice
+tg send @alice "on my way"       # disabled unless CLI_SEND = True
+tg whoami
+```
+
+- Commands use the same session as the TUI, so close the TUI first (they exit with code 6 while it runs). Log in once with `tg login` or by starting the TUI.
+- Reading never marks messages as read. Sending is off by default; enable it in `conf.py` with `CLI_SEND = True`, and optionally limit it with `CLI_SEND_ALLOWLIST = ["@alice", 12345]`.
+- `tg skill install` copies a skill file for Claude Code to `~/.claude/skills/tg/SKILL.md`.
+- `TG_API_ID` and `TG_API_HASH` env vars override `API_ID`/`API_HASH`.
+
+
 ## Keybindings
 
 vi like keybindings are used in the project. Can be used commands like `4j` - 4 lines down.

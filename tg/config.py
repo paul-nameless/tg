@@ -7,7 +7,7 @@ import importlib.resources
 import os
 import platform
 import runpy
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Union
 
 _os_name = platform.system()
 _darwin = "Darwin"
@@ -25,7 +25,7 @@ LOG_PATH = os.path.expanduser("~/.local/share/tg/")
 API_ID = 559815
 API_HASH = "fd121358f59d764c57c55871aa0807ca"
 
-PHONE = None
+PHONE: Optional[str] = None
 ENC_KEY = ""
 
 
@@ -88,21 +88,32 @@ FILE_PICKER_CMD = "ranger --choosefile={file_path}"
 
 DOWNLOAD_DIR = os.path.expanduser("~/Downloads/")
 
+CLI_SEND = False
+CLI_SEND_ALLOWLIST: List[Union[int, str]] = []
+
 if os.path.isfile(CONFIG_FILE):
     config_params = runpy.run_path(CONFIG_FILE)
     for param, value in config_params.items():
         if param.isupper():
             globals()[param] = value
-else:
-    os.makedirs(CONFIG_DIR, exist_ok=True)
 
-    if not PHONE:
-        print(
-            "Enter your phone number in international format (including country code)"
-        )
-        PHONE = input("phone> ")
-        if not PHONE.startswith("+"):
-            PHONE = "+" + PHONE
+if os.environ.get("TG_API_ID"):
+    API_ID = int(os.environ["TG_API_ID"])
+if os.environ.get("TG_API_HASH"):
+    API_HASH = os.environ["TG_API_HASH"]
 
-    with open(CONFIG_FILE, "w") as f:
-        f.write(f"PHONE = '{PHONE}'\n")
+
+def ensure_phone() -> str:
+    global PHONE
+    if PHONE:
+        return PHONE
+    print("Enter your phone number in international format (including country code)")
+    phone = input("phone> ").strip()
+    if not phone.startswith("+"):
+        phone = "+" + phone
+    PHONE = phone
+    if not os.path.isfile(CONFIG_FILE):
+        os.makedirs(CONFIG_DIR, exist_ok=True)
+        with open(CONFIG_FILE, "w") as f:
+            f.write(f"PHONE = '{phone}'\n")
+    return phone

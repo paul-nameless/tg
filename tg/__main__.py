@@ -1,21 +1,24 @@
 import logging.handlers
 import signal
+import sys
 import threading
-from curses import window, wrapper
+from curses import window
 from functools import partial
 from types import FrameType
 from typing import Optional
 
-from tg import config, update_handlers, utils
-from tg.controllers import Controller
-from tg.models import Model
+from tg import config
 from tg.tdlib import Tdlib
-from tg.views import ChatView, MsgView, StatusView, View
 
 log = logging.getLogger(__name__)
 
 
 def run(tg: Tdlib, stdscr: window) -> None:
+    from tg import update_handlers
+    from tg.controllers import Controller
+    from tg.models import Model
+    from tg.views import ChatView, MsgView, StatusView, View
+
     # handle ctrl+c, to avoid interrupting tg when subprocess is called
     def interrupt_signal_handler(sig: int, frame: Optional[FrameType]) -> None:
         # TODO: draw on status pane: to quite press <q>
@@ -43,24 +46,16 @@ def run(tg: Tdlib, stdscr: window) -> None:
     controller.draw()
 
 
-def parse_args() -> None:
-    import sys
+def run_tui() -> None:
+    from curses import wrapper
 
-    if len(sys.argv) > 1 and sys.argv[1] in ("-v", "--version"):
-        import tg
+    from tg import utils
 
-        print("Terminal Telegram client")
-        print("Version:", tg.__version__)
-        exit(0)
-
-
-def main() -> None:
-    parse_args()
     utils.cleanup_cache()
     tg = Tdlib(
         api_id=config.API_ID,
         api_hash=config.API_HASH,
-        phone=config.PHONE,
+        phone=config.ensure_phone(),
         database_encryption_key=config.ENC_KEY,
         files_directory=config.FILES_DIR,
         tdlib_verbosity=config.TDLIB_VERBOSITY,
@@ -72,6 +67,21 @@ def main() -> None:
     utils.set_shorter_esc_delay()
 
     wrapper(partial(run, tg))
+
+
+def main() -> None:
+    args = sys.argv[1:]
+    if args and args[0] in ("-v", "--version"):
+        import tg
+
+        print("Terminal Telegram client")
+        print("Version:", tg.__version__)
+        sys.exit(0)
+    if args:
+        from tg.cli import main as cli_main
+
+        sys.exit(cli_main(args))
+    run_tui()
 
 
 if __name__ == "__main__":
