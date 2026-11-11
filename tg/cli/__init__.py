@@ -11,7 +11,11 @@ from tg import config
 from tg.cli import render
 from tg.cli.session import EXIT_ERROR, CliError, open_session
 
-SKILL_DIR = os.path.expanduser("~/.claude/skills/tg")
+SKILL_DIRS = {
+    "claude": "~/.claude/skills/tg",
+    "codex": "~/.agents/skills/tg",
+    "opencode": "~/.agents/skills/tg",
+}
 
 
 def _bounded(low: int, high: int) -> Any:
@@ -97,9 +101,20 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("whoami", parents=[common], help="show the logged in account")
     sub.add_parser("login", parents=[common], help="log in interactively")
 
-    p = sub.add_parser("skill", help="agent skill file")
+    p = sub.add_parser(
+        "skill", help="install the agent skill for Claude Code, Codex, opencode"
+    )
     p.add_argument("action", choices=["install", "path"])
-    p.add_argument("--dir", default=SKILL_DIR, help=f"default {SKILL_DIR}")
+    p.add_argument(
+        "--agent",
+        action="append",
+        choices=sorted(SKILL_DIRS),
+        help="repeatable, default all: "
+        + ", ".join(f"{k} -> {v}" for k, v in SKILL_DIRS.items()),
+    )
+    p.add_argument("--dir", help="install into this directory instead")
+
+    sub.add_parser("help", help="show this help")
     return parser
 
 
@@ -112,11 +127,16 @@ def skill(args: argparse.Namespace) -> int:
     if args.action == "path":
         print(source)
         return 0
-    target_dir = os.path.expanduser(args.dir)
-    os.makedirs(target_dir, exist_ok=True)
-    target = os.path.join(target_dir, "SKILL.md")
-    shutil.copyfile(source, target)
-    print(f"installed={target}")
+    if args.dir:
+        dirs = [args.dir]
+    else:
+        dirs = list(dict.fromkeys(SKILL_DIRS[a] for a in args.agent or SKILL_DIRS))
+    for directory in dirs:
+        target_dir = os.path.expanduser(directory)
+        os.makedirs(target_dir, exist_ok=True)
+        target = os.path.join(target_dir, "SKILL.md")
+        shutil.copyfile(source, target)
+        print(f"installed={target}")
     return 0
 
 
@@ -151,7 +171,11 @@ def _emit(data: Dict[str, Any], lines: List[str], args: argparse.Namespace) -> N
 def main(argv: List[str]) -> int:
     from tg.cli.commands import COMMANDS, Ctx
 
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if args.command == "help":
+        parser.print_help()
+        return 0
     if args.command == "skill":
         return skill(args)
     _setup_log()

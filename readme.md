@@ -2,13 +2,22 @@
 
 [![Join telegram chat](https://img.shields.io/badge/telegram-join%20chat-black.svg)](https://t.me/tg_term)
 
-Telegram terminal client.
+Telegram terminal client + TUI, CLI and an agent skill
+
+```sh
+tg                   # the TUI
+tg unread [--json]   # unread messages as plain text, for scripts and agents
+tg skill install     # teach Claude Code to use it
+```
+
+More in [Command line and agents](#command-line-and-agents).
 
 ![tg screenshot](tg-screenshot.png)
 
 
 ## Features
 
+- [X] command and skill to use with agents (current limitation, tui should be closed)
 - [X] view mediafiles: photo, video, voice/video notes, documents
 - [X] ability to send pictures, documents, audio, video
 - [X] reply, edit, forward, delete, send messages
@@ -21,8 +30,6 @@ Telegram terminal client.
 - [X] list contacts
 - [X] show user status
 - [X] secret chats
-- [ ] search
-- [ ] bots (bot keyboard)
 
 
 ## Requirements
@@ -87,6 +94,30 @@ yay -S telegram-tg
 ```
 
 If you want to use the latest developement version via the AUR you can find it [here](https://aur.archlinux.org/packages/telegram-tg-git/)
+
+## Command line and agents
+
+Besides the TUI, `tg` has commands that print compact text (or JSON with `--json`) and exit, so scripts and AI agents can read your Telegram.
+
+`tg skill install` copies a skill file that teaches agents these commands to `~/.claude/skills/tg/SKILL.md` (Claude Code) and `~/.agents/skills/tg/SKILL.md` (Codex, opencode). Pick one with `--agent claude|codex|opencode`.
+
+
+```sh
+tg unread                        # unread chats with their newest unread messages
+tg chats --unread                # list chats
+tg history @alice --limit 50     # messages of a chat
+tg search "invoice" --chat me    # search messages
+tg download @alice 12345 --out ~/Downloads
+tg mark-read @alice
+tg send @alice "on my way"       # disabled unless CLI_SEND = True
+tg whoami
+tg help                          # all commands; tg <command> -h for flags
+```
+
+- Commands use the same session as the TUI, so close the TUI first (they exit with code 6 while it runs). Log in once with `tg login` or by starting the TUI.
+- Reading never marks messages as read. Sending is off by default; enable it in `conf.py` with `CLI_SEND = True`, and optionally limit it with `CLI_SEND_ALLOWLIST = ["@alice", 12345]`.
+- `TG_API_ID` and `TG_API_HASH` env vars override `API_ID`/`API_HASH`.
+
 
 ## Configuration
 
@@ -211,27 +242,6 @@ text/plain; less "%s"
 # fallback to vim
 text/*; vim "%s"
 ```
-
-
-## Command line and agents
-
-Besides the TUI, `tg` has commands that print compact text (or JSON with `--json`) and exit, so scripts and AI agents can read your Telegram:
-
-```sh
-tg unread                        # unread chats with their newest unread messages
-tg chats --unread                # list chats
-tg history @alice --limit 50     # messages of a chat
-tg search "invoice" --chat me    # search messages
-tg download @alice 12345 --out ~/Downloads
-tg mark-read @alice
-tg send @alice "on my way"       # disabled unless CLI_SEND = True
-tg whoami
-```
-
-- Commands use the same session as the TUI, so close the TUI first (they exit with code 6 while it runs). Log in once with `tg login` or by starting the TUI.
-- Reading never marks messages as read. Sending is off by default; enable it in `conf.py` with `CLI_SEND = True`, and optionally limit it with `CLI_SEND_ALLOWLIST = ["@alice", 12345]`.
-- `tg skill install` copies a skill file for Claude Code to `~/.claude/skills/tg/SKILL.md`.
-- `TG_API_ID` and `TG_API_HASH` env vars override `API_ID`/`API_HASH`.
 
 
 ## Keybindings
