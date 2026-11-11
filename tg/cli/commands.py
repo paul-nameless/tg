@@ -1,16 +1,25 @@
 import argparse
 import math
 import os
+import queue
 import re
 import shlex
 import shutil
 import sys
 import threading
+import time
 from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple
 
 from tg import config, utils
 from tg.cli import render
-from tg.cli.session import EXIT_CHAT, EXIT_SEND, EXIT_USAGE, CliError, Session
+from tg.cli.session import (
+    EXIT_CHAT,
+    EXIT_SEND,
+    EXIT_TIMEOUT,
+    EXIT_USAGE,
+    CliError,
+    Session,
+)
 from tg.msg import MsgProxy
 from tg.tdlib import ChatType, get_chat_type
 
@@ -699,7 +708,64 @@ def login(ctx: Ctx, args: argparse.Namespace) -> Output:
     return info, [render.kv(**info)]
 
 
-COMMANDS: Dict[str, Callable[[Ctx, argparse.Namespace], Output]] = {
+def is_reply_to_me(ctx: Ctx, msg: Dict[str, Any]) -> bool:
+    reply = msg.get("reply_to") or {}
+    if reply.get("@type") != "messageReplyToMessage":
+        return False
+    try:
+        replied = ctx.call(
+            "getMessage",
+            chat_id=reply.get("chat_id") or msg["chat_id"],
+            message_id=reply["message_id"],
+        )
+    except CliError:
+        return False
+    return bool(replied.get("is_outgoing"))
+
+
+def watch(ctx: Ctx, args: argparse.Namespace) -> None:
+    only_chat = ctx.resolve(args.chat)["id"] if args.chat else None
+    incoming: "queue.Queue[Dict[str, Any]]" = queue.Queue()
+
+    def on_message(update: Dict[str, Any]) -> None:
+        msg = update.get("message") or {}
+        if not msg.get("is_outgoing"):
+            incoming.put(msg)
+
+    ctx.session.on("updateNewMessage", on_message)
+    deadline = time.monotonic() + args.timeout if args.timeout else None
+    seen = 0
+    while not args.count or seen < args.count:
+        wait = None if deadline is None else deadline - time.monotonic()
+        if wait is not None and wait <= 0:
+            raise CliError("watch timed out", EXIT_TIMEOUT)
+        try:
+            msg = incoming.get(timeout=wait)
+        except queue.Empty:
+            continue
+        chat_id = msg.get("chat_id")
+        if only_chat is not None and chat_id != only_chat:
+            continue
+        chat = ctx.call("getChat", chat_id=chat_id)
+        if not only_chat and not args.muted and ctx.is_muted(chat):
+            continue
+        if args.mentions and not (
+            msg.get("contains_unread_mention") or is_reply_to_me(ctx, msg)
+        ):
+            continue
+        info = ctx.chat_info(chat, unread=False)
+        message = ctx.msg_info(msg)
+        if args.json:
+            print(render.to_json({"chat": info, "message": message}), flush=True)
+        else:
+            print(
+                render.chat_line(info) + " " + render.msg_line(message).lstrip(),
+                flush=True,
+            )
+        seen += 1
+
+
+COMMANDS: Dict[str, Callable[[Ctx, argparse.Namespace], Optional[Output]]] = {
     "unread": unread,
     "chats": chats,
     "history": history,
@@ -709,4 +775,5 @@ COMMANDS: Dict[str, Callable[[Ctx, argparse.Namespace], Output]] = {
     "download": download,
     "whoami": whoami,
     "login": login,
+    "watch": watch,
 }

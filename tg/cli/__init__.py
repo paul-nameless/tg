@@ -52,7 +52,8 @@ def build_parser() -> argparse.ArgumentParser:
         prog="tg",
         description="Terminal Telegram client. Run without arguments for the TUI.",
         epilog="Exit codes: 0 ok, 1 error, 2 usage, 3 not logged in,"
-        " 4 chat not found or ambiguous, 5 send not allowed, 6 session busy",
+        " 4 chat not found or ambiguous, 5 send not allowed, 6 session busy,"
+        " 7 watch timed out",
     )
     sub = parser.add_subparsers(dest="command", required=True, metavar="COMMAND")
 
@@ -97,6 +98,29 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("msg_id", type=int)
     p.add_argument("--out", help="copy the file into this directory")
     p.add_argument("--max-size", help=f"size limit, default {config.MAX_DOWNLOAD_SIZE}")
+
+    p = sub.add_parser(
+        "watch", parents=[common], help="print new incoming messages as they arrive"
+    )
+    p.add_argument("--chat", help="only this chat")
+    p.add_argument(
+        "--count",
+        type=_bounded(0, 100000),
+        default=0,
+        help="exit after N messages, 0 for no limit",
+    )
+    p.add_argument(
+        "--timeout",
+        type=float,
+        default=0,
+        help="exit with code 7 after S seconds without enough messages, 0 for no limit",
+    )
+    p.add_argument(
+        "--mentions",
+        action="store_true",
+        help="only messages that mention you or reply to you",
+    )
+    p.add_argument("--muted", action="store_true", help="include muted chats")
 
     sub.add_parser("whoami", parents=[common], help="show the logged in account")
     sub.add_parser("login", parents=[common], help="log in interactively")
@@ -182,14 +206,17 @@ def main(argv: List[str]) -> int:
     try:
         session = open_session(args.sync_timeout, interactive=args.command == "login")
         try:
-            data, lines = COMMANDS[args.command](Ctx(session, args), args)
             if session.stale:
-                data["stale"] = True
                 print(
                     "warning: not synced with Telegram, data may be stale",
                     file=sys.stderr,
                 )
-            _emit(data, lines, args)
+            result = COMMANDS[args.command](Ctx(session, args), args)
+            if result is not None:
+                data, lines = result
+                if session.stale:
+                    data["stale"] = True
+                _emit(data, lines, args)
         finally:
             session.close()
     except CliError as e:

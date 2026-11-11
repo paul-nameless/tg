@@ -504,3 +504,71 @@ class MainTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WatchSession(FakeSession):
+    def __init__(self, chats: List[Dict[str, Any]], updates: List[Any]) -> None:
+        super().__init__(chats)
+        self.updates = updates
+        self.replied: Dict[int, Dict[str, Any]] = {}
+
+    def on(self, update_type: str, func: Callable[[Dict[str, Any]], None]) -> None:
+        for msg in self.updates:
+            func({"@type": update_type, "message": msg})
+
+    def getMessage(self, chat_id: int, message_id: int) -> Dict[str, Any]:
+        if message_id not in self.replied:
+            raise CliError("getMessage: not found")
+        return self.replied[message_id]
+
+
+class WatchTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.chats = [make_chat(1, "Ann"), make_chat(2, "Muted", mute_for=60)]
+
+    def watch(self, updates: List[Any], argv: List[str]) -> List[str]:
+        session = WatchSession(self.chats, updates)
+        out = io.StringIO()
+        with patch("sys.stdout", out):
+            self.assertIsNone(run_raw(session, ["watch", *argv]))
+        return out.getvalue().splitlines()
+
+    def test_prints_incoming_and_stops_at_count(self) -> None:
+        own = {**make_msg(1, 9), "is_outgoing": True}
+        lines = self.watch([own, make_msg(2, 5), make_msg(1, 10)], ["--count", "1"])
+        self.assertEqual(len(lines), 1)
+        self.assertIn("chat_id=1", lines[0])
+        self.assertIn("msg_id=10", lines[0])
+
+    def test_chat_filter_and_json(self) -> None:
+        updates = [make_msg(2, 5), make_msg(1, 6)]
+        lines = self.watch(updates, ["--chat", "2", "--count", "1", "--json"])
+        self.assertIn('"msg_id":5', lines[0])
+
+    def test_mentions_only(self) -> None:
+        plain = make_msg(1, 7)
+        mention = {**make_msg(1, 8), "contains_unread_mention": True}
+        lines = self.watch([plain, mention], ["--mentions", "--count", "1"])
+        self.assertIn("msg_id=8", lines[0])
+
+    def test_reply_to_me_counts_as_mention(self) -> None:
+        reply = {
+            **make_msg(1, 9),
+            "reply_to": {"@type": "messageReplyToMessage", "message_id": 3},
+        }
+        session = WatchSession(self.chats, [make_msg(1, 7), reply])
+        session.replied[3] = {"id": 3, "is_outgoing": True}
+        out = io.StringIO()
+        with patch("sys.stdout", out):
+            run_raw(session, ["watch", "--mentions", "--count", "1"])
+        self.assertIn("msg_id=9", out.getvalue())
+
+    def test_timeout(self) -> None:
+        with self.assertRaises(CliError) as e:
+            self.watch([make_msg(1, 7)], ["--count", "2", "--timeout", "0.05"])
+        self.assertEqual(e.exception.code, commands.EXIT_TIMEOUT)
+
+
+def run_raw(session: FakeSession, argv: List[str]) -> Any:
+    args = parse(argv)
+    return commands.COMMANDS[args.command](Ctx(session, args), args)  # type: ignore[arg-type]

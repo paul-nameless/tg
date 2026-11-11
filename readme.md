@@ -111,6 +111,7 @@ tg search "invoice" --chat me    # search messages
 tg download @alice 12345 --out ~/Downloads
 tg mark-read @alice
 tg send @alice "on my way"       # disabled unless CLI_SEND = True
+tg watch --count 1 --timeout 600  # wait for the next new message
 tg whoami
 tg help                          # all commands; tg <command> -h for flags
 ```
