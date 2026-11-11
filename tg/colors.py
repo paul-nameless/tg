@@ -25,6 +25,23 @@ underline = curses.A_UNDERLINE
 invisible = curses.A_INVIS
 dim = curses.A_DIM
 
+STYLES = {
+    "reverse": reverse,
+    "bold": bold,
+    "underline": underline,
+    "dim": dim,
+    "standout": curses.A_STANDOUT,
+}
+
+
+def parse_style(style: str) -> int:
+    attr = 0
+    for name in style.lower().replace(" ", "").split("+"):
+        if name not in STYLES:
+            return reverse
+        attr |= STYLES[name]
+    return attr
+
 
 def get_color(fg: int, bg: int) -> int:
     """Returns the curses color pair for the given fg/bg combination."""

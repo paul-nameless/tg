@@ -94,6 +94,8 @@ DOWNLOAD_DIR = os.path.expanduser("~/Downloads/")
 
 CHAT_LIST_IN_MSGS = True
 
+SELECTED_STYLE = "reverse"
+
 DATE_FORMAT = "%d.%m.%Y"
 TODAY_LABEL = "Today"
 

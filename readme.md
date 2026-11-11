@@ -229,6 +229,9 @@ TODAY_LABEL = "Today"  # e.g. "Hoy", "Сегодня"
 # show the chat list next to messages, toggle with z
 CHAT_LIST_IN_MSGS = True
 
+# highlight of the selected chat/message: reverse, bold, underline, dim, standout, or combined like "bold+underline"
+SELECTED_STYLE = "reverse"
+
 # reshape Arabic/Persian text for terminals without BiDi support (needs tg[rtl])
 RTL_RESHAPE = False
 ```
