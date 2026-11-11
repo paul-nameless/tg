@@ -1,7 +1,7 @@
 import curses
 import logging
 from _curses import window
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from tg import config
@@ -482,15 +482,27 @@ class MsgView:
         selected_item_idx: Optional[int] = None
         collected_items: List[Tuple[Tuple[str, ...], bool, int]] = []
         screen_overflow = False
+        today = date.today()
         for ignore_before in range(len(msgs)):
             if selected_item_idx is not None:
                 break
             collected_items = []
             screen_overflow = False
             line_num = self.h
+            newer_day: Optional[date] = None
             for msg_idx, msg_item in msgs[ignore_before:]:
                 is_selected_msg = current_msg_idx == msg_idx
                 msg_proxy = MsgProxy(msg_item)
+                day = msg_proxy.date.date()
+                if newer_day is not None and day != newer_day:
+                    line_num -= 1
+                    if line_num < 1:
+                        screen_overflow = True
+                        break
+                    collected_items.append(
+                        (self._day_separator(newer_day, today), False, line_num)
+                    )
+                newer_day = day
                 dt = msg_proxy.date.strftime("%H:%M:%S")
                 user_id_item = msg_proxy.sender_id
 
@@ -535,6 +547,10 @@ class MsgView:
                 collected_items.append((elements, is_selected_msg, line_num))
                 if is_selected_msg:
                     selected_item_idx = len(collected_items) - 1
+            if newer_day is not None and not screen_overflow and line_num > 1:
+                collected_items.append(
+                    (self._day_separator(newer_day, today), False, line_num - 1)
+                )
             if (
                 # ignore first and last msg
                 selected_item_idx not in (0, len(msgs) - 1, None)
@@ -545,6 +561,12 @@ class MsgView:
                 selected_item_idx = None
 
         return collected_items
+
+    def _day_separator(self, day: date, today: date) -> Tuple[str, ...]:
+        width = max(self.w - 1, 0)
+        label = truncate_to_len(day_label(day, today), width)
+        padding = (width - string_len_dwc(label)) // 2
+        return (" " * padding + label, "", "", "")
 
     def draw(
         self,
@@ -642,6 +664,12 @@ def get_last_msg(chat: Dict[str, Any], users: UserModel) -> Tuple[Optional[int],
         last_msg["sender_id"].get("user_id"),
         parse_content(MsgProxy(last_msg), users),
     )
+
+
+def day_label(day: date, today: date) -> str:
+    if day == today:
+        return config.TODAY_LABEL
+    return day.strftime(config.DATE_FORMAT)
 
 
 def get_date(chat: Dict[str, Any]) -> str:

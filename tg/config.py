@@ -92,6 +92,9 @@ FILE_PICKER_CMD = "ranger --choosefile={file_path}"
 
 DOWNLOAD_DIR = os.path.expanduser("~/Downloads/")
 
+DATE_FORMAT = "%d.%m.%Y"
+TODAY_LABEL = "Today"
+
 CLI_SEND = False
 CLI_SEND_ALLOWLIST: List[Union[int, str]] = []
 

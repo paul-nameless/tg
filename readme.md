@@ -221,6 +221,10 @@ MAILCAP_FILE = os.path.expanduser("~/.config/mailcap")
 
 DOWNLOAD_DIR = os.path.expanduser("~/Downloads/")  # copy file to this dir
 
+# date shown between messages of different days, e.g. "%m/%d/%Y" or "%x" for your locale
+DATE_FORMAT = "%d.%m.%Y"
+TODAY_LABEL = "Today"  # e.g. "Hoy", "Сегодня"
+
 # reshape Arabic/Persian text for terminals without BiDi support (needs tg[rtl])
 RTL_RESHAPE = False
 ```
