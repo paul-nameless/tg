@@ -319,7 +319,25 @@ class Controller:
                 else:
                     self.present_info("Message wasn't sent")
 
-    @bind(msg_handler, ["a", "i"])
+    @bind(msg_handler, ["a"])
+    def append_msgs(self) -> None:
+        """Type messages one after another, Esc or empty Enter to stop"""
+        chat_id = self.model.chats.id_by_index(self.model.current_chat)
+        if not self.can_send_msg() or chat_id is None:
+            self.present_info("Can't send msg in this chat")
+            return
+        sent = 0
+        while True:
+            self.tg.send_chat_action(chat_id, ChatAction.chatActionTyping)
+            msg = self.view.status.get_input("» ")
+            if not msg:
+                break
+            self.model.send_message(text=msg)
+            sent += 1
+        self.tg.send_chat_action(chat_id, ChatAction.chatActionCancel)
+        self.present_info(f"Sent {sent} message(s)" if sent else "Message wasn't sent")
+
+    @bind(msg_handler, ["i"])
     def write_short_msg(self) -> None:
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
         if not self.can_send_msg() or chat_id is None:

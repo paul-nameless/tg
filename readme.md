@@ -302,7 +302,8 @@ For navigation arrow keys also can be used.
 - `y`: yank (copy) selected msgs with <space> to internal buffer (for forwarding) and copy current msg text or path to file to clipboard
 - `p`: forward (paste) yanked (copied) msgs to current chat
 - `dd`: delete msg for everybody (multiple messages will be deleted if selected)
-- `i or a`: insert mode, type new message
+- `i`: type and send one message
+- `a`: type messages one after another (input stays open after each send, Esc or empty Enter to stop)
 - `I or A`: open vim to write long msg and send
 - `v`: record and send voice message
 - `r,R`: reply to a current msg
