@@ -172,6 +172,19 @@ class Model:
             return self.msgs.edit_message(chat_id, self.current_msg_id, text)
         return False
 
+    def can_post_in_channel(self, chat: Dict[str, Any]) -> bool:
+        result = self.tg.get_supergroup(chat["type"]["supergroup_id"])
+        result.wait()
+        if result.error or not result.update:
+            log.error("get supergroup error: %s", result.error_info)
+            return False
+        status = result.update.get("status", {})
+        if status.get("@type") == "chatMemberStatusCreator":
+            return True
+        if status.get("@type") == "chatMemberStatusAdministrator":
+            return bool(status.get("rights", {}).get("can_post_messages"))
+        return False
+
     def msg_properties(self, chat_id: int, msg_id: int) -> Dict[str, Any]:
         result = self.tg.get_message_properties(chat_id, msg_id)
         result.wait()

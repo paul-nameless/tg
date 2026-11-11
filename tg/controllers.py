@@ -115,11 +115,13 @@ class Controller:
     @bind(msg_handler, ["o"])
     def open_url(self) -> None:
         msg = MsgProxy(self.model.current_msg)
-        if not msg.is_text:
+        content = msg["content"]
+        formatted = content.get("text") if msg.is_text else content.get("caption")
+        if not formatted:
             return self.present_error("Does not contain urls")
-        text = msg["content"]["text"]["text"]
+        text = formatted["text"]
         urls = []
-        for entity in msg["content"]["text"]["entities"]:
+        for entity in formatted.get("entities", []):
             _type = entity["type"]["@type"]
             if _type == "textEntityTypeUrl":
                 offset = entity["offset"]
@@ -471,6 +473,8 @@ class Controller:
 
     def can_send_msg(self) -> bool:
         chat = self.model.chats.chats[self.model.current_chat]
+        if get_chat_type(chat) == ChatType.channel:
+            return self.model.can_post_in_channel(chat)
         return chat["permissions"]["can_send_basic_messages"]
 
     def _open_msg(self, msg: MsgProxy, cmd: Optional[str] = None) -> None:
@@ -535,6 +539,9 @@ class Controller:
 
     def _get_user_ids(self, is_multiple: bool = False) -> List[int]:
         users = self.model.users.get_users()
+        if not users:
+            self.present_error("No contacts found")
+            return []
         _, cols = self.view.stdscr.getmaxyx()
         limit = min(
             int(cols / 2),
