@@ -113,6 +113,7 @@ class StatusView:
         self.x = 0
         self.stdscr = stdscr
         self.win = Win(stdscr.subwin(self.h, self.w, self.y, self.x))
+        self.win.keypad(True)
         self._refresh = self.win.refresh
 
     def resize(self, rows: int, cols: int) -> None:
@@ -129,26 +130,36 @@ class StatusView:
     def get_input(self, prefix: str = "") -> Optional[str]:
         curses.curs_set(1)
         buff = ""
+        pos = 0
 
         try:
             while True:
                 self.win.erase()
-                line = buff[-(self.w - 1) :]
-                self.win.addstr(0, 0, f"{prefix}{line}")
+                avail = max(1, self.w - 1 - string_len_dwc(prefix))
+                start = max(0, pos - avail)
+                self.win.addstr(0, 0, f"{prefix}{buff[start : start + avail]}")
+                cursor = string_len_dwc(prefix + buff[start:pos])
 
-                key = self.win.get_wch(
-                    0, min(string_len_dwc(buff + prefix), self.w - 1)
-                )
-                key = ord(key)
-                if key == 10:  # return
+                key = self.win.get_wch(0, min(cursor, self.w - 1))
+                if isinstance(key, int):
+                    if key == curses.KEY_ENTER:
+                        break
+                    buff, pos = self._edit_key(key, buff, pos)
+                    continue
+                code = ord(key)
+                if code in (10, 13):  # return
                     break
-                elif key == 127 or key == 8:  # del
-                    if buff:
-                        buff = buff[:-1]
-                elif key in (7, 27):  # (^G, <esc>) cancel
+                elif code in (7, 27):  # (^G, <esc>) cancel
                     return None
-                elif chr(key).isprintable():
-                    buff += chr(key)
+                elif code in (127, 8):  # backspace
+                    buff, pos = self._edit_key(curses.KEY_BACKSPACE, buff, pos)
+                elif code == 1:  # ^A
+                    pos = 0
+                elif code == 5:  # ^E
+                    pos = len(buff)
+                elif key.isprintable():
+                    buff = buff[:pos] + key + buff[pos:]
+                    pos += 1
         finally:
             self.win.clear()
             curses.curs_set(0)
@@ -156,6 +167,22 @@ class StatusView:
             curses.noecho()
 
         return buff
+
+    @staticmethod
+    def _edit_key(key: int, buff: str, pos: int) -> Tuple[str, int]:
+        if key == curses.KEY_LEFT:
+            return buff, max(0, pos - 1)
+        if key == curses.KEY_RIGHT:
+            return buff, min(len(buff), pos + 1)
+        if key == curses.KEY_HOME:
+            return buff, 0
+        if key == curses.KEY_END:
+            return buff, len(buff)
+        if key == curses.KEY_BACKSPACE and pos > 0:
+            return buff[: pos - 1] + buff[pos:], pos - 1
+        if key == curses.KEY_DC:
+            return buff[:pos] + buff[pos + 1 :], pos
+        return buff, pos
 
 
 class ChatView:
