@@ -27,4 +27,5 @@ setup(
         "standard-mailcap>=3.13.0",
         "qrcode>=8.0",
     ],
+    extras_require={"rtl": ["arabic-reshaper>=3.0.0", "python-bidi>=0.6.0"]},
 )
