@@ -2,7 +2,7 @@
 
 [![Join telegram chat](https://img.shields.io/badge/telegram-join%20chat-black.svg)](https://t.me/tg_term)
 
-Telegram terminal client + TUI, CLI and an agent skill
+Telegram terminal client: TUI, CLI and an agent skill
 
 ```sh
 tg                   # the TUI
