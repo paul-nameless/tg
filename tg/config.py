@@ -92,6 +92,8 @@ FILE_PICKER_CMD = "ranger --choosefile={file_path}"
 
 DOWNLOAD_DIR = os.path.expanduser("~/Downloads/")
 
+CHAT_LIST_IN_MSGS = True
+
 DATE_FORMAT = "%d.%m.%Y"
 TODAY_LABEL = "Today"
 

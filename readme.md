@@ -226,6 +226,9 @@ DOWNLOAD_DIR = os.path.expanduser("~/Downloads/")  # copy file to this dir
 DATE_FORMAT = "%d.%m.%Y"
 TODAY_LABEL = "Today"  # e.g. "Hoy", "Сегодня"
 
+# show the chat list next to messages, toggle with z
+CHAT_LIST_IN_MSGS = True
+
 # reshape Arabic/Persian text for terminals without BiDi support (needs tg[rtl])
 RTL_RESHAPE = False
 ```
@@ -281,6 +284,7 @@ For navigation arrow keys also can be used.
 - `j,k`: move up/down
 - `J,K`: move 10 msgs up/down
 - `G`: move to the last msg (at the bottom)
+- `z`: show/hide the chat list
 - `D`: download file
 - `l`: if video, pics or audio then open app specified in mailcap file, for example:
   ```ini

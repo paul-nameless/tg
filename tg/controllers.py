@@ -72,6 +72,17 @@ class Controller:
         self.is_running = True
         self.tg = tg
         self.chat_size = 0.5
+        self.chat_list_in_msgs = config.CHAT_LIST_IN_MSGS
+
+    def msgs_chat_size(self) -> float:
+        return 0.2 if self.chat_list_in_msgs else 0
+
+    @bind(msg_handler, ["z"])
+    def toggle_chat_list(self) -> None:
+        """Show or hide the chat list"""
+        self.chat_list_in_msgs = not self.chat_list_in_msgs
+        self.chat_size = self.msgs_chat_size()
+        self.resize()
 
     @bind(msg_handler, ["c"])
     def show_chat_info(self) -> None:
@@ -668,7 +679,7 @@ class Controller:
 
     @bind(chat_handler, ["l", "^J", "^E"])
     def handle_msgs(self) -> Optional[str]:
-        rc = self.handle(msg_handler, 0.2)
+        rc = self.handle(msg_handler, self.msgs_chat_size())
         if rc == "QUIT":
             return rc
         self.chat_size = 0.5

@@ -210,7 +210,8 @@ class ChatView:
     def resize(self, rows: int, cols: int, width: int) -> None:
         self.h = rows - 1
         self.w = width
-        self.win.resize(self.h, self.w)
+        if width:
+            self.win.resize(self.h, self.w)
 
     def _msg_color(self, is_selected: bool = False) -> int:
         color = get_color(white, -1)
@@ -240,6 +241,8 @@ class ChatView:
     def draw(
         self, current: int, chats: List[Dict[str, Any]], title: str = "Chats"
     ) -> None:
+        if not self.w:
+            return
         self.win.erase()
         line = curses.ACS_VLINE
         width = self.w - 1
