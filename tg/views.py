@@ -33,6 +33,16 @@ MULTICHAR_KEYBINDINGS = (
 )
 
 
+SPECIAL_KEYS = {
+    curses.KEY_DOWN: "j",
+    curses.KEY_UP: "k",
+    curses.KEY_LEFT: "h",
+    curses.KEY_RIGHT: "l",
+    curses.KEY_NPAGE: "J",
+    curses.KEY_PPAGE: "K",
+}
+
+
 class Win:
     """Proxy for win object to log error and continue working"""
 
@@ -89,6 +99,9 @@ class View:
         for _ in range(MAX_KEYBINDING_LENGTH):
             ch = self.stdscr.getch()
             log.info("raw ch without unctrl: %s", ch)
+            if ch > 255:
+                keys += SPECIAL_KEYS.get(ch, "")
+                break
             try:
                 key = curses.unctrl(ch).decode()
             except Exception:
