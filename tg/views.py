@@ -34,10 +34,10 @@ MULTICHAR_KEYBINDINGS = (
 
 
 SPECIAL_KEYS = {
-    curses.KEY_DOWN: "j",
-    curses.KEY_UP: "k",
-    curses.KEY_LEFT: "h",
-    curses.KEY_RIGHT: "l",
+    curses.KEY_DOWN: "^B",
+    curses.KEY_UP: "^C",
+    curses.KEY_LEFT: "^D",
+    curses.KEY_RIGHT: "^E",
     curses.KEY_NPAGE: "J",
     curses.KEY_PPAGE: "K",
 }

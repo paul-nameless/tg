@@ -738,6 +738,8 @@ def watch(ctx: Ctx, args: argparse.Namespace) -> None:
     while not args.count or seen < args.count:
         wait = None if deadline is None else deadline - time.monotonic()
         if wait is not None and wait <= 0:
+            if not args.count:
+                return None
             raise CliError("watch timed out", EXIT_TIMEOUT)
         try:
             msg = incoming.get(timeout=wait)

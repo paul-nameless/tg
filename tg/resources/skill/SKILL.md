@@ -20,7 +20,7 @@ description: Read and search the user's Telegram with the `tg` CLI - unread mess
 - `tg history CHAT [--limit N] [--before MSG_ID] [--after MSG_ID]`: messages of a chat, oldest first.
 - `tg search QUERY [--chat CHAT]`: search messages in all chats (archived included) or in one chat.
 - `tg download CHAT MSG_ID [--out DIR]`: download a message file, prints its path.
-- `tg watch [--chat CHAT] [--mentions] [--count N] [--timeout S]`: print new incoming messages as they arrive, one per line. `--count 1 --timeout 600` waits for the next one and exits (exit 7 on timeout); run it in the background to get woken on a new message. While it runs, other tg commands report the session busy.
+- `tg watch [--chat CHAT] [--mentions] [--count N] [--timeout S]`: print new incoming messages as they arrive, one per line. `--count 1 --timeout 600` waits for the next one and exits (exit 7 on timeout); run it in the background to get woken on a new message. While it runs it holds the Telegram session: other tg commands report busy and the tg TUI cannot start, so keep watches short.
 - `tg mark-read CHAT`: mark a chat read. Only when the user asks.
 - `tg send CHAT TEXT` (or `-` to read stdin): only when the user asks. Show the exact text and get confirmation before sending. Disabled unless the user set `CLI_SEND = True` in `~/.config/tg/conf.py`. `send` and `mark-read` need an exact chat: id, `@username`, `me`, or the full title. `pending=yes` means Telegram queued the message and will send it later: never resend it.
 

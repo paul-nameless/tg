@@ -568,6 +568,10 @@ class WatchTest(unittest.TestCase):
             self.watch([make_msg(1, 7)], ["--count", "2", "--timeout", "0.05"])
         self.assertEqual(e.exception.code, commands.EXIT_TIMEOUT)
 
+    def test_stream_with_timeout_stops_cleanly(self) -> None:
+        lines = self.watch([make_msg(1, 7)], ["--timeout", "0.05"])
+        self.assertEqual(len(lines), 1)
+
 
 def run_raw(session: FakeSession, argv: List[str]) -> Any:
     args = parse(argv)

@@ -113,7 +113,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--timeout",
         type=float,
         default=0,
-        help="exit with code 7 after S seconds without enough messages, 0 for no limit",
+        help="stop after S seconds, exit 7 if fewer than --count messages came, 0 for no limit",
     )
     p.add_argument(
         "--mentions",

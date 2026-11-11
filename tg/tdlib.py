@@ -77,6 +77,11 @@ class Tdlib(Telegram):
             try:
                 state = self._login_step(state)
             except RuntimeError as e:
+                if "lock" in str(e).lower():
+                    raise SystemExit(
+                        "tg is already running (TUI or a tg command such as"
+                        " tg watch), close it first"
+                    )
                 print(f"Login failed: {e}")
                 state = self._login_state()
 
