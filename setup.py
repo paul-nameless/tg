@@ -22,5 +22,9 @@ setup(
     packages=["tg"],
     entry_points={"console_scripts": ["tg = tg.__main__:main"]},
     python_requires=">=3.10",
-    install_requires=["python-telegram==2.0.0", "standard-mailcap>=3.13.0"],
+    install_requires=[
+        "python-telegram==2.0.0",
+        "standard-mailcap>=3.13.0",
+        "qrcode>=8.0",
+    ],
 )

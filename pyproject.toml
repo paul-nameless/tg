@@ -7,7 +7,7 @@ license = { text = "Unlicense" }
 readme = "readme.md"
 urls = { homepage = "https://github.com/paul-nameless/tg", repository = "https://github.com/paul-nameless/tg" }
 requires-python = ">=3.10,<4.0.0"
-dependencies = ["python-telegram (==2.0.0)", "standard-mailcap (>=3.13.0)"]
+dependencies = ["python-telegram (==2.0.0)", "standard-mailcap (>=3.13.0)", "qrcode (>=8.0)"]
 
 [tool.poetry]
 name = "tg"

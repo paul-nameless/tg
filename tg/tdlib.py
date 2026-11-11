@@ -1,7 +1,22 @@
+import getpass
+import queue
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
-from telegram.client import AsyncResult, Telegram
+import qrcode
+from telegram.client import AsyncResult, AuthorizationState, Telegram
+
+WAIT_OTHER_DEVICE = "authorizationStateWaitOtherDeviceConfirmation"
+
+
+def print_qr(link: str) -> None:
+    qr = qrcode.QRCode(border=2)
+    qr.add_data(link)
+    print(
+        "\nScan in Telegram on your phone: Settings > Devices > Link Desktop Device\n"
+    )
+    qr.print_ascii(invert=True)
+    print("Waiting for scan, the code refreshes automatically...")
 
 
 class ChatAction(Enum):
@@ -56,6 +71,62 @@ class SecretChatState(Enum):
 
 
 class Tdlib(Telegram):
+    def login_interactive(self) -> None:
+        state = self._login_state()
+        while state != AuthorizationState.READY:
+            try:
+                state = self._login_step(state)
+            except RuntimeError as e:
+                print(f"Login failed: {e}")
+                state = self._login_state()
+
+    def _login_state(self) -> AuthorizationState:
+        try:
+            self.authorization_state = self.login(blocking=False)
+        except RuntimeError:
+            result = self.get_authorization_state()
+            self.authorization_state = self._wait_authorization_result(result)
+        return self.authorization_state
+
+    def _login_step(self, state: AuthorizationState) -> AuthorizationState:
+        if state == AuthorizationState.WAIT_CODE:
+            code = input("Enter code (or press Enter to log in with QR code): ")
+            if code.strip():
+                return self.send_code(code.strip())
+            return self.login_with_qr(request=True)
+        if state == AuthorizationState.WAIT_PASSWORD:
+            return self.send_password(getpass.getpass("Password: "))
+        if state == AuthorizationState.WAIT_OTHER_DEVICE_CONFIRMATION:
+            return self.login_with_qr(request=False)
+        return self.login()
+
+    def login_with_qr(self, request: bool) -> AuthorizationState:
+        states: "queue.Queue[Dict[str, Any]]" = queue.Queue()
+
+        def on_state(update: Dict[str, Any]) -> None:
+            states.put(update["authorization_state"])
+
+        self.add_update_handler("updateAuthorizationState", on_state)
+        try:
+            if request:
+                print("Requesting QR code...")
+                result = self._send_data(
+                    {"@type": "requestQrCodeAuthentication", "other_user_ids": []}
+                )
+            else:
+                result = self.get_authorization_state()
+            result.wait(raise_exc=True)
+            if not request and result.update:
+                states.put(result.update)
+            while True:
+                state = states.get()
+                if state["@type"] != WAIT_OTHER_DEVICE:
+                    self.authorization_state = AuthorizationState(state["@type"])
+                    return self.authorization_state
+                print_qr(state["link"])
+        finally:
+            self.remove_update_handler("updateAuthorizationState", on_state)
+
     def parse_text_entities(
         self,
         text: str,

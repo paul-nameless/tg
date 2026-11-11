@@ -36,12 +36,7 @@ To use tg, you'll need to have the following installed:
 
 - [terminal-notifier](https://github.com/julienXX/terminal-notifier) - for Mac (used by default). You can change it to [dunst](https://github.com/dunst-project/dunst) for Linux or any other notifications program (see `NOTIFY_CMD` in configuration)
 - [ffmpeg](https://ffmpeg.org/) - to record voice msgs and upload videos.
-- [tdlib](https://tdlib.github.io/td/build.html?language=Python) - in case of incompatibility with built in package.
-  For example, macOS:
-  ```sh
-  brew install tdlib
-  ```
-  and then set in config `TDLIB_PATH`
+- [tdlib](https://tdlib.github.io/td/build.html?language=Python) - only if the TDLib bundled with python-telegram doesn't work on your platform. Build it and set `TDLIB_PATH` in config (or `PYTHON_TELEGRAM_TDLIB_PATH` env var). Homebrew's `tdlib` is too old.
 - `urlview` to choose urls when there is multiple in message, use `URL_VIEW` in config file to use another app (it should accept urls in stdin)
 - to open `stickers` and `animated` ones (thumbnail preview) you need to set in mailcap appropriate handler and have app which will open `webp` file:
   ```ini
@@ -130,13 +125,13 @@ LOG_PATH = os.path.expanduser("~/.local/share/tg/")
 
 # If you have problems with tdlib shipped with the client, you can install and
 # use your own, for example:
-TDLIB_PATH = "/usr/local/Cellar/tdlib/1.6.0/lib/libtdjson.dylib"
+TDLIB_PATH = "/path/to/libtdjson.dylib"
 
 # you can use any other notification cmd, it is simple python string which
 # can format title, msg, subtitle and icon_path paramters
 # In these exapmle, kitty terminal is used and when notification is pressed
 # it will focus on the tab of running tg
-NOTIFY_CMD = "/usr/local/bin/terminal-notifier -title {title} -subtitle {subtitle} -message {msg} -appIcon {icon_path} -sound default -execute '/Applications/kitty.app/Contents/MacOS/kitty @ --to unix:/tmp/kitty focus-tab --no-response -m title:tg'"
+NOTIFY_CMD = "terminal-notifier -title {title} -subtitle {subtitle} -message {msg} -appIcon {icon_path} -sound default -execute '/Applications/kitty.app/Contents/MacOS/kitty @ --to unix:/tmp/kitty focus-tab --no-response -m title:tg'"
 
 # You can use your own voice recording cmd but it's better to use default one.
 # The voice note must be encoded with the Opus codec, and stored inside an OGG

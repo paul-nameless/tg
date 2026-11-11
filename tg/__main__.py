@@ -66,7 +66,7 @@ def main() -> None:
         tdlib_verbosity=config.TDLIB_VERBOSITY,
         library_path=config.TDLIB_PATH,
     )
-    tg.login()
+    tg.login_interactive()
 
     utils.setup_log()
     utils.set_shorter_esc_delay()
