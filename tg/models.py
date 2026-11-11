@@ -360,9 +360,6 @@ def is_main_list(position: Dict[str, Any]) -> bool:
 
 
 def main_list_order(positions: List[Dict[str, Any]]) -> str:
-    """Order of the chat in the main chat list, "0" if it is not there.
-    TDLib also reports positions in the archive and in chat folders.
-    Kept as a string, like TDLib sends int64 values."""
     for position in positions:
         if is_main_list(position):
             return str(position["order"])
@@ -402,10 +399,6 @@ class ChatModel:
 
     def _load_next_chats(self) -> None:
         """
-        TDLib's getChats has no offsets: it returns the first ``limit`` chats
-        of the main chat list (loading more from the server when needed), so
-        ask for one more page each time. Fewer ids than requested means the
-        whole list has been loaded.
         https://core.telegram.org/tdlib/getting-started#getting-the-lists-of-chats
         """
         if self.have_full_chat_list:
@@ -443,8 +436,6 @@ class ChatModel:
         if chat_id in self.chat_ids:
             return
 
-        # keep an order that an update already set (re-activated chat);
-        # otherwise take it from the chat's position in the main list
         if "order" not in chat:
             chat["order"] = main_list_order(chat.get("positions", []))
 
