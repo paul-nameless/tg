@@ -8,7 +8,7 @@ from types import FrameType
 from typing import Optional
 
 from tg import config
-from tg.tdlib import Tdlib
+from tg.tdlib import Tdlib, quiet_tdlib
 
 log = logging.getLogger(__name__)
 
@@ -52,6 +52,7 @@ def run_tui() -> None:
     from tg import utils
 
     utils.cleanup_cache()
+    quiet_tdlib(config.TDLIB_PATH, config.TDLIB_VERBOSITY)
     tg = Tdlib(
         api_id=config.API_ID,
         api_hash=config.API_HASH,

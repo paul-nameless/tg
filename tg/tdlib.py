@@ -1,3 +1,4 @@
+import ctypes
 import getpass
 import queue
 from enum import Enum
@@ -7,6 +8,16 @@ import qrcode
 from telegram.client import AsyncResult, AuthorizationState, Telegram
 
 WAIT_OTHER_DEVICE = "authorizationStateWaitOtherDeviceConfirmation"
+
+
+def quiet_tdlib(library_path: Optional[str], verbosity: int) -> None:
+    if not library_path:
+        return
+    try:
+        lib = ctypes.CDLL(library_path)
+        lib.td_set_log_verbosity_level(ctypes.c_int(verbosity))
+    except (OSError, AttributeError):
+        pass
 
 
 def print_qr(link: str) -> None:

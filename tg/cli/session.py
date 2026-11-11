@@ -1,4 +1,3 @@
-import ctypes
 import fcntl
 import os
 import threading
@@ -8,7 +7,7 @@ from typing import IO, Any, Callable, Dict, Optional
 from telegram.client import AsyncResult, AuthorizationState
 
 from tg import config
-from tg.tdlib import Tdlib
+from tg.tdlib import Tdlib, quiet_tdlib
 
 EXIT_ERROR = 1
 EXIT_USAGE = 2
@@ -74,16 +73,6 @@ def _acquire_lock() -> IO[str]:
             time.sleep(0.2)
 
 
-def _quiet_tdlib() -> None:
-    if not config.TDLIB_PATH:
-        return
-    try:
-        lib = ctypes.CDLL(config.TDLIB_PATH)
-        lib.td_set_log_verbosity_level(ctypes.c_int(config.TDLIB_VERBOSITY))
-    except (OSError, AttributeError):
-        pass
-
-
 def _authorize(tg: Tdlib) -> None:
     actions: Dict[AuthorizationState, Callable[[], AsyncResult]] = {
         AuthorizationState.NONE: tg.get_authorization_state,
@@ -112,7 +101,7 @@ def open_session(sync_timeout: float, interactive: bool = False) -> Session:
         phone: Optional[str] = (
             config.ensure_phone() if interactive else config.PHONE or "+0"
         )
-        _quiet_tdlib()
+        quiet_tdlib(config.TDLIB_PATH, config.TDLIB_VERBOSITY)
         tg = Tdlib(
             api_id=config.API_ID,
             api_hash=config.API_HASH,
