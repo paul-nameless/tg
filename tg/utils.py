@@ -25,6 +25,46 @@ from tg import config
 log = logging.getLogger(__name__)
 units = {"B": 1, "KB": 10**3, "MB": 10**6, "GB": 10**9, "TB": 10**12}
 
+# RTL characters: Right-to-Left (R), Arabic Letter (AL), Arabic Number (AN)
+_RTL_BIDIR_CATS = frozenset(("R", "AL", "AN"))
+
+
+def _has_rtl(text: str) -> bool:
+    return any(unicodedata.bidirectional(c) in _RTL_BIDIR_CATS for c in text)
+
+
+@lru_cache(maxsize=1)
+def _rtl_backend() -> Optional[Any]:
+    try:
+        import arabic_reshaper
+        from bidi.algorithm import get_display
+    except ImportError:
+        log.warning(
+            "RTL_RESHAPE is enabled but arabic-reshaper/python-bidi are not "
+            'installed; install them with: pip install "tg[rtl]"'
+        )
+        return None
+    return lambda line: get_display(arabic_reshaper.reshape(line))
+
+
+def reshape_rtl(text: str) -> str:
+    """
+    Reshape Arabic/Persian letters and reorder RTL runs into visual order
+    for terminals that render strictly left-to-right.
+
+    Off by default (RTL_RESHAPE = False): terminals with native BiDi support
+    would reverse the text a second time. Lines without RTL characters are
+    returned unchanged.
+    """
+    if not config.RTL_RESHAPE or not _has_rtl(text):
+        return text
+    backend = _rtl_backend()
+    if backend is None:
+        return text
+    return "\n".join(
+        backend(line) if _has_rtl(line) else line for line in text.split("\n")
+    )
+
 
 class LogWriter:
     def __init__(self, level: Any) -> None:

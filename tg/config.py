@@ -76,6 +76,10 @@ CHAT_FLAGS: Dict[str, str] = {}
 
 MSG_FLAGS: Dict[str, str] = {}
 
+# Reshape and reorder Arabic/Persian text for terminals without BiDi support.
+# Requires optional deps: pip install "tg[rtl]"
+RTL_RESHAPE = False
+
 ICON_PATH = os.path.join(os.path.dirname(__file__), "resources", "tg.png")
 
 URL_VIEW = "urlview"

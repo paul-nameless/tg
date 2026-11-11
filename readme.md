@@ -44,6 +44,7 @@ To use tg, you'll need to have the following installed:
   ```
 - [ranger](https://github.com/ranger/ranger), [nnn](https://github.com/jarun/nnn) - can be used to choose file when sending, customizable with `FILE_PICKER_CMD`
 - [fzf](https://github.com/junegunn/fzf) - to create groups and secret chats (used for single and multiple user selection)
+- [arabic-reshaper](https://github.com/mpcabd/python-arabic-reshaper), [python-bidi](https://github.com/MeirKriheli/python-bidi) - to render Arabic/Persian text in terminals without native BiDi support: `pip install "tg[rtl]"` and set `RTL_RESHAPE = True` in config. Leave it off if your terminal already handles BiDi, otherwise text gets reversed twice.
 
 ## Installation
 
@@ -188,6 +189,9 @@ FILE_PICKER_CMD = "ranger --choosefile={file_path}"
 MAILCAP_FILE = os.path.expanduser("~/.config/mailcap")
 
 DOWNLOAD_DIR = os.path.expanduser("~/Downloads/")  # copy file to this dir
+
+# reshape Arabic/Persian text for terminals without BiDi support (needs tg[rtl])
+RTL_RESHAPE = False
 ```
 
 ### Mailcap file
