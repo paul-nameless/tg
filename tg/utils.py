@@ -229,24 +229,32 @@ def notify(
     subprocess.Popen(args)
 
 
+def char_width(char: str) -> int:
+    if unicodedata.category(char) in ("Mn", "Me", "Cf"):
+        return 0
+    if 0x1F3FB <= ord(char) <= 0x1F3FF:
+        return 0
+    return 2 if unicodedata.east_asian_width(char) in "WF" else 1
+
+
 def string_len_dwc(string: str) -> int:
     """Returns string len including count for double width characters"""
-    return sum(1 + (unicodedata.east_asian_width(c) in "WF") for c in string)
+    return sum(char_width(c) for c in string)
 
 
 def truncate_to_len(string: str, width: int) -> str:
-    real_len = string_len_dwc(string)
-    if real_len <= width:
+    if string_len_dwc(string) <= width:
         return string
 
     cur_len = 0
     out_string = ""
 
     for char in string:
-        cur_len += 2 if unicodedata.east_asian_width(char) in "WF" else 1
-        out_string += char
-        if cur_len >= width:
+        char_len = char_width(char)
+        if cur_len + char_len > width:
             break
+        cur_len += char_len
+        out_string += char
     return out_string
 
 
