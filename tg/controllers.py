@@ -520,8 +520,9 @@ class Controller:
             return self.present_error("You can edit only your messages!")
         if not msg.is_text:
             return self.present_error("You can edit text messages only!")
-        if not msg.can_be_edited:
-            return self.present_error("Meessage can't be edited!")
+        props = self.model.msg_properties(msg.chat_id, msg.msg_id)
+        if not props.get("can_be_edited"):
+            return self.present_error("Message can't be edited!")
 
         with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(self.view) as s:
             f.write(msg.text_content)

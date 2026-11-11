@@ -172,33 +172,33 @@ class Model:
             return self.msgs.edit_message(chat_id, self.current_msg_id, text)
         return False
 
-    def can_be_deleted(self, chat_id: int, msg: Dict[str, Any]) -> bool:
-        c_id = msg["sender_id"].get("chat_id") or msg["sender_id"].get("user_id")
-        if chat_id == c_id:
-            return msg["can_be_deleted_only_for_self"]
-        return msg["can_be_deleted_for_all_users"]
+    def msg_properties(self, chat_id: int, msg_id: int) -> Dict[str, Any]:
+        result = self.tg.get_message_properties(chat_id, msg_id)
+        result.wait()
+        if result.error or not result.update:
+            log.error("get message properties error: %s", result.error_info)
+            return {}
+        return result.update
 
     def delete_msgs(self) -> bool:
         chat_id = self.chats.id_by_index(self.current_chat)
         if not chat_id:
             return False
-        msg_ids = self.selected[chat_id]
-        if msg_ids:
-            message_ids = msg_ids
-            for msg_id in message_ids:
-                msg = self.msgs.get_message(chat_id, msg_id)
-                if not msg or not self.can_be_deleted(chat_id, msg):
-                    return False
-        else:
+        message_ids = list(self.selected[chat_id])
+        if not message_ids:
             selected_msg = self.msgs.current_msgs[chat_id]
-            msg_id = self.msgs.msg_ids[chat_id][selected_msg]
-            msg = self.msgs.msgs[chat_id][msg_id]
-            if not self.can_be_deleted(chat_id, msg):
-                return False
-            message_ids = [msg["id"]]
+            message_ids = [self.msgs.msg_ids[chat_id][selected_msg]]
+
+        revoke = True
+        for msg_id in message_ids:
+            props = self.msg_properties(chat_id, msg_id)
+            if not props.get("can_be_deleted_for_all_users"):
+                revoke = False
+                if not props.get("can_be_deleted_only_for_self"):
+                    return False
 
         log.info(f"Deleting msg from the chat {chat_id}: {message_ids}")
-        self.tg.delete_messages(chat_id, message_ids, revoke=True)
+        self.tg.delete_messages(chat_id, message_ids, revoke=revoke)
         return True
 
     def forward_msgs(self) -> bool:
@@ -209,8 +209,8 @@ class Model:
         if not msg_ids:
             return False
         for msg_id in msg_ids:
-            msg = self.msgs.get_message(from_chat_id, msg_id)
-            if not msg or not msg["can_be_forwarded"]:
+            props = self.msg_properties(from_chat_id, msg_id)
+            if not props.get("can_be_forwarded"):
                 return False
 
         self.tg.forward_messages(chat_id, from_chat_id, msg_ids)

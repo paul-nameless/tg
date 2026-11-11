@@ -192,7 +192,10 @@ class Tdlib(Telegram):
         data = {
             "@type": "sendMessage",
             "chat_id": chat_id,
-            "reply_to_message_id": reply_to_message_id,
+            "reply_to": {
+                "@type": "inputMessageReplyToMessage",
+                "message_id": reply_to_message_id,
+            },
             "input_message_content": {
                 "@type": "inputMessageText",
                 "text": {"@type": "formattedText", "text": text},
@@ -335,6 +338,14 @@ class Tdlib(Telegram):
             "chat_id": chat_id,
             "message_ids": message_ids,
             "force_read": force_read,
+        }
+        return self._send_data(data)
+
+    def get_message_properties(self, chat_id: int, message_id: int) -> AsyncResult:
+        data = {
+            "@type": "getMessageProperties",
+            "chat_id": chat_id,
+            "message_id": message_id,
         }
         return self._send_data(data)
 
