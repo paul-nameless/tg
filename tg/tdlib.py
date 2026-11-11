@@ -214,7 +214,10 @@ class Tdlib(Telegram):
             "chat_id": chat_id,
             "input_message_content": {
                 "@type": "inputMessageDocument",
-                "document": {"@type": "inputFileLocal", "path": file_path},
+                "document": {
+                    "@type": "inputDocument",
+                    "document": {"@type": "inputFileLocal", "path": file_path},
+                },
             },
         }
         return self._send_data(data)
@@ -225,7 +228,10 @@ class Tdlib(Telegram):
             "chat_id": chat_id,
             "input_message_content": {
                 "@type": "inputMessageAudio",
-                "audio": {"@type": "inputFileLocal", "path": file_path},
+                "audio": {
+                    "@type": "inputAudio",
+                    "audio": {"@type": "inputFileLocal", "path": file_path},
+                },
             },
         }
         return self._send_data(data)
@@ -236,7 +242,10 @@ class Tdlib(Telegram):
             "chat_id": chat_id,
             "input_message_content": {
                 "@type": "inputMessageAnimation",
-                "animation": {"@type": "inputFileLocal", "path": file_path},
+                "animation": {
+                    "@type": "inputAnimation",
+                    "animation": {"@type": "inputFileLocal", "path": file_path},
+                },
             },
         }
         return self._send_data(data)
@@ -247,7 +256,10 @@ class Tdlib(Telegram):
             "chat_id": chat_id,
             "input_message_content": {
                 "@type": "inputMessagePhoto",
-                "photo": {"@type": "inputFileLocal", "path": file_path},
+                "photo": {
+                    "@type": "inputPhoto",
+                    "photo": {"@type": "inputFileLocal", "path": file_path},
+                },
             },
         }
         return self._send_data(data)
@@ -265,10 +277,13 @@ class Tdlib(Telegram):
             "chat_id": chat_id,
             "input_message_content": {
                 "@type": "inputMessageVideo",
-                "width": width,
-                "height": height,
-                "duration": duration,
-                "video": {"@type": "inputFileLocal", "path": file_path},
+                "video": {
+                    "@type": "inputVideo",
+                    "video": {"@type": "inputFileLocal", "path": file_path},
+                    "width": width,
+                    "height": height,
+                    "duration": duration,
+                },
             },
         }
         return self._send_data(data)
@@ -281,9 +296,12 @@ class Tdlib(Telegram):
             "chat_id": chat_id,
             "input_message_content": {
                 "@type": "inputMessageVoiceNote",
-                "duration": duration,
-                "waveform": waveform,
-                "voice_note": {"@type": "inputFileLocal", "path": file_path},
+                "voice_note": {
+                    "@type": "inputVoiceNote",
+                    "voice_note": {"@type": "inputFileLocal", "path": file_path},
+                    "duration": duration,
+                    "waveform": waveform,
+                },
             },
         }
         return self._send_data(data)
@@ -315,6 +333,7 @@ class Tdlib(Telegram):
     def toggle_chat_is_pinned(self, chat_id: int, is_pinned: bool) -> AsyncResult:
         data = {
             "@type": "toggleChatIsPinned",
+            "chat_list": {"@type": "chatListMain"},
             "chat_id": chat_id,
             "is_pinned": is_pinned,
         }
