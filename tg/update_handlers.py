@@ -74,17 +74,6 @@ def update_new_message(controller: Controller, update: dict[str, Any]) -> None:
     controller.notify_for_message(msg.chat_id, msg)
 
 
-# outdated
-@update_handler("updateChatOrder")
-def update_chat_order(controller: Controller, update: dict[str, Any]) -> None:
-    current_chat_id = controller.model.current_chat_id
-    chat_id = update["chat_id"]
-    order = update["order"]
-
-    if controller.model.chats.update_chat(chat_id, order=order):
-        controller.refresh_current_chat(current_chat_id)
-
-
 @update_handler("updateChatPosition")
 def update_chat_position(controller: Controller, update: dict[str, Any]) -> None:
     current_chat_id = controller.model.current_chat_id
@@ -127,17 +116,6 @@ def update_new_chat(controller: Controller, update: dict[str, Any]) -> None:
     controller.model.chats.add_chat(chat)
 
 
-@update_handler("updateChatIsPinned")
-def update_chat_is_pinned(controller: Controller, update: dict[str, Any]) -> None:
-    chat_id = update["chat_id"]
-    is_pinned = update["is_pinned"]
-    order = update["order"]
-
-    current_chat_id = controller.model.current_chat_id
-    if controller.model.chats.update_chat(chat_id, is_pinned=is_pinned, order=order):
-        controller.refresh_current_chat(current_chat_id)
-
-
 @update_handler("updateChatReadOutbox")
 def update_chat_read_outbox(controller: Controller, update: dict[str, Any]) -> None:
     chat_id = update["chat_id"]
@@ -170,12 +148,7 @@ def update_chat_draft_message(controller: Controller, update: dict[str, Any]) ->
     chat_id = update["chat_id"]
     # FIXME: ignoring draft message itself for now because UI can't show it
     # draft_message = update["draft_message"]
-    if "positions" in update:
-        order = main_list_order(update["positions"])
-    elif "order" in update:  # old TDLib
-        order = update["order"]
-    else:
-        return
+    order = main_list_order(update.get("positions", []))
 
     current_chat_id = controller.model.current_chat_id
     if controller.model.chats.update_chat(chat_id, order=order):
@@ -301,7 +274,7 @@ def update_supergroup(controller: Controller, update: dict[str, Any]) -> None:
     controller.render_msgs()
 
 
-@update_handler("updateUserChatAction")
+@update_handler("updateChatAction")
 def update_user_chat_action(controller: Controller, update: dict[str, Any]) -> None:
     chat_id = update["chat_id"]
     if update["action"]["@type"] == "chatActionCancel":

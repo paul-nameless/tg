@@ -551,6 +551,15 @@ def result_update(result: AsyncResult) -> dict[str, Any]:
     return result.update
 
 
+def username(user: dict[str, Any]) -> str:
+    active = (user.get("usernames") or {}).get("active_usernames") or []
+    return active[0] if active else ""
+
+
+def invite_link(full_info: dict[str, Any]) -> str:
+    return (full_info.get("invite_link") or {}).get("invite_link", "")
+
+
 def get_chat_type(chat: dict[str, Any]) -> ChatType | None:
     try:
         chat_type = ChatType[chat["type"]["@type"]]

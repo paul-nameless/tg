@@ -15,7 +15,9 @@ from tg.tdlib import (
     UserStatus,
     UserType,
     get_chat_type,
+    invite_link,
     result_update,
+    username,
 )
 from tg.utils import copy_to_clipboard, pretty_ts
 
@@ -270,9 +272,9 @@ class Model:
         status = self.users.get_status(user_id)
         return {
             chat["title"]: status,
-            "Username": user.get("username", ""),
+            "Username": username(user),
             "Phone": user.get("phone_number", ""),
-            "Bio": user_info.get("bio", ""),
+            "Bio": (user_info.get("bio") or {}).get("text", ""),
         }
 
     def get_basic_group_info(self, chat: dict[str, Any]) -> dict[str, Any]:
@@ -284,9 +286,9 @@ class Model:
         basic.wait()
         basic_info = result_update(basic)
         return {
-            chat["title"]: f"{basic_info['member_count']} members",
-            "Info": chat_info["description"],
-            "Share link": chat_info["invite_link"],
+            chat["title"]: f"{basic_info.get('member_count', 0)} members",
+            "Info": chat_info.get("description", ""),
+            "Share link": invite_link(chat_info),
         }
 
     def get_supergroup_info(self, chat: dict[str, Any]) -> dict[str, Any]:
@@ -294,9 +296,9 @@ class Model:
         result.wait()
         chat_info = result_update(result)
         return {
-            chat["title"]: f"{chat_info['member_count']} members",
-            "Info": chat_info["description"],
-            "Share link": chat_info["invite_link"],
+            chat["title"]: f"{chat_info.get('member_count', 0)} members",
+            "Info": chat_info.get("description", ""),
+            "Share link": invite_link(chat_info),
         }
 
     def get_channel_info(self, chat: dict[str, Any]) -> dict[str, Any]:
@@ -304,9 +306,9 @@ class Model:
         result.wait()
         chat_info = result_update(result)
         return {
-            chat["title"]: "subscribers",
-            "Info": chat_info["description"],
-            "Share link": chat_info["invite_link"],
+            chat["title"]: f"{chat_info.get('member_count', 0)} subscribers",
+            "Info": chat_info.get("description", ""),
+            "Share link": invite_link(chat_info),
         }
 
     def get_secret_chat_info(self, chat: dict[str, Any]) -> dict[str, Any]:
@@ -357,8 +359,8 @@ class Model:
             pass
         info = {
             name: status,
-            "Username": user.get("username", ""),
-            "Bio": user_info.get("bio", ""),
+            "Username": username(user),
+            "Bio": (user_info.get("bio") or {}).get("text", ""),
             "Phone": user.get("phone_number", ""),
             "User Id": user_id,
             "Type": user_type,
@@ -708,7 +710,7 @@ class UserModel:
         if action is None:
             return None, None
         action_type = action["action"]["@type"]
-        user_id = action["user_id"]
+        user_id = action["sender_id"].get("user_id")
         try:
             return user_id, ChatAction[action_type].value
         except KeyError:
@@ -845,8 +847,8 @@ class UserModel:
         if user.get("first_name"):
             return f"{user['first_name']}"[:20]
 
-        if user.get("username"):
-            return "@" + user["username"]
+        if name := username(user):
+            return "@" + name
         return "<Unknown>"
 
     def get_users(self) -> list[User]:
