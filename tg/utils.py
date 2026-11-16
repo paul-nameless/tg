@@ -2,6 +2,7 @@ import base64
 import curses
 import hashlib
 import logging
+import mailcap
 import math
 import mimetypes
 import os
@@ -11,14 +12,12 @@ import struct
 import subprocess
 import sys
 import unicodedata
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import lru_cache
 from logging.handlers import RotatingFileHandler
 from subprocess import CompletedProcess
 from types import TracebackType
-from typing import Any, Dict, Optional, Tuple, Type
-
-import mailcap
+from typing import Any
 
 from tg import config
 
@@ -34,7 +33,7 @@ def _has_rtl(text: str) -> bool:
 
 
 @lru_cache(maxsize=1)
-def _rtl_backend() -> Optional[Any]:
+def _rtl_backend() -> Any | None:
     try:
         import arabic_reshaper
         from bidi.algorithm import get_display
@@ -113,7 +112,7 @@ def get_mime(file_path: str) -> str:
     return mtype.split("/")[0]
 
 
-def get_mailcap() -> Dict:
+def get_mailcap() -> dict:
     if config.MAILCAP_FILE:
         with open(config.MAILCAP_FILE) as f:
             return mailcap.readmailcapfile(f)  # type: ignore[attr-defined]
@@ -126,7 +125,7 @@ def get_file_handler(file_path: str) -> str:
         return config.DEFAULT_OPEN.format(file_path=shlex.quote(file_path))
 
     caps = get_mailcap()
-    handler, view = mailcap.findmatch(caps, mtype, filename=shlex.quote(file_path))
+    handler, _view = mailcap.findmatch(caps, mtype, filename=shlex.quote(file_path))
     if not handler:
         return config.DEFAULT_OPEN.format(file_path=shlex.quote(file_path))
     return handler
@@ -143,7 +142,7 @@ def parse_size(size: str) -> int:
 def humanize_size(
     num: int,
     suffix: str = "B",
-    suffixes: Tuple[str, ...] = (
+    suffixes: tuple[str, ...] = (
         "",
         "K",
         "M",
@@ -154,22 +153,22 @@ def humanize_size(
         "Z",
     ),
 ) -> str:
-    magnitude = int(math.floor(math.log(num, 1024)))
+    magnitude = math.floor(math.log(num, 1024))
     val = num / math.pow(1024, magnitude)
     if magnitude > 7:
         return "{:.1f}{}{}".format(val, "Yi", suffix)
-    return "{:3.1f}{}{}".format(val, suffixes[magnitude], suffix)
+    return f"{val:3.1f}{suffixes[magnitude]}{suffix}"
 
 
 def humanize_duration(seconds: int) -> str:
-    dt = datetime.utcfromtimestamp(seconds)
+    dt = datetime.fromtimestamp(seconds, timezone.utc)
     fmt = "%-M:%S"
     if seconds >= 3600:
         fmt = "%-H:%M:%S"
     return dt.strftime(fmt)
 
 
-def num(value: str, default: Optional[int] = None) -> Optional[int]:
+def num(value: str, default: int | None = None) -> int | None:
     try:
         return int(value)
     except ValueError:
@@ -195,7 +194,7 @@ def get_duration(file_path: str) -> int:
     return 0
 
 
-def get_video_resolution(file_path: str) -> Tuple[int, int]:
+def get_video_resolution(file_path: str) -> tuple[int, int]:
     cmd = f"ffprobe -v error -show_entries stream=width,height -of default=noprint_wrappers=1 '{file_path}'"
     lines = subprocess.check_output(shlex.split(cmd)).decode().splitlines()
     info = {line.split("=")[0]: line.split("=")[1] for line in lines}
@@ -259,7 +258,7 @@ def truncate_to_len(string: str, width: int) -> str:
 
 
 def copy_to_clipboard(text: str) -> None:
-    subprocess.run(config.COPY_CMD, universal_newlines=True, input=text, shell=True)
+    subprocess.run(config.COPY_CMD, text=True, input=text, shell=True, check=False)
 
 
 class suspend:
@@ -268,14 +267,14 @@ class suspend:
         self.view = view
 
     def call(self, cmd: str) -> CompletedProcess:
-        return subprocess.run(cmd, shell=True)
+        return subprocess.run(cmd, shell=True, check=False)
 
     def run_with_input(self, cmd: str, text: str) -> None:
-        proc = subprocess.run(cmd, universal_newlines=True, input=text, shell=True)
+        proc = subprocess.run(cmd, text=True, input=text, shell=True, check=False)
         if proc.returncode:
             input(f"Command <{cmd}> failed: press <enter> to continue")
 
-    def open_file(self, file_path: str, cmd: Optional[str] = None) -> None:
+    def open_file(self, file_path: str, cmd: str | None = None) -> None:
         if cmd:
             cmd = cmd % shlex.quote(file_path)
         else:
@@ -285,7 +284,7 @@ class suspend:
         if proc.returncode:
             input(f"Command <{cmd}> failed: press <enter> to continue")
 
-    def __enter__(self) -> "suspend":
+    def __enter__(self) -> "suspend":  # noqa: PYI034
         for view in (self.view.chats, self.view.msgs, self.view.status):
             view._refresh = view.win.noutrefresh
         self.view.resize_handler = self.view.resize_stub
@@ -298,9 +297,9 @@ class suspend:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        tb: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        tb: TracebackType | None,
     ) -> None:
         for view in (self.view.chats, self.view.msgs, self.view.status):
             view._refresh = view.win.refresh
@@ -317,8 +316,8 @@ def set_shorter_esc_delay(delay: int = 25) -> None:
 
 
 def pretty_ts(ts: int) -> str:
-    now = datetime.utcnow()
-    diff = now - datetime.utcfromtimestamp(ts)
+    now = datetime.now(timezone.utc)
+    diff = now - datetime.fromtimestamp(ts, timezone.utc)
     second_diff = diff.seconds
     day_diff = diff.days
 

@@ -8,7 +8,8 @@ import shutil
 import sys
 import threading
 import time
-from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple
+from collections.abc import Callable, Iterator
+from typing import Any
 
 from tg import config, utils
 from tg.cli import render
@@ -23,7 +24,7 @@ from tg.cli.session import (
 from tg.msg import MsgProxy
 from tg.tdlib import ChatType, get_chat_type
 
-Output = Tuple[Dict[str, Any], List[str]]
+Output = tuple[dict[str, Any], list[str]]
 
 CHATS_PAGE = 100
 MAX_SCANNED_CHATS = 5000
@@ -65,32 +66,32 @@ class Ctx:
         self.session = session
         self.args = args
         self.call = session.call
-        self._chats: Dict[int, Dict[str, Any]] = {}
-        self._users: Dict[int, Dict[str, Any]] = {}
-        self._scope_muted: Dict[str, bool] = {}
-        self._me: Optional[Dict[str, Any]] = None
+        self._chats: dict[int, dict[str, Any]] = {}
+        self._users: dict[int, dict[str, Any]] = {}
+        self._scope_muted: dict[str, bool] = {}
+        self._me: dict[str, Any] | None = None
 
-    def me(self) -> Dict[str, Any]:
+    def me(self) -> dict[str, Any]:
         if self._me is None:
             self._me = self.call("getMe")
         return self._me
 
-    def chat(self, chat_id: int) -> Dict[str, Any]:
+    def chat(self, chat_id: int) -> dict[str, Any]:
         if chat_id not in self._chats:
             self._chats[chat_id] = self.call("getChat", chat_id=chat_id)
         return self._chats[chat_id]
 
-    def user(self, user_id: int) -> Dict[str, Any]:
+    def user(self, user_id: int) -> dict[str, Any]:
         if user_id not in self._users:
             self._users[user_id] = self.call("getUser", user_id=user_id)
         return self._users[user_id]
 
-    def chat_list(self) -> Dict[str, str]:
+    def chat_list(self) -> dict[str, str]:
         if getattr(self.args, "archive", False):
             return {"@type": "chatListArchive"}
         return {"@type": "chatListMain"}
 
-    def chat_type(self, chat: Dict[str, Any]) -> str:
+    def chat_type(self, chat: dict[str, Any]) -> str:
         chat_type = get_chat_type(chat)
         if chat_type is None:
             return "unknown"
@@ -100,7 +101,7 @@ class Ctx:
                 return "bot"
         return chat_type.value
 
-    def username(self, chat: Dict[str, Any]) -> Optional[str]:
+    def username(self, chat: dict[str, Any]) -> str | None:
         kind = chat["type"]["@type"]
         try:
             if kind in ("chatTypePrivate", "chatTypeSecret"):
@@ -116,7 +117,7 @@ class Ctx:
         active = (usernames or {}).get("active_usernames") or []
         return active[0] if active else None
 
-    def is_muted(self, chat: Dict[str, Any]) -> bool:
+    def is_muted(self, chat: dict[str, Any]) -> bool:
         settings = chat.get("notification_settings", {})
         if not settings.get("use_default_mute_for"):
             return settings.get("mute_for", 0) > 0
@@ -130,8 +131,8 @@ class Ctx:
             self._scope_muted[scope] = scope_settings.get("mute_for", 0) > 0
         return self._scope_muted[scope]
 
-    def chat_info(self, chat: Dict[str, Any], unread: bool = True) -> Dict[str, Any]:
-        info: Dict[str, Any] = {
+    def chat_info(self, chat: dict[str, Any], unread: bool = True) -> dict[str, Any]:
+        info: dict[str, Any] = {
             "chat_id": chat["id"],
             "type": self.chat_type(chat),
             "title": chat.get("title", ""),
@@ -144,7 +145,7 @@ class Ctx:
             info["marked_unread"] = chat.get("is_marked_as_unread", False)
         return info
 
-    def sender(self, msg: Dict[str, Any]) -> Tuple[str, Optional[int]]:
+    def sender(self, msg: dict[str, Any]) -> tuple[str, int | None]:
         if msg.get("is_outgoing"):
             return "me", self.me()["id"]
         sender = msg.get("sender_id", {})
@@ -159,11 +160,11 @@ class Ctx:
             pass
         return "unknown", None
 
-    def msg_info(self, msg: Dict[str, Any]) -> Dict[str, Any]:
+    def msg_info(self, msg: dict[str, Any]) -> dict[str, Any]:
         content = msg.get("content", {})
         kind = content.get("@type", "")
         text = ""
-        media: Optional[Dict[str, Any]] = None
+        media: dict[str, Any] | None = None
         if kind == "messageText":
             text = content.get("text", {}).get("text", "")
         else:
@@ -198,8 +199,8 @@ class Ctx:
 
     def iter_chats(
         self, max_chats: int = MAX_SCANNED_CHATS
-    ) -> Iterator[Dict[str, Any]]:
-        yielded: Set[int] = set()
+    ) -> Iterator[dict[str, Any]]:
+        yielded: set[int] = set()
         limit = CHATS_PAGE
         while len(yielded) < max_chats:
             ids = self.call("getChats", chat_list=self.chat_list(), limit=limit).get(
@@ -215,8 +216,8 @@ class Ctx:
 
     def history_older(
         self, chat_id: int, before: int, limit: int, after: int = 0
-    ) -> List[Dict[str, Any]]:
-        msgs: List[Dict[str, Any]] = []
+    ) -> list[dict[str, Any]]:
+        msgs: list[dict[str, Any]] = []
         from_id = before
         for _ in range(MAX_HISTORY_REQUESTS):
             batch = self.call(
@@ -241,8 +242,8 @@ class Ctx:
 
     def history_newer(
         self, chat_id: int, after: int, limit: int
-    ) -> List[Dict[str, Any]]:
-        msgs: List[Dict[str, Any]] = []
+    ) -> list[dict[str, Any]]:
+        msgs: list[dict[str, Any]] = []
         from_id = after
         for _ in range(MAX_HISTORY_REQUESTS):
             count = min(HISTORY_PAGE - 2, limit - len(msgs))
@@ -265,7 +266,7 @@ class Ctx:
             from_id = new[-1]["id"]
         return msgs
 
-    def resolve(self, ref: str, strict: bool = False) -> Dict[str, Any]:
+    def resolve(self, ref: str, strict: bool = False) -> dict[str, Any]:
         if re.fullmatch(r"-?\d+", ref):
             try:
                 return self.chat(int(ref))
@@ -306,13 +307,13 @@ class Ctx:
 
 
 def service_name(kind: str) -> str:
-    name = kind[len("message") :] if kind.startswith("message") else kind
+    name = kind.removeprefix("message")
     return name[:1].lower() + name[1:] or "unknown"
 
 
-def media_details(msg: Dict[str, Any]) -> Dict[str, Any]:
+def media_details(msg: dict[str, Any]) -> dict[str, Any]:
     proxy = MsgProxy(msg)
-    details: Dict[str, Any] = {}
+    details: dict[str, Any] = {}
     for key in ("file_name", "human_size", "duration"):
         try:
             value = getattr(proxy, key)
@@ -323,17 +324,17 @@ def media_details(msg: Dict[str, Any]) -> Dict[str, Any]:
     return details
 
 
-def is_unread(chat: Dict[str, Any]) -> bool:
+def is_unread(chat: dict[str, Any]) -> bool:
     return bool(chat.get("unread_count") or chat.get("is_marked_as_unread"))
 
 
 def take(
-    chats: Iterator[Dict[str, Any]],
+    chats: Iterator[dict[str, Any]],
     offset: int,
     limit: int,
-    keep: Callable[[Dict[str, Any]], bool],
-) -> Tuple[List[Dict[str, Any]], bool]:
-    matches: List[Dict[str, Any]] = []
+    keep: Callable[[dict[str, Any]], bool],
+) -> tuple[list[dict[str, Any]], bool]:
+    matches: list[dict[str, Any]] = []
     for chat in chats:
         if not keep(chat):
             continue
@@ -346,7 +347,7 @@ def take(
 def unread(ctx: Ctx, args: argparse.Namespace) -> Output:
     skipped = 0
 
-    def keep(chat: Dict[str, Any]) -> bool:
+    def keep(chat: dict[str, Any]) -> bool:
         nonlocal skipped
         if not is_unread(chat):
             return False
@@ -374,7 +375,7 @@ def unread(ctx: Ctx, args: argparse.Namespace) -> Output:
 
     next_cmd = None
     if has_more:
-        parts: List[Any] = ["unread", "--offset", args.offset + args.limit]
+        parts: list[Any] = ["unread", "--offset", args.offset + args.limit]
         parts += ["--limit", args.limit, "--per-chat", args.per_chat]
         if args.muted:
             parts.append("--muted")
@@ -406,7 +407,7 @@ def unread(ctx: Ctx, args: argparse.Namespace) -> Output:
 
 
 def chats(ctx: Ctx, args: argparse.Namespace) -> Output:
-    source: Iterator[Dict[str, Any]]
+    source: Iterator[dict[str, Any]]
     if args.query:
         limit = min(args.offset + args.limit + 1, 500)
         ids = ctx.call("searchChats", query=args.query, limit=limit)
@@ -419,7 +420,7 @@ def chats(ctx: Ctx, args: argparse.Namespace) -> Output:
     result = [ctx.chat_info(c) for c in page]
     next_cmd = None
     if has_more:
-        parts: List[Any] = ["chats", "--offset", args.offset + args.limit]
+        parts: list[Any] = ["chats", "--offset", args.offset + args.limit]
         parts += ["--limit", args.limit]
         if args.unread:
             parts.append("--unread")
@@ -437,7 +438,7 @@ def chats(ctx: Ctx, args: argparse.Namespace) -> Output:
 def history(ctx: Ctx, args: argparse.Namespace) -> Output:
     chat = ctx.resolve(args.chat)
     chat_id = chat["id"]
-    next_parts: Optional[List[Any]] = None
+    next_parts: list[Any] | None = None
     if args.after and not args.before:
         msgs = ctx.history_newer(chat_id, args.after, args.limit + 1)
         has_more = len(msgs) > args.limit
@@ -479,7 +480,7 @@ def search(ctx: Ctx, args: argparse.Namespace) -> Output:
         )
         next_offset: Any = found.get("next_from_message_id") or None
     else:
-        params: Dict[str, Any] = {}
+        params: dict[str, Any] = {}
         if args.archive:
             params["chat_list"] = ctx.chat_list()
         found = ctx.call(
@@ -493,7 +494,7 @@ def search(ctx: Ctx, args: argparse.Namespace) -> Output:
         )
         next_offset = found.get("next_offset") or None
 
-    groups: Dict[int, Dict[str, Any]] = {}
+    groups: dict[int, dict[str, Any]] = {}
     for msg in found.get("messages", []):
         if not msg:
             continue
@@ -505,7 +506,7 @@ def search(ctx: Ctx, args: argparse.Namespace) -> Output:
 
     next_cmd = None
     if next_offset:
-        parts: List[Any] = ["search", args.query, "--offset", next_offset]
+        parts: list[Any] = ["search", args.query, "--offset", next_offset]
         if args.chat:
             parts += ["--chat", args.chat]
         parts += ["--limit", args.limit]
@@ -537,7 +538,7 @@ def ensure_send_enabled() -> None:
         )
 
 
-def send_allowed(ctx: Ctx, chat: Dict[str, Any]) -> None:
+def send_allowed(ctx: Ctx, chat: dict[str, Any]) -> None:
     ensure_send_enabled()
     allowlist = config.CLI_SEND_ALLOWLIST
     if not allowlist:
@@ -560,10 +561,10 @@ def send(ctx: Ctx, args: argparse.Namespace) -> Output:
     if not text.strip():
         raise CliError("empty message", EXIT_USAGE)
 
-    results: Dict[int, Dict[str, Any]] = {}
+    results: dict[int, dict[str, Any]] = {}
     done = threading.Condition()
 
-    def on_result(update: Dict[str, Any]) -> None:
+    def on_result(update: dict[str, Any]) -> None:
         with done:
             results[update["old_message_id"]] = update
             done.notify_all()
@@ -571,7 +572,7 @@ def send(ctx: Ctx, args: argparse.Namespace) -> Output:
     ctx.session.on("updateMessageSendSucceeded", on_result)
     ctx.session.on("updateMessageSendFailed", on_result)
 
-    params: Dict[str, Any] = {
+    params: dict[str, Any] = {
         "chat_id": chat["id"],
         "input_message_content": {
             "@type": "inputMessageText",
@@ -607,10 +608,10 @@ def mark_read(ctx: Ctx, args: argparse.Namespace) -> Output:
     before = chat.get("unread_count", 0)
     up_to = args.up_to or (chat.get("last_message") or {}).get("id")
 
-    left: Dict[str, int] = {}
+    left: dict[str, int] = {}
     updated = threading.Event()
 
-    def on_read(update: Dict[str, Any]) -> None:
+    def on_read(update: dict[str, Any]) -> None:
         if update.get("chat_id") == chat_id:
             left["count"] = update.get("unread_count", 0)
             updated.set()
@@ -684,7 +685,7 @@ def download(ctx: Ctx, args: argparse.Namespace) -> Output:
     return data, [render.kv(**data)]
 
 
-def user_info(ctx: Ctx) -> Dict[str, Any]:
+def user_info(ctx: Ctx) -> dict[str, Any]:
     me = ctx.me()
     usernames = (me.get("usernames") or {}).get("active_usernames") or []
     name = f"{me.get('first_name', '')} {me.get('last_name', '')}".strip()
@@ -708,7 +709,7 @@ def login(ctx: Ctx, args: argparse.Namespace) -> Output:
     return info, [render.kv(**info)]
 
 
-def is_reply_to_me(ctx: Ctx, msg: Dict[str, Any]) -> bool:
+def is_reply_to_me(ctx: Ctx, msg: dict[str, Any]) -> bool:
     reply = msg.get("reply_to") or {}
     if reply.get("@type") != "messageReplyToMessage":
         return False
@@ -725,9 +726,9 @@ def is_reply_to_me(ctx: Ctx, msg: Dict[str, Any]) -> bool:
 
 def watch(ctx: Ctx, args: argparse.Namespace) -> None:
     only_chat = ctx.resolve(args.chat)["id"] if args.chat else None
-    incoming: "queue.Queue[Dict[str, Any]]" = queue.Queue()
+    incoming: queue.Queue[dict[str, Any]] = queue.Queue()
 
-    def on_message(update: Dict[str, Any]) -> None:
+    def on_message(update: dict[str, Any]) -> None:
         msg = update.get("message") or {}
         if not msg.get("is_outgoing"):
             incoming.put(msg)
@@ -739,7 +740,7 @@ def watch(ctx: Ctx, args: argparse.Namespace) -> None:
         wait = None if deadline is None else deadline - time.monotonic()
         if wait is not None and wait <= 0:
             if not args.count:
-                return None
+                return
             raise CliError("watch timed out", EXIT_TIMEOUT)
         try:
             msg = incoming.get(timeout=wait)
@@ -767,7 +768,7 @@ def watch(ctx: Ctx, args: argparse.Namespace) -> None:
         seen += 1
 
 
-COMMANDS: Dict[str, Callable[[Ctx, argparse.Namespace], Optional[Output]]] = {
+COMMANDS: dict[str, Callable[[Ctx, argparse.Namespace], Output | None]] = {
     "unread": unread,
     "chats": chats,
     "history": history,

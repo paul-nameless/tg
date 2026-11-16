@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, ClassVar
 
 from tg import utils
 
@@ -8,7 +8,7 @@ log = logging.getLogger(__name__)
 
 
 class MsgProxy:
-    fields_mapping = {
+    fields_mapping: ClassVar[dict[str, tuple[str | int, ...]]] = {
         "messageDocument": ("document", "document"),
         "messageVoiceNote": ("voice_note", "voice"),
         "messageText": ("text", "text"),
@@ -21,7 +21,7 @@ class MsgProxy:
         "messageAnimation": ("animation", "animation"),
     }
 
-    types = {
+    types: ClassVar[dict[str, str]] = {
         "messageDocument": "document",
         "messageVoiceNote": "voice",
         "messageText": "text",
@@ -35,7 +35,7 @@ class MsgProxy:
     }
 
     @classmethod
-    def get_doc(cls, msg: Dict[str, Any], deep: int = 10) -> Dict[str, Any]:
+    def get_doc(cls, msg: dict[str, Any], deep: int = 10) -> dict[str, Any]:
         doc = msg["content"]
         _type = doc["@type"]
         fields = cls.fields_mapping.get(_type)
@@ -53,7 +53,7 @@ class MsgProxy:
                 return {}
         return doc
 
-    def __init__(self, msg: Dict[str, Any]) -> None:
+    def __init__(self, msg: dict[str, Any]) -> None:
         self.msg = msg
 
     def __getitem__(self, key: str) -> Any:
@@ -63,7 +63,7 @@ class MsgProxy:
         self.msg[key] = value
 
     @property
-    def type(self) -> Optional[str]:
+    def type(self) -> str | None:
         return self.msg.get("@type")
 
     @property
@@ -75,35 +75,35 @@ class MsgProxy:
         return self.type == "message"
 
     @property
-    def content_type(self) -> Optional[str]:
+    def content_type(self) -> str | None:
         return self.types.get(self.msg["content"]["@type"])
 
     @property
-    def size(self) -> Optional[int]:
+    def size(self) -> int | None:
         doc = self.get_doc(self.msg)
         return doc.get("size")
 
     @property
-    def human_size(self) -> Optional[str]:
+    def human_size(self) -> str | None:
         if self.size:
             return utils.humanize_size(self.size)
 
     @property
-    def duration(self) -> Optional[str]:
+    def duration(self) -> str | None:
         if self.content_type not in ("audio", "voice", "video", "recording"):
             return None
         doc = self.get_doc(self.msg, deep=1)
         return utils.humanize_duration(doc["duration"])
 
     @property
-    def file_name(self) -> Optional[str]:
+    def file_name(self) -> str | None:
         if self.content_type not in ("audio", "document", "video"):
             return None
         doc = self.get_doc(self.msg, deep=1)
         return doc["file_name"]
 
     @property
-    def file_id(self) -> Optional[int]:
+    def file_id(self) -> int | None:
         if self.content_type not in (
             "audio",
             "document",
@@ -119,19 +119,19 @@ class MsgProxy:
         return doc["id"]
 
     @property
-    def local_path(self) -> Optional[str]:
+    def local_path(self) -> str | None:
         if self.content_type is None:
             return None
         doc = self.get_doc(self.msg)
         return doc["local"]["path"]
 
     @property
-    def local(self) -> Dict:
+    def local(self) -> dict:
         doc = self.get_doc(self.msg)
         return doc.get("local", {})
 
     @local.setter
-    def local(self, value: Dict) -> None:
+    def local(self, value: dict) -> None:
         if self.msg["content"]["@type"] is None:
             return
         doc = self.get_doc(self.msg)
@@ -151,12 +151,12 @@ class MsgProxy:
         return self.msg["content"]["poll"]["question"]
 
     @property
-    def poll_options(self) -> List[Dict]:
+    def poll_options(self) -> list[dict]:
         assert self.is_poll
         return self.msg["content"]["poll"]["options"]
 
     @property
-    def is_closed_poll(self) -> Optional[bool]:
+    def is_closed_poll(self) -> bool | None:
         if not self.is_poll:
             return None
         return self.msg["content"]["poll"]["is_closed"]
@@ -171,7 +171,7 @@ class MsgProxy:
         return doc["local"]["is_downloading_completed"]
 
     @property
-    def is_listened(self) -> Optional[bool]:
+    def is_listened(self) -> bool | None:
         if self.content_type != "voice":
             return None
         return self.msg["content"]["is_listened"]
@@ -182,7 +182,7 @@ class MsgProxy:
             self.msg["content"]["is_listened"] = value
 
     @property
-    def is_viewed(self) -> Optional[bool]:
+    def is_viewed(self) -> bool | None:
         if self.content_type != "recording":
             return None
         return self.msg["content"]["is_viewed"]
@@ -197,18 +197,18 @@ class MsgProxy:
         return self.msg["id"]
 
     @property
-    def reply_msg_id(self) -> Optional[int]:
+    def reply_msg_id(self) -> int | None:
         reply_to = self.msg.get("reply_to") or {}
         if reply_to.get("@type") != "messageReplyToMessage":
             return None
         return reply_to.get("message_id")
 
     @property
-    def reply_markup(self) -> Optional[Dict[str, Any]]:
+    def reply_markup(self) -> dict[str, Any] | None:
         return self.msg.get("reply_markup")
 
     @property
-    def reply_markup_rows(self) -> List[List[Dict[str, Any]]]:
+    def reply_markup_rows(self) -> list[list[dict[str, Any]]]:
         assert self.reply_markup
         return self.reply_markup.get("rows", [])
 
@@ -223,24 +223,24 @@ class MsgProxy:
         )
 
     @property
-    def forward(self) -> Optional[Dict[str, Any]]:
+    def forward(self) -> dict[str, Any] | None:
         return self.msg.get("forward_info")
 
     @property
-    def caption(self) -> Optional[str]:
+    def caption(self) -> str | None:
         caption = self.msg["content"].get("caption")
         if not caption:
             return None
         return caption["text"]
 
     @property
-    def sticker_emoji(self) -> Optional[str]:
+    def sticker_emoji(self) -> str | None:
         if self.content_type != "sticker":
             return None
         return self.msg["content"].get("sticker", {}).get("emoji")
 
     @property
-    def is_animated(self) -> Optional[bool]:
+    def is_animated(self) -> bool | None:
         if self.content_type != "sticker":
             return None
         return self.msg["content"].get("sticker", {}).get("is_animated")

@@ -139,6 +139,7 @@ All configurable variables can be found [here](https://github.com/paul-nameless/
 ```python
 import os
 
+
 # You can write anything you want here, file will be executed at start time
 # You can keep you sensitive information in password managers or gpg
 # encrypted files for example
@@ -197,7 +198,7 @@ MSG_FLAGS = {
 }
 
 # use this app to open url when there are multiple
-URL_VIEW = 'urlview'
+URL_VIEW = "urlview"
 
 # Specifies range of colors to use for drawing users with
 # different colors

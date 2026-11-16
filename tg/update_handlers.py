@@ -1,6 +1,7 @@
 import logging
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, Dict
+from typing import Any
 
 from tg import config, utils
 from tg.controllers import Controller
@@ -9,9 +10,9 @@ from tg.msg import MsgProxy
 
 log = logging.getLogger(__name__)
 
-UpdateHandler = Callable[[Controller, Dict[str, Any]], None]
+UpdateHandler = Callable[[Controller, dict[str, Any]], None]
 
-handlers: Dict[str, UpdateHandler] = {}
+handlers: dict[str, UpdateHandler] = {}
 
 max_download_size: int = utils.parse_size(config.MAX_DOWNLOAD_SIZE)
 
@@ -20,13 +21,12 @@ def update_handler(
     update_type: str,
 ) -> Callable[[UpdateHandler], UpdateHandler]:
     def decorator(fun: UpdateHandler) -> UpdateHandler:
-        global handlers
         assert update_type not in handlers, (
             f"Update type <{update_type}> already has handler: {handlers[update_type]}"
         )
 
         @wraps(fun)
-        def wrapper(controller: Controller, update: Dict[str, Any]) -> None:
+        def wrapper(controller: Controller, update: dict[str, Any]) -> None:
             try:
                 fun(controller, update)
             except Exception:
@@ -39,7 +39,7 @@ def update_handler(
 
 
 @update_handler("updateMessageContent")
-def update_message_content(controller: Controller, update: Dict[str, Any]) -> None:
+def update_message_content(controller: Controller, update: dict[str, Any]) -> None:
     chat_id = update["chat_id"]
     message_id = update["message_id"]
     controller.model.msgs.update_msg(chat_id, message_id, content=update["new_content"])
@@ -50,7 +50,7 @@ def update_message_content(controller: Controller, update: Dict[str, Any]) -> No
 
 
 @update_handler("updateMessageEdited")
-def update_message_edited(controller: Controller, update: Dict[str, Any]) -> None:
+def update_message_edited(controller: Controller, update: dict[str, Any]) -> None:
     chat_id = update["chat_id"]
     message_id = update["message_id"]
     edit_date = update["edit_date"]
@@ -62,7 +62,7 @@ def update_message_edited(controller: Controller, update: Dict[str, Any]) -> Non
 
 
 @update_handler("updateNewMessage")
-def update_new_message(controller: Controller, update: Dict[str, Any]) -> None:
+def update_new_message(controller: Controller, update: dict[str, Any]) -> None:
     msg = MsgProxy(update["message"])
     controller.model.msgs.add_message(msg.chat_id, msg.msg)
     current_chat_id = controller.model.current_chat_id
@@ -76,7 +76,7 @@ def update_new_message(controller: Controller, update: Dict[str, Any]) -> None:
 
 # outdated
 @update_handler("updateChatOrder")
-def update_chat_order(controller: Controller, update: Dict[str, Any]) -> None:
+def update_chat_order(controller: Controller, update: dict[str, Any]) -> None:
     current_chat_id = controller.model.current_chat_id
     chat_id = update["chat_id"]
     order = update["order"]
@@ -86,7 +86,7 @@ def update_chat_order(controller: Controller, update: Dict[str, Any]) -> None:
 
 
 @update_handler("updateChatPosition")
-def update_chat_position(controller: Controller, update: Dict[str, Any]) -> None:
+def update_chat_position(controller: Controller, update: dict[str, Any]) -> None:
     current_chat_id = controller.model.current_chat_id
     chat_id = update["chat_id"]
     position = update["position"]
@@ -98,7 +98,7 @@ def update_chat_position(controller: Controller, update: Dict[str, Any]) -> None
 
 
 @update_handler("updateChatTitle")
-def update_chat_title(controller: Controller, update: Dict[str, Any]) -> None:
+def update_chat_title(controller: Controller, update: dict[str, Any]) -> None:
     chat_id = update["chat_id"]
     title = update["title"]
 
@@ -109,7 +109,7 @@ def update_chat_title(controller: Controller, update: Dict[str, Any]) -> None:
 
 @update_handler("updateChatIsMarkedAsUnread")
 def update_chat_is_marked_as_unread(
-    controller: Controller, update: Dict[str, Any]
+    controller: Controller, update: dict[str, Any]
 ) -> None:
     chat_id = update["chat_id"]
     is_marked_as_unread = update["is_marked_as_unread"]
@@ -122,13 +122,13 @@ def update_chat_is_marked_as_unread(
 
 
 @update_handler("updateNewChat")
-def update_new_chat(controller: Controller, update: Dict[str, Any]) -> None:
+def update_new_chat(controller: Controller, update: dict[str, Any]) -> None:
     chat = update["chat"]
     controller.model.chats.add_chat(chat)
 
 
 @update_handler("updateChatIsPinned")
-def update_chat_is_pinned(controller: Controller, update: Dict[str, Any]) -> None:
+def update_chat_is_pinned(controller: Controller, update: dict[str, Any]) -> None:
     chat_id = update["chat_id"]
     is_pinned = update["is_pinned"]
     order = update["order"]
@@ -139,7 +139,7 @@ def update_chat_is_pinned(controller: Controller, update: Dict[str, Any]) -> Non
 
 
 @update_handler("updateChatReadOutbox")
-def update_chat_read_outbox(controller: Controller, update: Dict[str, Any]) -> None:
+def update_chat_read_outbox(controller: Controller, update: dict[str, Any]) -> None:
     chat_id = update["chat_id"]
     last_read_outbox_message_id = update["last_read_outbox_message_id"]
 
@@ -151,7 +151,7 @@ def update_chat_read_outbox(controller: Controller, update: Dict[str, Any]) -> N
 
 
 @update_handler("updateChatReadInbox")
-def update_chat_read_inbox(controller: Controller, update: Dict[str, Any]) -> None:
+def update_chat_read_inbox(controller: Controller, update: dict[str, Any]) -> None:
     chat_id = update["chat_id"]
     last_read_inbox_message_id = update["last_read_inbox_message_id"]
     unread_count = update["unread_count"]
@@ -166,7 +166,7 @@ def update_chat_read_inbox(controller: Controller, update: Dict[str, Any]) -> No
 
 
 @update_handler("updateChatDraftMessage")
-def update_chat_draft_message(controller: Controller, update: Dict[str, Any]) -> None:
+def update_chat_draft_message(controller: Controller, update: dict[str, Any]) -> None:
     chat_id = update["chat_id"]
     # FIXME: ignoring draft message itself for now because UI can't show it
     # draft_message = update["draft_message"]
@@ -183,7 +183,7 @@ def update_chat_draft_message(controller: Controller, update: Dict[str, Any]) ->
 
 
 @update_handler("updateChatLastMessage")
-def update_chat_last_message(controller: Controller, update: Dict[str, Any]) -> None:
+def update_chat_last_message(controller: Controller, update: dict[str, Any]) -> None:
     chat_id = update["chat_id"]
     last_message = update.get("last_message")
     if not last_message:
@@ -203,7 +203,7 @@ def update_chat_last_message(controller: Controller, update: Dict[str, Any]) -> 
 
 @update_handler("updateChatNotificationSettings")
 def update_chat_notification_settings(
-    controller: Controller, update: Dict[str, Any]
+    controller: Controller, update: dict[str, Any]
 ) -> None:
     chat_id = update["chat_id"]
     notification_settings = update["notification_settings"]
@@ -215,7 +215,7 @@ def update_chat_notification_settings(
 
 @update_handler("updateMessageSendSucceeded")
 def update_message_send_succeeded(
-    controller: Controller, update: Dict[str, Any]
+    controller: Controller, update: dict[str, Any]
 ) -> None:
     chat_id = update["message"]["chat_id"]
     msg_id = update["old_message_id"]
@@ -228,7 +228,7 @@ def update_message_send_succeeded(
 
 
 @update_handler("updateFile")
-def update_file(controller: Controller, update: Dict[str, Any]) -> None:
+def update_file(controller: Controller, update: dict[str, Any]) -> None:
     file_id = update["file"]["id"]
     local = update["file"]["local"]
     chat_id, msg_id = controller.model.downloads.get(file_id, (None, None))
@@ -247,7 +247,7 @@ def update_file(controller: Controller, update: Dict[str, Any]) -> None:
 
 @update_handler("updateMessageContentOpened")
 def update_message_content_opened(
-    controller: Controller, update: Dict[str, Any]
+    controller: Controller, update: dict[str, Any]
 ) -> None:
     chat_id = update["chat_id"]
     message_id = update["message_id"]
@@ -256,7 +256,7 @@ def update_message_content_opened(
 
 
 @update_handler("updateDeleteMessages")
-def update_delete_messages(controller: Controller, update: Dict[str, Any]) -> None:
+def update_delete_messages(controller: Controller, update: dict[str, Any]) -> None:
     if not update["is_permanent"]:
         log.debug("Ignoring deletiong becuase not permanent: %s", update)
         return
@@ -267,7 +267,7 @@ def update_delete_messages(controller: Controller, update: Dict[str, Any]) -> No
 
 
 @update_handler("updateConnectionState")
-def update_connection_state(controller: Controller, update: Dict[str, Any]) -> None:
+def update_connection_state(controller: Controller, update: dict[str, Any]) -> None:
     state = update["state"]["@type"]
     states = {
         "connectionStateWaitingForNetwork": "Waiting for network...",
@@ -282,27 +282,27 @@ def update_connection_state(controller: Controller, update: Dict[str, Any]) -> N
 
 
 @update_handler("updateUserStatus")
-def update_user_status(controller: Controller, update: Dict[str, Any]) -> None:
+def update_user_status(controller: Controller, update: dict[str, Any]) -> None:
     controller.model.users.set_status(update["user_id"], update["status"])
     controller.render()
 
 
 @update_handler("updateBasicGroup")
-def update_basic_group(controller: Controller, update: Dict[str, Any]) -> None:
+def update_basic_group(controller: Controller, update: dict[str, Any]) -> None:
     basic_group = update["basic_group"]
     controller.model.users.groups[basic_group["id"]] = basic_group
     controller.render_msgs()
 
 
 @update_handler("updateSupergroup")
-def update_supergroup(controller: Controller, update: Dict[str, Any]) -> None:
+def update_supergroup(controller: Controller, update: dict[str, Any]) -> None:
     supergroup = update["supergroup"]
     controller.model.users.supergroups[supergroup["id"]] = supergroup
     controller.render_msgs()
 
 
 @update_handler("updateUserChatAction")
-def update_user_chat_action(controller: Controller, update: Dict[str, Any]) -> None:
+def update_user_chat_action(controller: Controller, update: dict[str, Any]) -> None:
     chat_id = update["chat_id"]
     if update["action"]["@type"] == "chatActionCancel":
         controller.model.users.actions.pop(chat_id, None)

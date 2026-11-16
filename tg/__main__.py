@@ -5,7 +5,6 @@ import threading
 from curses import window
 from functools import partial
 from types import FrameType
-from typing import Optional
 
 from tg import config
 from tg.tdlib import Tdlib, quiet_tdlib
@@ -20,7 +19,7 @@ def run(tg: Tdlib, stdscr: window) -> None:
     from tg.views import ChatView, MsgView, StatusView, View
 
     # handle ctrl+c, to avoid interrupting tg when subprocess is called
-    def interrupt_signal_handler(sig: int, frame: Optional[FrameType]) -> None:
+    def interrupt_signal_handler(sig: int, frame: FrameType | None) -> None:
         # TODO: draw on status pane: to quite press <q>
         log.info("Interrupt signal is handled and ignored on purpose.")
 

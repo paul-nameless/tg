@@ -1,11 +1,12 @@
 import logging
 import os
 import shlex
+from collections.abc import Callable
 from datetime import datetime
 from functools import partial, wraps
 from queue import Queue
 from tempfile import NamedTemporaryFile
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from telegram.utils import AsyncResult
 
@@ -33,15 +34,15 @@ log = logging.getLogger(__name__)
 # cause blan areas on the msg display screen
 MSGS_LEFT_SCROLL_THRESHOLD = 2
 REPLY_MSG_PREFIX = "# >"
-HandlerType = Callable[[Any], Optional[str]]
+HandlerType = Callable[[Any], str | None]
 
-chat_handler: Dict[str, HandlerType] = {}
-msg_handler: Dict[str, HandlerType] = {}
+chat_handler: dict[str, HandlerType] = {}
+msg_handler: dict[str, HandlerType] = {}
 
 
 def bind(
-    binding: Dict[str, HandlerType],
-    keys: List[str],
+    binding: dict[str, HandlerType],
+    keys: list[str],
     repeat_factor: bool = False,
 ) -> Callable:
     """bind handlers to given keys"""
@@ -52,7 +53,7 @@ def bind(
             return fun(*args, **kwargs)
 
         @wraps(fun)
-        def _no_repeat_factor(self: "Controller", _: bool) -> Optional[str]:
+        def _no_repeat_factor(self: "Controller", _: bool) -> str | None:
             return fun(self)
 
         for key in keys:
@@ -153,7 +154,7 @@ class Controller:
             s.run_with_input(config.URL_VIEW, "\n".join(urls))
 
     @staticmethod
-    def format_help(bindings: Dict[str, HandlerType]) -> str:
+    def format_help(bindings: dict[str, HandlerType]) -> str:
         return "\n".join(
             f"{key}\t{fun.__name__}\t{fun.__doc__ or ''}"
             for key, fun in sorted(bindings.items())
@@ -175,7 +176,7 @@ class Controller:
     @bind(msg_handler, ["bp"])
     def breakpoint(self) -> None:
         with suspend(self.view):
-            breakpoint()
+            breakpoint()  # noqa: T100
 
     @bind(chat_handler, ["q"])
     @bind(msg_handler, ["q"])
@@ -506,7 +507,7 @@ class Controller:
             return self.model.can_post_in_channel(chat)
         return chat["permissions"]["can_send_basic_messages"]
 
-    def _open_msg(self, msg: MsgProxy, cmd: Optional[str] = None) -> None:
+    def _open_msg(self, msg: MsgProxy, cmd: str | None = None) -> None:
         if msg.is_text:
             with NamedTemporaryFile("w", suffix=".txt") as f:
                 f.write(msg.text_content)
@@ -566,7 +567,7 @@ class Controller:
                     self.model.edit_message(text=text)
                     self.present_info("Message edited")
 
-    def _get_user_ids(self, is_multiple: bool = False) -> List[int]:
+    def _get_user_ids(self, is_multiple: bool = False) -> list[int]:
         users = self.model.users.get_users()
         if not users:
             self.present_error("No contacts found")
@@ -587,7 +588,7 @@ class Controller:
         with NamedTemporaryFile("r+") as tmp, suspend(self.view) as s:
             s.run_with_input(f"{cmd} > {tmp.name}", users_out)
             with open(tmp.name) as f:
-                return [int(line.split()[0]) for line in f.readlines()]
+                return [int(line.split()[0]) for line in f]
 
     @bind(chat_handler, ["ns"])
     def new_secret(self) -> None:
@@ -697,7 +698,7 @@ class Controller:
         self._get_user_ids()
 
     @bind(chat_handler, ["l", "^J", "^E"])
-    def handle_msgs(self) -> Optional[str]:
+    def handle_msgs(self) -> str | None:
         rc = self.handle(msg_handler, self.msgs_chat_size())
         if rc == "QUIT":
             return rc
@@ -778,7 +779,7 @@ class Controller:
     def close(self) -> None:
         self.is_running = False
 
-    def handle(self, handlers: Dict[str, HandlerType], size: float) -> str:
+    def handle(self, handlers: dict[str, HandlerType], size: float) -> str:
         self.chat_size = size
         self.resize()
 
@@ -787,9 +788,7 @@ class Controller:
                 repeat_factor, keys = self.view.get_keys()
                 fun = handlers.get(keys, lambda *_: None)
                 res = fun(self, repeat_factor)  # type: ignore
-                if res == "QUIT":
-                    return res
-                elif res == "BACK":
+                if res == "QUIT" or res == "BACK":
                     return res
             except Exception:
                 log.exception("Error happend in key handle loop")
@@ -898,7 +897,7 @@ class Controller:
         if text := msg.text_content if msg.is_text else msg.content_type:
             notify(text, title=name)
 
-    def refresh_current_chat(self, current_chat_id: Optional[int]) -> None:
+    def refresh_current_chat(self, current_chat_id: int | None) -> None:
         if current_chat_id is None:
             return
         # TODO: we can create <index> for chats, it's faster than sqlite anyway

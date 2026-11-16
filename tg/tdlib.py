@@ -2,7 +2,7 @@ import ctypes
 import getpass
 import queue
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import qrcode
 from telegram.client import AsyncResult, AuthorizationState, Telegram
@@ -10,7 +10,7 @@ from telegram.client import AsyncResult, AuthorizationState, Telegram
 WAIT_OTHER_DEVICE = "authorizationStateWaitOtherDeviceConfirmation"
 
 
-def quiet_tdlib(library_path: Optional[str], verbosity: int) -> None:
+def quiet_tdlib(library_path: str | None, verbosity: int) -> None:
     if not library_path:
         return
     try:
@@ -42,8 +42,8 @@ class ChatAction(Enum):
     chatActionChoosingLocation = "choosing location"
     chatActionChoosingContact = "choosing contact"
     chatActionStartPlayingGame = "start playing game"
-    chatActionRecordingVideoNote = "recording video"
-    chatActionUploadingVideoNote = "uploading video"
+    chatActionRecordingVideoNote = "recording video note"
+    chatActionUploadingVideoNote = "uploading video note"
 
 
 class ChatType(Enum):
@@ -117,9 +117,9 @@ class Tdlib(Telegram):
         return self.login()
 
     def login_with_qr(self, request: bool) -> AuthorizationState:
-        states: "queue.Queue[Dict[str, Any]]" = queue.Queue()
+        states: queue.Queue[dict[str, Any]] = queue.Queue()
 
-        def on_state(update: Dict[str, Any]) -> None:
+        def on_state(update: dict[str, Any]) -> None:
             states.put(update["authorization_state"])
 
         self.add_update_handler("updateAuthorizationState", on_state)
@@ -146,9 +146,7 @@ class Tdlib(Telegram):
     def parse_text_entities(
         self,
         text: str,
-        parse_mode: Union[
-            TextParseModeInput, str
-        ] = TextParseModeInput.textParseModeMarkdown,
+        parse_mode: TextParseModeInput | str = TextParseModeInput.textParseModeMarkdown,
         version: int = 2,
     ) -> AsyncResult:
         """Offline synchronous method which returns parsed entities"""
@@ -164,7 +162,7 @@ class Tdlib(Telegram):
         return self._send_data(data)
 
     def send_message(
-        self, chat_id: int, text: str, entities: Optional[List[Dict[Any, Any]]] = None
+        self, chat_id: int, text: str, entities: list[dict[Any, Any]] | None = None
     ) -> AsyncResult:
         formatted_text = {"@type": "formattedText", "text": text}
 
@@ -396,11 +394,11 @@ class Tdlib(Telegram):
         self,
         chat_id: int,
         from_chat_id: int,
-        message_ids: List[int],
+        message_ids: list[int],
         as_album: bool = False,
         send_copy: bool = False,
         remove_caption: bool = False,
-        options: Dict[str, Any] = {},
+        options: dict[str, Any] | None = None,
     ) -> AsyncResult:
         data = {
             "@type": "forwardMessages",
@@ -410,7 +408,7 @@ class Tdlib(Telegram):
             "as_album": as_album,
             "send_copy": send_copy,
             "remove_caption": remove_caption,
-            "options": options,
+            "options": options or {},
         }
         return self._send_data(data)
 
@@ -465,7 +463,7 @@ class Tdlib(Telegram):
         return self._send_data(data)
 
     def send_chat_action(
-        self, chat_id: int, action: ChatAction, progress: Optional[int] = None
+        self, chat_id: int, action: ChatAction, progress: int | None = None
     ) -> AsyncResult:
         data = {
             "@type": "sendChatAction",
@@ -509,7 +507,7 @@ class Tdlib(Telegram):
         return self._send_data(data)
 
     def create_new_basic_group_chat(
-        self, user_ids: List[int], title: str
+        self, user_ids: list[int], title: str
     ) -> AsyncResult:
         data = {
             "@type": "createNewBasicGroupChat",
@@ -547,13 +545,13 @@ class Tdlib(Telegram):
         return self._send_data(data)
 
 
-def result_update(result: AsyncResult) -> Dict[str, Any]:
+def result_update(result: AsyncResult) -> dict[str, Any]:
     if result.error or not result.update:
         return {}
     return result.update
 
 
-def get_chat_type(chat: Dict[str, Any]) -> Optional[ChatType]:
+def get_chat_type(chat: dict[str, Any]) -> ChatType | None:
     try:
         chat_type = ChatType[chat["type"]["@type"]]
         if chat_type == ChatType.chatTypeSupergroup and chat["type"]["is_channel"]:
@@ -564,7 +562,7 @@ def get_chat_type(chat: Dict[str, Any]) -> Optional[ChatType]:
     return None
 
 
-def is_group(chat_type: Union[str, ChatType]) -> bool:
+def is_group(chat_type: str | ChatType) -> bool:
     return chat_type in (
         ChatType.chatTypeSupergroup,
         ChatType.chatTypeBasicGroup,

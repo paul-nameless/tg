@@ -1,6 +1,6 @@
 import json
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 MAX_OUTPUT_CHARS = 30_000
 TRUNCATED = "… output truncated, narrow with --chat/--limit"
@@ -55,7 +55,7 @@ def utc_date(ts: int) -> str:
     return datetime.fromtimestamp(ts, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def chat_line(chat: Dict[str, Any]) -> str:
+def chat_line(chat: dict[str, Any]) -> str:
     parts = [
         f"chat_id={chat['chat_id']}",
         f"type={chat['type']}",
@@ -76,7 +76,7 @@ def chat_line(chat: Dict[str, Any]) -> str:
     return " ".join(parts)
 
 
-def msg_line(msg: Dict[str, Any]) -> str:
+def msg_line(msg: dict[str, Any]) -> str:
     parts = [
         f"msg_id={msg['msg_id']}",
         f"date={local_date(msg['ts'])}",
@@ -86,7 +86,7 @@ def msg_line(msg: Dict[str, Any]) -> str:
         parts.append(f"reply_to={msg['reply_to']}")
     if msg.get("forwarded"):
         parts.append("forwarded=yes")
-    media: Optional[Dict[str, Any]] = msg.get("media")
+    media: dict[str, Any] | None = msg.get("media")
     if media:
         parts.append(f"media={media['type']}")
         if media.get("name"):
@@ -98,7 +98,7 @@ def msg_line(msg: Dict[str, Any]) -> str:
     return "  " + " ".join(parts) + ": " + escape(msg["text"])
 
 
-def chat_block(chat: Dict[str, Any]) -> List[str]:
+def chat_block(chat: dict[str, Any]) -> list[str]:
     lines = [chat_line(chat)]
     lines.extend(msg_line(m) for m in chat.get("messages", []))
     if chat.get("more"):
@@ -106,7 +106,7 @@ def chat_block(chat: Dict[str, Any]) -> List[str]:
     return lines
 
 
-def to_json(data: Dict[str, Any]) -> str:
+def to_json(data: dict[str, Any]) -> str:
     def clean(value: Any) -> Any:
         if isinstance(value, dict):
             out = {k: clean(v) for k, v in value.items() if k != "ts"}
@@ -120,8 +120,8 @@ def to_json(data: Dict[str, Any]) -> str:
     return json.dumps(clean(data), ensure_ascii=False, separators=(",", ":"))
 
 
-def to_text(lines: List[str]) -> str:
-    out: List[str] = []
+def to_text(lines: list[str]) -> str:
+    out: list[str] = []
     size = 0
     for line in lines:
         size += len(line) + 1

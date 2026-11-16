@@ -2,7 +2,7 @@ import curses
 import logging
 from _curses import window
 from datetime import date, datetime
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, cast
 
 from tg import config
 from tg.colors import bold, cyan, get_color, magenta, parse_style, white, yellow
@@ -95,7 +95,7 @@ class View:
         curses.endwin()
         self.stdscr.refresh()
 
-    def get_keys(self) -> Tuple[int, str]:
+    def get_keys(self) -> tuple[int, str]:
         keys = repeat_factor = ""
 
         for _ in range(MAX_KEYBINDING_LENGTH):
@@ -106,7 +106,7 @@ class View:
                 break
             try:
                 key = curses.unctrl(ch).decode()
-            except Exception:
+            except Exception:  # noqa: BLE001
                 log.warning("cant uncrtl: %s", ch)
                 break
             if key.isdigit():
@@ -142,7 +142,7 @@ class StatusView:
         self.win.addstr(0, 0, msg.replace("\n", " ")[: self.w])
         self._refresh()
 
-    def get_input(self, prefix: str = "") -> Optional[str]:
+    def get_input(self, prefix: str = "") -> str | None:
         curses.curs_set(1)
         buff = ""
         pos = 0
@@ -184,7 +184,7 @@ class StatusView:
         return buff
 
     @staticmethod
-    def _edit_key(key: int, buff: str, pos: int) -> Tuple[str, int]:
+    def _edit_key(key: int, buff: str, pos: int) -> tuple[str, int]:
         if key == curses.KEY_LEFT:
             return buff, max(0, pos - 1)
         if key == curses.KEY_RIGHT:
@@ -228,8 +228,8 @@ class ChatView:
         return color
 
     def _chat_attributes(
-        self, is_selected: bool, title: str, user: Optional[str]
-    ) -> Tuple[int, ...]:
+        self, is_selected: bool, title: str, user: str | None
+    ) -> tuple[int, ...]:
         attrs = (
             get_color(cyan, -1),
             get_color(get_color_by_str(title), -1),
@@ -241,7 +241,7 @@ class ChatView:
         return attrs
 
     def draw(
-        self, current: int, chats: List[Dict[str, Any]], title: str = "Chats"
+        self, current: int, chats: list[dict[str, Any]], title: str = "Chats"
     ) -> None:
         if not self.w:
             return
@@ -286,9 +286,7 @@ class ChatView:
 
         self._refresh()
 
-    def _get_last_msg_data(
-        self, chat: Dict[str, Any]
-    ) -> Tuple[Optional[str], Optional[str]]:
+    def _get_last_msg_data(self, chat: dict[str, Any]) -> tuple[str | None, str | None]:
         user, last_msg = get_last_msg(chat, self.model.users)
         last_msg = last_msg.replace("\n", " ")
         if user:
@@ -299,7 +297,7 @@ class ChatView:
 
         return None, last_msg
 
-    def _get_flags(self, chat: Dict[str, Any]) -> str:
+    def _get_flags(self, chat: dict[str, Any]) -> str:
         flags = []
 
         msg = chat.get("last_message")
@@ -324,7 +322,7 @@ class ChatView:
         if self.model.users.is_online(chat["id"]):
             flags.append("online")
 
-        if "is_pinned" in chat and chat["is_pinned"]:
+        if chat.get("is_pinned"):
             flags.append("pinned")
 
         if chat["notification_settings"]["mute_for"]:
@@ -463,9 +461,10 @@ class MsgView:
                 if not text:
                     continue
                 _type = item.get("type", {})
-                if _type.get("@type") == "inlineKeyboardButtonTypeUrl":
-                    if url := _type.get("url"):
-                        text = f"{text} ({url})"
+                if _type.get("@type") == "inlineKeyboardButtonTypeUrl" and (
+                    url := _type.get("url")
+                ):
+                    text = f"{text} ({url})"
                 msg += f"| {text} "
             msg += "|"
         return msg
@@ -473,9 +472,9 @@ class MsgView:
     def _collect_msgs_to_draw(
         self,
         current_msg_idx: int,
-        msgs: List[Tuple[int, Dict[str, Any]]],
+        msgs: list[tuple[int, dict[str, Any]]],
         min_msg_padding: int,
-    ) -> List[Tuple[Tuple[str, ...], bool, int]]:
+    ) -> list[tuple[tuple[str, ...], bool, int]]:
         """
         Tries to collect list of messages that will satisfy `min_msg_padding`
         theshold. Long messages could prevent other messages from displaying on
@@ -484,8 +483,8 @@ class MsgView:
         function will remove message one by one from the start until selected
         message could be visible on the screen.
         """
-        selected_item_idx: Optional[int] = None
-        collected_items: List[Tuple[Tuple[str, ...], bool, int]] = []
+        selected_item_idx: int | None = None
+        collected_items: list[tuple[tuple[str, ...], bool, int]] = []
         screen_overflow = False
         today = date.today()
         for ignore_before in range(len(msgs)):
@@ -494,7 +493,7 @@ class MsgView:
             collected_items = []
             screen_overflow = False
             line_num = self.h
-            newer_day: Optional[date] = None
+            newer_day: date | None = None
             for msg_idx, msg_item in msgs[ignore_before:]:
                 is_selected_msg = current_msg_idx == msg_idx
                 msg_proxy = MsgProxy(msg_item)
@@ -567,7 +566,7 @@ class MsgView:
 
         return collected_items
 
-    def _day_separator(self, day: date, today: date) -> Tuple[str, ...]:
+    def _day_separator(self, day: date, today: date) -> tuple[str, ...]:
         width = max(self.w - 1, 0)
         label = truncate_to_len(day_label(day, today), width)
         padding = (width - string_len_dwc(label)) // 2
@@ -576,9 +575,9 @@ class MsgView:
     def draw(
         self,
         current_msg_idx: int,
-        msgs: List[Tuple[int, Dict[str, Any]]],
+        msgs: list[tuple[int, dict[str, Any]]],
         min_msg_padding: int,
-        chat: Dict[str, Any],
+        chat: dict[str, Any],
     ) -> None:
         self.win.erase()
         msgs_to_draw = self._collect_msgs_to_draw(
@@ -618,7 +617,7 @@ class MsgView:
 
         self._refresh()
 
-    def _msg_title(self, chat: Dict[str, Any]) -> str:
+    def _msg_title(self, chat: dict[str, Any]) -> str:
         chat_type = get_chat_type(chat)
         status = ""
 
@@ -629,20 +628,17 @@ class MsgView:
         elif chat_type == ChatType.chatTypeBasicGroup:
             if group := self.model.users.get_group_info(chat["type"]["basic_group_id"]):
                 status = f"{group['member_count']} members"
-        elif chat_type == ChatType.chatTypeSupergroup:
-            if supergroup := self.model.users.get_supergroup_info(
+        elif chat_type in (ChatType.chatTypeSupergroup, ChatType.channel) and (
+            supergroup := self.model.users.get_supergroup_info(
                 chat["type"]["supergroup_id"]
-            ):
-                status = f"{supergroup['member_count']} members"
-        elif chat_type == ChatType.channel:
-            if supergroup := self.model.users.get_supergroup_info(
-                chat["type"]["supergroup_id"]
-            ):
-                status = f"{supergroup['member_count']} subscribers"
+            )
+        ):
+            label = "subscribers" if chat_type == ChatType.channel else "members"
+            status = f"{supergroup['member_count']} {label}"
 
         return f"{reshape_rtl(chat['title'])}: {status}".center(self.w)[: self.w]
 
-    def _msg_attributes(self, is_selected: bool, user: str) -> Tuple[int, ...]:
+    def _msg_attributes(self, is_selected: bool, user: str) -> tuple[int, ...]:
         attrs = (
             get_color(cyan, -1),
             get_color(get_color_by_str(user), -1),
@@ -661,7 +657,7 @@ class MsgView:
         return "unknown msg type: " + str(msg["content"])
 
 
-def get_last_msg(chat: Dict[str, Any], users: UserModel) -> Tuple[Optional[int], str]:
+def get_last_msg(chat: dict[str, Any], users: UserModel) -> tuple[int | None, str]:
     last_msg = chat.get("last_message")
     if not last_msg:
         return None, "<No messages yet>"
@@ -677,15 +673,16 @@ def day_label(day: date, today: date) -> str:
     return day.strftime(config.DATE_FORMAT)
 
 
-def get_date(chat: Dict[str, Any]) -> str:
+def get_date(chat: dict[str, Any]) -> str:
     last_msg = chat.get("last_message")
     if not last_msg:
         return "<No date>"
     dt = datetime.fromtimestamp(last_msg["date"])
     date_fmt = "%d %b %y"
-    if datetime.today().date() == dt.date():
+    today = date.today()
+    if today == dt.date():
         date_fmt = "%H:%M"
-    elif datetime.today().year == dt.year:
+    elif today.year == dt.year:
         date_fmt = "%d %b"
     return dt.strftime(date_fmt)
 
@@ -724,31 +721,29 @@ def parse_content(msg: MsgProxy, users: UserModel) -> str:
         for option in msg.poll_options:
             content_text += f"\n * {option['voter_count']} ({option['vote_percentage']}%) | {option['text']}"
 
-    fields = dict(
-        name=msg.file_name,
-        download=get_download(msg.local, msg.size),
-        size=msg.human_size,
-        duration=msg.duration,
-        listened=format_bool(msg.is_listened),
-        viewed=format_bool(msg.is_viewed),
-        animated=msg.is_animated,
-        emoji=msg.sticker_emoji,
-        closed=msg.is_closed_poll,
-    )
+    fields = {
+        "name": msg.file_name,
+        "download": get_download(msg.local, msg.size),
+        "size": msg.human_size,
+        "duration": msg.duration,
+        "listened": format_bool(msg.is_listened),
+        "viewed": format_bool(msg.is_viewed),
+        "animated": msg.is_animated,
+        "emoji": msg.sticker_emoji,
+        "closed": msg.is_closed_poll,
+    }
     info = ", ".join(f"{k}={v}" for k, v in fields.items() if v is not None)
 
     return f"[{msg.content_type}: {info}]{content_text}"
 
 
-def format_bool(value: Optional[bool]) -> Optional[str]:
+def format_bool(value: bool | None) -> str | None:
     if value is None:
         return None
     return "yes" if value else "no"
 
 
-def get_download(
-    local: Dict[str, Union[str, bool, int]], size: Optional[int]
-) -> Optional[str]:
+def get_download(local: dict[str, str | bool | int], size: int | None) -> str | None:
     if not size:
         return None
     elif local["is_downloading_completed"]:
@@ -760,7 +755,7 @@ def get_download(
     return "no"
 
 
-def _get_action_label(users: UserModel, chat: Dict[str, Any]) -> Optional[str]:
+def _get_action_label(users: UserModel, chat: dict[str, Any]) -> str | None:
     actioner, action = users.get_user_action(chat["id"])
     if actioner and action:
         label = f"{action}..."

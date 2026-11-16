@@ -5,7 +5,7 @@ import os
 import shutil
 import sys
 from logging.handlers import RotatingFileHandler
-from typing import Any, Dict, List
+from typing import Any
 
 from tg import config
 from tg.cli import render
@@ -184,7 +184,7 @@ def _setup_log() -> None:
     root.setLevel(config.LOG_LEVEL)
 
 
-def _emit(data: Dict[str, Any], lines: List[str], args: argparse.Namespace) -> None:
+def _emit(data: dict[str, Any], lines: list[str], args: argparse.Namespace) -> None:
     if args.json:
         print(render.to_json(data))
     else:
@@ -192,7 +192,7 @@ def _emit(data: Dict[str, Any], lines: List[str], args: argparse.Namespace) -> N
     sys.stdout.flush()
 
 
-def main(argv: List[str]) -> int:
+def main(argv: list[str]) -> int:
     from tg.cli.commands import COMMANDS, Ctx
 
     parser = build_parser()
@@ -225,7 +225,7 @@ def main(argv: List[str]) -> int:
     except KeyboardInterrupt:
         return 130
     except Exception as e:
-        logging.exception("cli command failed")
+        logging.getLogger(__name__).exception("cli command failed")
         print(f"error: {e}", file=sys.stderr)
         return EXIT_ERROR
     return 0

@@ -4,7 +4,7 @@ import shutil
 import sys
 import time
 from collections import defaultdict, namedtuple
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, ClassVar
 
 from tg.msg import MsgProxy
 from tg.tdlib import (
@@ -29,21 +29,21 @@ class Model:
         self.msgs = MsgModel(tg)
         self.users = UserModel(tg)
         self.current_chat = 0
-        self.downloads: Dict[int, Tuple[int, int]] = {}
-        self.selected: Dict[int, List[int]] = defaultdict(list)
-        self.copied_msgs: Tuple[int, List[int]] = (0, [])
+        self.downloads: dict[int, tuple[int, int]] = {}
+        self.selected: dict[int, list[int]] = defaultdict(list)
+        self.copied_msgs: tuple[int, list[int]] = (0, [])
 
-    def get_me(self) -> Dict[str, Any]:
+    def get_me(self) -> dict[str, Any]:
         return self.users.get_me()
 
     def is_me(self, user_id: int) -> bool:
         return self.get_me()["id"] == user_id
 
     @property
-    def current_chat_id(self) -> Optional[int]:
+    def current_chat_id(self) -> int | None:
         return self.chats.id_by_index(self.current_chat)
 
-    def get_current_chat_msg_idx(self) -> Optional[int]:
+    def get_current_chat_msg_idx(self) -> int | None:
         chat_id = self.chats.id_by_index(self.current_chat)
         if chat_id is None:
             return None
@@ -54,7 +54,7 @@ class Model:
         current_position: int = 0,
         page_size: int = 10,
         msgs_left_scroll_threshold: int = 10,
-    ) -> List[Tuple[int, Dict[str, Any]]]:
+    ) -> list[tuple[int, dict[str, Any]]]:
         chat_id = self.chats.id_by_index(self.current_chat)
         if chat_id is None:
             return []
@@ -65,7 +65,7 @@ class Model:
         return self.msgs.fetch_msgs(chat_id, offset=offset, limit=limit)
 
     @property
-    def current_msg(self) -> Dict[str, Any]:
+    def current_msg(self) -> dict[str, Any]:
         chat_id = self.chats.id_by_index(self.current_chat)
         if chat_id is None:
             return {}
@@ -152,7 +152,7 @@ class Model:
         current_position: int = 0,
         page_size: int = 10,
         msgs_left_scroll_threshold: int = 10,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         chats_left = page_size - current_position
         offset = max(msgs_left_scroll_threshold - chats_left, 0)
         limit = offset + page_size
@@ -173,7 +173,7 @@ class Model:
             return self.msgs.edit_message(chat_id, self.current_msg_id, text)
         return False
 
-    def can_post_in_channel(self, chat: Dict[str, Any]) -> bool:
+    def can_post_in_channel(self, chat: dict[str, Any]) -> bool:
         result = self.tg.get_supergroup(chat["type"]["supergroup_id"])
         result.wait()
         if result.error or not result.update:
@@ -186,7 +186,7 @@ class Model:
             return bool(status.get("rights", {}).get("can_post_messages"))
         return False
 
-    def msg_properties(self, chat_id: int, msg_id: int) -> Dict[str, Any]:
+    def msg_properties(self, chat_id: int, msg_id: int) -> dict[str, Any]:
         result = self.tg.get_message_properties(chat_id, msg_id)
         result.wait()
         if result.error or not result.update:
@@ -250,7 +250,7 @@ class Model:
         copy_to_clipboard("\n".join(buffer))
         return True
 
-    def copy_files(self, chat_id: int, msg_ids: List[int], dest_dir: str) -> bool:
+    def copy_files(self, chat_id: int, msg_ids: list[int], dest_dir: str) -> bool:
         is_copied = False
         for msg_id in msg_ids:
             _msg = self.msgs.get_message(chat_id, msg_id)
@@ -263,7 +263,7 @@ class Model:
                 is_copied = True
         return is_copied
 
-    def get_private_chat_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
+    def get_private_chat_info(self, chat: dict[str, Any]) -> dict[str, Any]:
         user_id = chat["id"]
         user = self.users.get_user(user_id)
         user_info = self.users.get_user_full_info(user_id)
@@ -275,7 +275,7 @@ class Model:
             "Bio": user_info.get("bio", ""),
         }
 
-    def get_basic_group_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
+    def get_basic_group_info(self, chat: dict[str, Any]) -> dict[str, Any]:
         group_id = chat["type"]["basic_group_id"]
         result = self.tg.get_basic_group_full_info(group_id)
         result.wait()
@@ -289,7 +289,7 @@ class Model:
             "Share link": chat_info["invite_link"],
         }
 
-    def get_supergroup_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
+    def get_supergroup_info(self, chat: dict[str, Any]) -> dict[str, Any]:
         result = self.tg.get_supergroup_full_info(chat["type"]["supergroup_id"])
         result.wait()
         chat_info = result_update(result)
@@ -299,7 +299,7 @@ class Model:
             "Share link": chat_info["invite_link"],
         }
 
-    def get_channel_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
+    def get_channel_info(self, chat: dict[str, Any]) -> dict[str, Any]:
         result = self.tg.get_supergroup_full_info(chat["type"]["supergroup_id"])
         result.wait()
         chat_info = result_update(result)
@@ -309,7 +309,7 @@ class Model:
             "Share link": chat_info["invite_link"],
         }
 
-    def get_secret_chat_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
+    def get_secret_chat_info(self, chat: dict[str, Any]) -> dict[str, Any]:
         result = self.tg.get_secret_chat(chat["type"]["secret_chat_id"])
         result.wait()
         chat_info = result_update(result)
@@ -327,7 +327,7 @@ class Model:
 
         return {**user_info, "State": state, "Encryption Key": hex_key}
 
-    def get_chat_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
+    def get_chat_info(self, chat: dict[str, Any]) -> dict[str, Any]:
         chat_type = get_chat_type(chat)
         if chat_type is None:
             return {}
@@ -340,12 +340,12 @@ class Model:
             ChatType.chatTypeSecret: self.get_secret_chat_info,
         }
 
-        info = handlers.get(chat_type, lambda _: dict())(chat)
+        info = handlers.get(chat_type, lambda _: {})(chat)
 
         info.update({"Type": chat_type.value, "Chat Id": chat["id"]})
         return info
 
-    def get_user_info(self, user_id: int) -> Dict[str, Any]:
+    def get_user_info(self, user_id: int) -> dict[str, Any]:
         name = self.users.get_user_label(user_id)
         status = self.users.get_status(user_id)
         user = self.users.get_user(user_id)
@@ -369,11 +369,11 @@ class Model:
 CHATS_PAGE_SIZE = 100
 
 
-def is_main_list(position: Dict[str, Any]) -> bool:
+def is_main_list(position: dict[str, Any]) -> bool:
     return position.get("list", {}).get("@type", "chatListMain") == "chatListMain"
 
 
-def main_list_order(positions: List[Dict[str, Any]]) -> str:
+def main_list_order(positions: list[dict[str, Any]]) -> str:
     for position in positions:
         if is_main_list(position):
             return str(position["order"])
@@ -383,13 +383,13 @@ def main_list_order(positions: List[Dict[str, Any]]) -> str:
 class ChatModel:
     def __init__(self, tg: Tdlib) -> None:
         self.tg = tg
-        self.chats: List[Dict[str, Any]] = []
-        self.inactive_chats: Dict[int, Dict[str, Any]] = {}
-        self.chat_ids: Set[int] = set()
+        self.chats: list[dict[str, Any]] = []
+        self.inactive_chats: dict[int, dict[str, Any]] = {}
+        self.chat_ids: set[int] = set()
         self.have_full_chat_list = False
         self.chats_limit = 0
         self.title: str = "Chats"
-        self.found_chats: List[int] = []
+        self.found_chats: list[int] = []
         self.found_chat_idx: int = 0
 
     def next_found_chat(self, backwards: bool = False) -> int:
@@ -400,12 +400,12 @@ class ChatModel:
 
         return self.found_chats[new_idx]
 
-    def id_by_index(self, index: int) -> Optional[int]:
+    def id_by_index(self, index: int) -> int | None:
         if index >= len(self.chats):
             return None
         return self.chats[index]["id"]
 
-    def fetch_chats(self, offset: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
+    def fetch_chats(self, offset: int = 0, limit: int = 10) -> list[dict[str, Any]]:
         if offset + limit > len(self.chats):
             self._load_next_chats()
 
@@ -416,14 +416,14 @@ class ChatModel:
         https://core.telegram.org/tdlib/getting-started#getting-the-lists-of-chats
         """
         if self.have_full_chat_list:
-            return None
+            return
         self.chats_limit += CHATS_PAGE_SIZE
         result = self.tg.get_chats(limit=self.chats_limit)
 
         result.wait()
         if result.error:
             log.error(f"get chat ids error: {result.error_info}")
-            return None
+            return
 
         chat_ids = result_update(result).get("chat_ids", [])
         if len(chat_ids) < self.chats_limit:
@@ -436,7 +436,7 @@ class ChatModel:
             if chat:
                 self.add_chat(chat)
 
-    def fetch_chat(self, chat_id: int) -> Dict[str, Any]:
+    def fetch_chat(self, chat_id: int) -> dict[str, Any]:
         result = self.tg.get_chat(chat_id)
         result.wait()
 
@@ -445,7 +445,7 @@ class ChatModel:
             return {}
         return result_update(result)
 
-    def add_chat(self, chat: Dict[str, Any]) -> None:
+    def add_chat(self, chat: dict[str, Any]) -> None:
         chat_id = chat["id"]
         if chat_id in self.chat_ids:
             return
@@ -500,10 +500,10 @@ class ChatModel:
 class MsgModel:
     def __init__(self, tg: Tdlib) -> None:
         self.tg = tg
-        self.msgs: Dict[int, Dict[int, Dict]] = defaultdict(dict)
-        self.current_msgs: Dict[int, int] = defaultdict(int)
-        self.not_found: Set[int] = set()
-        self.msg_ids: Dict[int, List[int]] = defaultdict(list)
+        self.msgs: dict[int, dict[int, dict]] = defaultdict(dict)
+        self.current_msgs: dict[int, int] = defaultdict(int)
+        self.not_found: set[int] = set()
+        self.msg_ids: dict[int, list[int]] = defaultdict(list)
 
     def jump_to_msg_by_id(self, chat_id: int, msg_id: int) -> bool:
         ids = self.msg_ids[chat_id]
@@ -532,7 +532,7 @@ class MsgModel:
             return True
         return False
 
-    def get_message(self, chat_id: int, msg_id: int) -> Optional[Dict]:
+    def get_message(self, chat_id: int, msg_id: int) -> dict | None:
         if msg_id in self.not_found:
             return None
         if msg := self.msgs[chat_id].get(msg_id):
@@ -544,12 +544,12 @@ class MsgModel:
             return None
         return result.update
 
-    def _selected_id(self, chat_id: int) -> Optional[int]:
+    def _selected_id(self, chat_id: int) -> int | None:
         ids = self.msg_ids[chat_id]
         index = self.current_msgs[chat_id]
         return ids[index] if 0 < index < len(ids) else None
 
-    def _reselect(self, chat_id: int, selected: Optional[int]) -> None:
+    def _reselect(self, chat_id: int, selected: int | None) -> None:
         if selected is None:
             return
         ids = self.msg_ids[chat_id]
@@ -560,7 +560,7 @@ class MsgModel:
                 self.current_msgs[chat_id], max(len(ids) - 1, 0)
             )
 
-    def remove_messages(self, chat_id: int, msg_ids: List[int]) -> None:
+    def remove_messages(self, chat_id: int, msg_ids: list[int]) -> None:
         log.info(f"removing msg {msg_ids=}")
         selected = self._selected_id(chat_id)
         for msg_id in msg_ids:
@@ -571,7 +571,7 @@ class MsgModel:
             self.msgs[chat_id].pop(msg_id, None)
         self._reselect(chat_id, selected)
 
-    def add_message(self, chat_id: int, msg: Dict[str, Any]) -> None:
+    def add_message(self, chat_id: int, msg: dict[str, Any]) -> None:
         log.info(f"adding {msg=}")
         msg_id = msg["id"]
         ids = self.msg_ids[chat_id]
@@ -595,7 +595,7 @@ class MsgModel:
         # that is the last case to implement
         # https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1update_message_content_opened.html
 
-    def update_msg(self, chat_id: int, msg_id: int, **fields: Dict[str, Any]) -> None:
+    def update_msg(self, chat_id: int, msg_id: int, **fields: dict[str, Any]) -> None:
         msg = self.msgs[chat_id].get(msg_id)
         if not msg:
             return
@@ -603,7 +603,7 @@ class MsgModel:
 
     def _fetch_msgs_until_limit(
         self, chat_id: int, offset: int = 0, limit: int = 10
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         if self.msgs[chat_id]:
             result = self.tg.get_chat_history(
                 chat_id,
@@ -639,7 +639,7 @@ class MsgModel:
 
     def fetch_msgs(
         self, chat_id: int, offset: int = 0, limit: int = 10
-    ) -> List[Tuple[int, Dict[str, Any]]]:
+    ) -> list[tuple[int, dict[str, Any]]]:
         if offset + limit > len(self.msg_ids[chat_id]):
             msgs = self._fetch_msgs_until_limit(chat_id, offset, offset + limit)
             for msg in msgs:
@@ -675,7 +675,7 @@ User = namedtuple("User", ["id", "name", "status", "order"])
 
 
 class UserModel:
-    types = {
+    types: ClassVar[dict[str, str]] = {
         "userTypeUnknown": "unknown",
         "userTypeBot": "bot",
         "userTypeDeleted": "deleted",
@@ -684,15 +684,15 @@ class UserModel:
 
     def __init__(self, tg: Tdlib) -> None:
         self.tg = tg
-        self.me: Dict[str, Any] = {}
-        self.users: Dict[int, Dict] = {}
-        self.groups: Dict[int, Dict] = {}
-        self.supergroups: Dict[int, Dict] = {}
-        self.actions: Dict[int, Dict] = {}
-        self.not_found: Set[int] = set()
-        self.contacts: Dict[str, Any] = {}
+        self.me: dict[str, Any] = {}
+        self.users: dict[int, dict] = {}
+        self.groups: dict[int, dict] = {}
+        self.supergroups: dict[int, dict] = {}
+        self.actions: dict[int, dict] = {}
+        self.not_found: set[int] = set()
+        self.contacts: dict[str, Any] = {}
 
-    def get_me(self) -> Dict[str, Any]:
+    def get_me(self) -> dict[str, Any]:
         if self.me:
             return self.me
         result = self.tg.get_me()
@@ -703,7 +703,7 @@ class UserModel:
         self.me = result_update(result)
         return self.me
 
-    def get_user_action(self, chat_id: int) -> Tuple[Optional[int], Optional[str]]:
+    def get_user_action(self, chat_id: int) -> tuple[int | None, str | None]:
         action = self.actions.get(chat_id)
         if action is None:
             return None, None
@@ -715,7 +715,7 @@ class UserModel:
             log.error(f"ChatAction type {action_type} not implemented")
         return None, None
 
-    def set_status(self, user_id: int, status: Dict[str, Any]) -> None:
+    def set_status(self, user_id: int, status: dict[str, Any]) -> None:
         if user_id not in self.users:
             self.get_user(user_id)
         self.users[user_id]["status"] = status
@@ -770,22 +770,18 @@ class UserModel:
 
     def is_bot(self, user_id: int) -> bool:
         user = self.get_user(user_id)
-        if user and user["type"]["@type"] == "userTypeBot":
-            return True
-        return False
+        return bool(user) and user["type"]["@type"] == "userTypeBot"
 
     def is_online(self, user_id: int) -> bool:
         user = self.get_user(user_id)
-        if (
-            user
+        return (
+            bool(user)
             and user["type"]["@type"] != "userTypeBot"
             and user["status"]["@type"] == "userStatusOnline"
             and user["status"]["expires"] > time.time()
-        ):
-            return True
-        return False
+        )
 
-    def get_user_full_info(self, user_id: int) -> Dict[str, Any]:
+    def get_user_full_info(self, user_id: int) -> dict[str, Any]:
         user = self.get_user(user_id)
         if not user:
             return user
@@ -800,7 +796,7 @@ class UserModel:
         user["full_info"] = result_update(result)
         return user["full_info"]
 
-    def get_user(self, user_id: int) -> Dict[str, Any]:
+    def get_user(self, user_id: int) -> dict[str, Any]:
         if user_id in self.not_found:
             return {}
         if user_id in self.users:
@@ -814,19 +810,19 @@ class UserModel:
         self.users[user_id] = result_update(result)
         return self.users[user_id]
 
-    def get_group_info(self, group_id: int) -> Optional[Dict[str, Any]]:
+    def get_group_info(self, group_id: int) -> dict[str, Any] | None:
         if group_id in self.groups:
             return self.groups[group_id]
         self.tg.get_basic_group(group_id)
         return None
 
-    def get_supergroup_info(self, supergroup_id: int) -> Optional[Dict[str, Any]]:
+    def get_supergroup_info(self, supergroup_id: int) -> dict[str, Any] | None:
         if supergroup_id in self.supergroups:
             return self.supergroups[supergroup_id]
         self.tg.get_supergroup(supergroup_id)
         return None
 
-    def get_contacts(self) -> Optional[Dict[str, Any]]:
+    def get_contacts(self) -> dict[str, Any] | None:
         if self.contacts:
             return self.contacts
 
@@ -853,7 +849,7 @@ class UserModel:
             return "@" + user["username"]
         return "<Unknown>"
 
-    def get_users(self) -> List[User]:
+    def get_users(self) -> list[User]:
         contacts = self.get_contacts()
         if contacts is None:
             return []

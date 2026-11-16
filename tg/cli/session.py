@@ -2,7 +2,8 @@ import fcntl
 import os
 import threading
 import time
-from typing import IO, Any, Callable, Dict, Optional
+from collections.abc import Callable
+from typing import IO, Any
 
 from telegram.client import AsyncResult, AuthorizationState
 
@@ -37,7 +38,7 @@ class Session:
 
     def call(
         self, method: str, timeout: float = CALL_TIMEOUT, **params: Any
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         result = self.tg.call_method(method, params)
         try:
             result.wait(timeout=timeout)
@@ -48,7 +49,7 @@ class Session:
             raise CliError(f"{method}: {info.get('message', info)}")
         return result.update or {}
 
-    def on(self, update_type: str, func: Callable[[Dict[str, Any]], None]) -> None:
+    def on(self, update_type: str, func: Callable[[dict[str, Any]], None]) -> None:
         self.tg.add_update_handler(update_type, func)
 
     def close(self) -> None:
@@ -60,7 +61,7 @@ class Session:
 
 def _acquire_lock() -> IO[str]:
     os.makedirs(config.FILES_DIR, exist_ok=True)
-    lock_file = open(os.path.join(config.FILES_DIR, "cli.lock"), "w")
+    lock_file = open(os.path.join(config.FILES_DIR, "cli.lock"), "w")  # noqa: SIM115
     deadline = time.monotonic() + LOCK_TIMEOUT
     while True:
         try:
@@ -74,7 +75,7 @@ def _acquire_lock() -> IO[str]:
 
 
 def _authorize(tg: Tdlib) -> None:
-    actions: Dict[AuthorizationState, Callable[[], AsyncResult]] = {
+    actions: dict[AuthorizationState, Callable[[], AsyncResult]] = {
         AuthorizationState.NONE: tg.get_authorization_state,
         AuthorizationState.WAIT_TDLIB_PARAMETERS: tg._set_initial_params,
         AuthorizationState.WAIT_ENCRYPTION_KEY: tg._send_encryption_key,
@@ -98,7 +99,7 @@ def _authorize(tg: Tdlib) -> None:
 def open_session(sync_timeout: float, interactive: bool = False) -> Session:
     lock_file = _acquire_lock()
     try:
-        phone: Optional[str] = (
+        phone: str | None = (
             config.ensure_phone() if interactive else config.PHONE or "+0"
         )
         quiet_tdlib(config.TDLIB_PATH, config.TDLIB_VERBOSITY)
@@ -118,7 +119,7 @@ def open_session(sync_timeout: float, interactive: bool = False) -> Session:
     session = Session(tg, lock_file)
     connected = threading.Event()
 
-    def on_connection(update: Dict[str, Any]) -> None:
+    def on_connection(update: dict[str, Any]) -> None:
         if update.get("state", {}).get("@type") == "connectionStateReady":
             connected.set()
 

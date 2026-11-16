@@ -2,7 +2,8 @@ import argparse
 import io
 import shlex
 import unittest
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from typing import Any
 from unittest.mock import patch
 
 from tg import cli, config
@@ -20,7 +21,7 @@ WRITE_METHODS = {
 ME = 999
 
 
-def make_msg(chat_id: int, msg_id: int, text: Optional[str] = None) -> Dict[str, Any]:
+def make_msg(chat_id: int, msg_id: int, text: str | None = None) -> dict[str, Any]:
     return {
         "id": msg_id,
         "chat_id": chat_id,
@@ -36,13 +37,13 @@ def make_chat(
     title: str,
     unread: int = 0,
     last_read: int = 0,
-    mute_for: Optional[int] = 0,
+    mute_for: int | None = 0,
     kind: str = "private",
     marked_unread: bool = False,
     last_message_id: int = 0,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     if kind == "private":
-        chat_type: Dict[str, Any] = {"@type": "chatTypePrivate", "user_id": 1}
+        chat_type: dict[str, Any] = {"@type": "chatTypePrivate", "user_id": 1}
     elif kind == "channel":
         chat_type = {
             "@type": "chatTypeSupergroup",
@@ -72,9 +73,9 @@ def make_chat(
 class FakeSession:
     def __init__(
         self,
-        chats: List[Dict[str, Any]],
-        history: Optional[Dict[int, List[int]]] = None,
-        search_hits: Optional[List[int]] = None,
+        chats: list[dict[str, Any]],
+        history: dict[int, list[int]] | None = None,
+        search_hits: list[int] | None = None,
         short_first_page: bool = True,
     ) -> None:
         self.chats = {c["id"]: c for c in chats}
@@ -84,36 +85,36 @@ class FakeSession:
         }
         self.search_hits = search_hits
         self.short_first_page = short_first_page
-        self.log: List[Any] = []
-        self.handlers: Dict[str, List[Callable[[Dict[str, Any]], None]]] = {}
+        self.log: list[Any] = []
+        self.handlers: dict[str, list[Callable[[dict[str, Any]], None]]] = {}
         self.stale = False
-        self.scope_muted: Dict[str, int] = {}
-        self.send_result: Optional[str] = "ok"
+        self.scope_muted: dict[str, int] = {}
+        self.send_result: str | None = "ok"
 
-    def call(self, method: str, timeout: float = 0, **params: Any) -> Dict[str, Any]:
+    def call(self, method: str, timeout: float = 0, **params: Any) -> dict[str, Any]:
         self.log.append((method, params))
-        result: Dict[str, Any] = getattr(self, method)(**params)
+        result: dict[str, Any] = getattr(self, method)(**params)
         return result
 
-    def on(self, update_type: str, func: Callable[[Dict[str, Any]], None]) -> None:
+    def on(self, update_type: str, func: Callable[[dict[str, Any]], None]) -> None:
         self.handlers.setdefault(update_type, []).append(func)
 
-    def fire(self, update_type: str, update: Dict[str, Any]) -> None:
+    def fire(self, update_type: str, update: dict[str, Any]) -> None:
         for func in self.handlers.get(update_type, []):
             func({"@type": update_type, **update})
 
-    def methods(self) -> List[str]:
+    def methods(self) -> list[str]:
         return [method for method, _ in self.log]
 
-    def getMe(self) -> Dict[str, Any]:
+    def getMe(self) -> dict[str, Any]:
         return {"id": ME, "first_name": "Me", "usernames": {}}
 
-    def getChat(self, chat_id: int) -> Dict[str, Any]:
+    def getChat(self, chat_id: int) -> dict[str, Any]:
         if chat_id not in self.chats:
             raise CliError("getChat: Chat not found")
         return self.chats[chat_id]
 
-    def getUser(self, user_id: int) -> Dict[str, Any]:
+    def getUser(self, user_id: int) -> dict[str, Any]:
         return {
             "id": user_id,
             "first_name": "Ann",
@@ -122,26 +123,26 @@ class FakeSession:
             "usernames": {"active_usernames": ["ann"]},
         }
 
-    def getSupergroup(self, supergroup_id: int) -> Dict[str, Any]:
+    def getSupergroup(self, supergroup_id: int) -> dict[str, Any]:
         return {"usernames": None}
 
-    def getScopeNotificationSettings(self, scope: Dict[str, str]) -> Dict[str, Any]:
+    def getScopeNotificationSettings(self, scope: dict[str, str]) -> dict[str, Any]:
         return {"mute_for": self.scope_muted.get(scope["@type"], 0)}
 
-    def getChats(self, chat_list: Dict[str, str], limit: int) -> Dict[str, Any]:
+    def getChats(self, chat_list: dict[str, str], limit: int) -> dict[str, Any]:
         return {"chat_ids": self.order[:limit]}
 
-    def searchChats(self, query: str, limit: int) -> Dict[str, Any]:
+    def searchChats(self, query: str, limit: int) -> dict[str, Any]:
         if self.search_hits is not None:
             return {"chat_ids": self.search_hits}
         q = query.casefold()
         ids = [i for i in self.order if q in self.chats[i]["title"].casefold()]
         return {"chat_ids": ids[:limit]}
 
-    def searchPublicChat(self, username: str) -> Dict[str, Any]:
+    def searchPublicChat(self, username: str) -> dict[str, Any]:
         raise CliError("searchPublicChat: USERNAME_NOT_OCCUPIED")
 
-    def createPrivateChat(self, user_id: int, force: bool) -> Dict[str, Any]:
+    def createPrivateChat(self, user_id: int, force: bool) -> dict[str, Any]:
         return make_chat(user_id, "Saved Messages")
 
     def getChatHistory(
@@ -151,7 +152,7 @@ class FakeSession:
         offset: int,
         limit: int,
         only_local: bool,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         ids = self.history.get(chat_id, [])
         if from_message_id == 0:
             start = 0
@@ -165,7 +166,7 @@ class FakeSession:
         start = max(start + offset, 0)
         return {"messages": [make_msg(chat_id, i) for i in ids[start : start + limit]]}
 
-    def sendMessage(self, chat_id: int, **params: Any) -> Dict[str, Any]:
+    def sendMessage(self, chat_id: int, **params: Any) -> dict[str, Any]:
         if self.send_result == "ok":
             self.fire(
                 "updateMessageSendSucceeded",
@@ -179,23 +180,23 @@ class FakeSession:
         return {"id": 1}
 
     def viewMessages(
-        self, chat_id: int, message_ids: List[int], force_read: bool
-    ) -> Dict[str, Any]:
+        self, chat_id: int, message_ids: list[int], force_read: bool
+    ) -> dict[str, Any]:
         self.fire("updateChatReadInbox", {"chat_id": chat_id + 1, "unread_count": 9})
         self.fire("updateChatReadInbox", {"chat_id": chat_id, "unread_count": 0})
         return {}
 
     def toggleChatIsMarkedAsUnread(
         self, chat_id: int, is_marked_as_unread: bool
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         return {}
 
 
-def parse(argv: List[str]) -> argparse.Namespace:
+def parse(argv: list[str]) -> argparse.Namespace:
     return cli.build_parser().parse_args(argv)
 
 
-def run(session: FakeSession, argv: List[str]) -> Dict[str, Any]:
+def run(session: FakeSession, argv: list[str]) -> dict[str, Any]:
     args = parse(argv)
     data, _ = commands.COMMANDS[args.command](Ctx(session, args), args)  # type: ignore[arg-type]
     return data
@@ -209,7 +210,7 @@ class HistoryTest(unittest.TestCase):
     def setUp(self) -> None:
         self.session = FakeSession([make_chat(1, "A")], {1: list(range(1, 251))})
 
-    def ids(self, msgs: List[Dict[str, Any]]) -> List[int]:
+    def ids(self, msgs: list[dict[str, Any]]) -> list[int]:
         return [m["id"] for m in msgs]
 
     def test_older_from_latest_survives_short_first_page(self) -> None:
@@ -233,8 +234,8 @@ class HistoryTest(unittest.TestCase):
         self.session.getChatHistory = lambda **kw: {"messages": []}  # type: ignore[method-assign]
         self.assertEqual(ctx(self.session).history_older(1, 0, 20), [])
 
-    def follow(self, argv: List[str]) -> List[int]:
-        seen: List[int] = []
+    def follow(self, argv: list[str]) -> list[int]:
+        seen: list[int] = []
         while argv:
             data = run(self.session, argv)
             seen += [m["msg_id"] for m in data["chat"]["messages"]]
@@ -267,7 +268,7 @@ class ChatsTest(unittest.TestCase):
         session = FakeSession([make_chat(i, f"c{i}") for i in range(1, 151)])
         original = session.getChats
 
-        def moving(chat_list: Dict[str, str], limit: int) -> Dict[str, Any]:
+        def moving(chat_list: dict[str, str], limit: int) -> dict[str, Any]:
             if limit > 100:
                 session.order.insert(0, session.order.pop(120))
             return original(chat_list, limit)
@@ -396,7 +397,7 @@ class SendTest(unittest.TestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
 
-    def send(self, enabled: bool, allowlist: List[Any], argv: List[str]) -> Any:
+    def send(self, enabled: bool, allowlist: list[Any], argv: list[str]) -> Any:
         with (
             patch.object(config, "CLI_SEND", enabled),
             patch.object(config, "CLI_SEND_ALLOWLIST", allowlist),
@@ -466,7 +467,7 @@ class RenderEscapeTest(unittest.TestCase):
 
 
 class MainTest(unittest.TestCase):
-    def main(self, argv: List[str], session: Any = None, error: Any = None) -> Any:
+    def main(self, argv: list[str], session: Any = None, error: Any = None) -> Any:
         def opener(*args: Any, **kwargs: Any) -> Any:
             if error:
                 raise error
@@ -507,16 +508,16 @@ if __name__ == "__main__":
 
 
 class WatchSession(FakeSession):
-    def __init__(self, chats: List[Dict[str, Any]], updates: List[Any]) -> None:
+    def __init__(self, chats: list[dict[str, Any]], updates: list[Any]) -> None:
         super().__init__(chats)
         self.updates = updates
-        self.replied: Dict[int, Dict[str, Any]] = {}
+        self.replied: dict[int, dict[str, Any]] = {}
 
-    def on(self, update_type: str, func: Callable[[Dict[str, Any]], None]) -> None:
+    def on(self, update_type: str, func: Callable[[dict[str, Any]], None]) -> None:
         for msg in self.updates:
             func({"@type": update_type, "message": msg})
 
-    def getMessage(self, chat_id: int, message_id: int) -> Dict[str, Any]:
+    def getMessage(self, chat_id: int, message_id: int) -> dict[str, Any]:
         if message_id not in self.replied:
             raise CliError("getMessage: not found")
         return self.replied[message_id]
@@ -526,7 +527,7 @@ class WatchTest(unittest.TestCase):
     def setUp(self) -> None:
         self.chats = [make_chat(1, "Ann"), make_chat(2, "Muted", mute_for=60)]
 
-    def watch(self, updates: List[Any], argv: List[str]) -> List[str]:
+    def watch(self, updates: list[Any], argv: list[str]) -> list[str]:
         session = WatchSession(self.chats, updates)
         out = io.StringIO()
         with patch("sys.stdout", out):
@@ -573,6 +574,6 @@ class WatchTest(unittest.TestCase):
         self.assertEqual(len(lines), 1)
 
 
-def run_raw(session: FakeSession, argv: List[str]) -> Any:
+def run_raw(session: FakeSession, argv: list[str]) -> Any:
     args = parse(argv)
     return commands.COMMANDS[args.command](Ctx(session, args), args)  # type: ignore[arg-type]

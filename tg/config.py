@@ -7,7 +7,6 @@ import importlib.resources
 import os
 import platform
 import runpy
-from typing import Dict, List, Optional, Union
 
 _os_name = platform.system()
 _darwin = "Darwin"
@@ -17,7 +16,7 @@ _linux = "Linux"
 CONFIG_DIR = os.path.expanduser("~/.config/tg/")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "conf.py")
 FILES_DIR = os.path.expanduser("~/.cache/tg/")
-MAILCAP_FILE: Optional[str] = None
+MAILCAP_FILE: str | None = None
 
 LOG_LEVEL = "INFO"
 LOG_PATH = os.path.expanduser("~/.local/share/tg/")
@@ -25,11 +24,11 @@ LOG_PATH = os.path.expanduser("~/.local/share/tg/")
 API_ID = 559815
 API_HASH = "fd121358f59d764c57c55871aa0807ca"
 
-PHONE: Optional[str] = None
+PHONE: str | None = None
 ENC_KEY = ""
 
 
-def _bundled_tdlib_path() -> Optional[str]:
+def _bundled_tdlib_path() -> str | None:
     name = "libtdjson.dylib" if _os_name == _darwin else "libtdjson.so"
     path = importlib.resources.files("telegram").joinpath(f"lib/{name}")
     return str(path) if path.is_file() else None
@@ -72,9 +71,9 @@ if _os_name == _linux:
 else:
     COPY_CMD = "pbcopy"
 
-CHAT_FLAGS: Dict[str, str] = {}
+CHAT_FLAGS: dict[str, str] = {}
 
-MSG_FLAGS: Dict[str, str] = {}
+MSG_FLAGS: dict[str, str] = {}
 
 # Reshape and reorder Arabic/Persian text for terminals without BiDi support.
 # Requires optional deps: pip install "tg[rtl]"
@@ -100,7 +99,7 @@ DATE_FORMAT = "%d.%m.%Y"
 TODAY_LABEL = "Today"
 
 CLI_SEND = False
-CLI_SEND_ALLOWLIST: List[Union[int, str]] = []
+CLI_SEND_ALLOWLIST: list[int | str] = []
 
 if os.path.isfile(CONFIG_FILE):
     config_params = runpy.run_path(CONFIG_FILE)

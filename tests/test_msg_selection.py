@@ -1,10 +1,10 @@
 import unittest
-from typing import Any, Dict, List
+from typing import Any
 
 from tg.models import MsgModel
 
 
-def msg(msg_id: int) -> Dict[str, Any]:
+def msg(msg_id: int) -> dict[str, Any]:
     return {"id": msg_id}
 
 
@@ -15,7 +15,7 @@ class SelectionTest(unittest.TestCase):
             self.model.add_message(10, msg(msg_id))
 
     def selected(self) -> int:
-        ids: List[int] = self.model.msg_ids[10]
+        ids: list[int] = self.model.msg_ids[10]
         return ids[self.model.current_msgs[10]]
 
     def test_new_message_keeps_selection(self) -> None:
