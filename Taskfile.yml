@@ -6,6 +6,7 @@ tasks:
     - poetry run python -m tg
 
   release:
+    - poetry run sh check.sh
     - |
       CURRENT_VERSION=$(cat tg/__init__.py | grep version | cut -d '"' -f 2)
       echo Current version $CURRENT_VERSION
