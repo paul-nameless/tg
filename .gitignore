@@ -1,13 +1,12 @@
-.mypy_cache/
 venv/
 __pycache__
-.env
 dist
 *.log*
 Makefile
-.idea/
 *monkeytype.sqlite3
-.vscode/
 build/
 MANIFEST
 tg.egg-info/
+.*
+!.gitignore
+!.github/
