@@ -13,14 +13,6 @@ dependencies = ["python-telegram (==2.0.0)", "standard-mailcap (>=3.13.0)", "qrc
 rtl = ["arabic-reshaper (>=3.0.0)", "python-bidi (>=0.6.0)"]
 
 [tool.poetry]
-name = "tg"
-version = "0.26.0"
-description = "Terminal Telegram client"
-authors = ["Paul Nameless <reacsdas@gmail.com>"]
-license = "Unlicense"
-readme = "readme.md"
-homepage = "https://github.com/paul-nameless/tg"
-repository = "https://github.com/paul-nameless/tg"
 packages = [{ include = "tg" }]
 
 [tool.poetry.group.dev.dependencies]
@@ -28,9 +20,6 @@ mypy = "^2.4.1"
 ruff = "^0.17.5"
 
 [project.scripts]
-tg = "tg.__main__:main"
-
-[tool.poetry.scripts]
 tg = "tg.__main__:main"
 
 [build-system]

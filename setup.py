@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import find_packages, setup
 
 import tg
 
@@ -19,7 +19,8 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.10",
     ],
-    packages=["tg"],
+    packages=find_packages(include=["tg", "tg.*"]),
+    package_data={"tg": ["resources/*.png", "resources/skill/*.md"]},
     entry_points={"console_scripts": ["tg = tg.__main__:main"]},
     python_requires=">=3.10",
     install_requires=[
