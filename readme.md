@@ -64,6 +64,13 @@ pip3 install tg
 tg
 ```
 
+Or install it as an isolated tool with [pipx](https://pipx.pypa.io) or [uv](https://docs.astral.sh/uv/):
+
+```sh
+pipx install tg
+uv tool install tg
+```
+
 
 ### From sources
 
@@ -72,7 +79,6 @@ This option is recommended for development:
 ```sh
 git clone https://github.com/paul-nameless/tg.git
 cd tg
-pip install python-telegram
 pip install .
 tg
 ```
@@ -84,17 +90,6 @@ tg
 ```sh
 docker run -it --rm ghcr.io/paul-nameless/tg
 ```
-
-### From the AUR
-
-If you're using Arch Linux, you can install tg through [its AUR package](https://aur.archlinux.org/packages/telegram-tg/):
-
-If you're using the `yay` AUR helper, you can install the package with:
-```bash
-yay -S telegram-tg
-```
-
-If you want to use the latest developement version via the AUR you can find it [here](https://aur.archlinux.org/packages/telegram-tg-git/)
 
 ## Command line and agents
 
