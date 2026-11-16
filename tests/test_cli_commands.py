@@ -198,8 +198,9 @@ def parse(argv: list[str]) -> argparse.Namespace:
 
 def run(session: FakeSession, argv: list[str]) -> dict[str, Any]:
     args = parse(argv)
-    data, _ = commands.COMMANDS[args.command](Ctx(session, args), args)  # type: ignore[arg-type]
-    return data
+    out = commands.COMMANDS[args.command](Ctx(session, args), args)  # type: ignore[arg-type]
+    assert out is not None
+    return out[0]
 
 
 def ctx(session: FakeSession) -> Ctx:

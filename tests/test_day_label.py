@@ -39,8 +39,8 @@ class SeparatorPlacementTest(unittest.TestCase):
         view.h, view.w = height, 40
         view.model = MagicMock()
         view.model.users.get_user_label.return_value = "Bro"
-        view._get_flags = lambda msg: ""  # type: ignore[method-assign]
-        view._format_msg = lambda msg, width_limit: "hi"  # type: ignore[method-assign]
+        view._get_flags = lambda msg_proxy: ""  # type: ignore[method-assign]
+        view._format_msg = lambda msg_proxy, width_limit: "hi"  # type: ignore[method-assign]
         noon = datetime.combine(date.today(), datetime.min.time()).replace(hour=12)
         msgs = []
         for i, ago in enumerate(days_ago):

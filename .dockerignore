@@ -1,0 +1,7 @@
+*
+!pyproject.toml
+!poetry.lock
+!readme.md
+!tg/
+**/__pycache__
+**/*.log*

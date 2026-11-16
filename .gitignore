@@ -10,3 +10,4 @@ tg.egg-info/
 .*
 !.gitignore
 !.github/
+!.dockerignore
