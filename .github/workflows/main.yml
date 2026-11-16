@@ -16,15 +16,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v7
+      - name: Set up uv and Python ${{ matrix.python-version }}
+        uses: astral-sh/setup-uv@v10
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install tools
-        run: |
-          pip install poetry && poetry config virtualenvs.create false && poetry install --no-interaction --no-ansi
+      - name: Install dependencies
+        run: uv sync --locked
 
       - name: Checks and tests
-        run: |
-          sh check.sh
+        run: uv run sh check.sh

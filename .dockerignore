@@ -1,6 +1,6 @@
 *
 !pyproject.toml
-!poetry.lock
+!uv.lock
 !readme.md
 !tg/
 **/__pycache__

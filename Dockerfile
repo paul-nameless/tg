@@ -1,16 +1,17 @@
 FROM python:3.13.3-slim-bullseye
 
+COPY --from=ghcr.io/astral-sh/uv:0.13.7 /uv /bin/uv
+
 WORKDIR /app
 
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app \
+    UV_PROJECT_ENVIRONMENT=/usr/local \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
 
-RUN pip3 install --disable-pip-version-check --no-cache-dir poetry
+COPY uv.lock pyproject.toml /app/
 
-COPY poetry.lock pyproject.toml /app/
-
-# Use --without dev to skip dev dependencies (--no-dev is deprecated)
-RUN poetry config virtualenvs.create false && \
-    poetry install --no-interaction --no-ansi --without dev --no-root
+RUN uv sync --locked --no-dev --no-install-project --inexact
 
 COPY . /app
 
