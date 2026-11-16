@@ -16,12 +16,12 @@ tasks:
       sed -i '' "s|$CURRENT_VERSION|$NEW_VERSION|g" tg/__init__.py
       uv version $NEW_VERSION
 
+      uv build --clear
+      UV_PUBLISH_TOKEN=$(pass show i/pypi-tg-token | head -n 1) uv publish
+
       git add -u tg/__init__.py pyproject.toml uv.lock
       git commit -m "Release v$NEW_VERSION"
       git tag v$NEW_VERSION
-
-      uv build --clear
-      UV_PUBLISH_TOKEN=$(pass show i/pypi-tg-token | head -n 1) uv publish
       git push origin master --tags
       gh release create v$NEW_VERSION --generate-notes --title v$NEW_VERSION --verify-tag
 
