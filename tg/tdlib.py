@@ -547,6 +547,12 @@ class Tdlib(Telegram):
         return self._send_data(data)
 
 
+def result_update(result: AsyncResult) -> Dict[str, Any]:
+    if result.error or not result.update:
+        return {}
+    return result.update
+
+
 def get_chat_type(chat: Dict[str, Any]) -> Optional[ChatType]:
     try:
         chat_type = ChatType[chat["type"]["@type"]]

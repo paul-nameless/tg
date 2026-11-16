@@ -15,6 +15,7 @@ from tg.tdlib import (
     UserStatus,
     UserType,
     get_chat_type,
+    result_update,
 )
 from tg.utils import copy_to_clipboard, pretty_ts
 
@@ -278,10 +279,10 @@ class Model:
         group_id = chat["type"]["basic_group_id"]
         result = self.tg.get_basic_group_full_info(group_id)
         result.wait()
-        chat_info = result.update if not result.error else {}
-        basic_info = self.tg.get_basic_group(group_id)
-        basic_info.wait()
-        basic_info = basic_info.update if not basic_info.error else {}
+        chat_info = result_update(result)
+        basic = self.tg.get_basic_group(group_id)
+        basic.wait()
+        basic_info = result_update(basic)
         return {
             chat["title"]: f"{basic_info['member_count']} members",
             "Info": chat_info["description"],
@@ -291,7 +292,7 @@ class Model:
     def get_supergroup_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
         result = self.tg.get_supergroup_full_info(chat["type"]["supergroup_id"])
         result.wait()
-        chat_info = result.update if not result.error else {}
+        chat_info = result_update(result)
         return {
             chat["title"]: f"{chat_info['member_count']} members",
             "Info": chat_info["description"],
@@ -301,7 +302,7 @@ class Model:
     def get_channel_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
         result = self.tg.get_supergroup_full_info(chat["type"]["supergroup_id"])
         result.wait()
-        chat_info = result.update if not result.error else {}
+        chat_info = result_update(result)
         return {
             chat["title"]: "subscribers",
             "Info": chat_info["description"],
@@ -311,7 +312,7 @@ class Model:
     def get_secret_chat_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
         result = self.tg.get_secret_chat(chat["type"]["secret_chat_id"])
         result.wait()
-        chat_info = result.update if not result.error else {}
+        chat_info = result_update(result)
         enc_key = base64.b64decode(chat_info.get("key_hash", ""))[:32].hex()
         hex_key = " ".join([enc_key[i : i + 2] for i in range(0, len(enc_key), 2)])
 
@@ -424,7 +425,7 @@ class ChatModel:
             log.error(f"get chat ids error: {result.error_info}")
             return None
 
-        chat_ids = result.update["chat_ids"]
+        chat_ids = result_update(result).get("chat_ids", [])
         if len(chat_ids) < self.chats_limit:
             self.have_full_chat_list = True
 
@@ -442,7 +443,7 @@ class ChatModel:
         if result.error:
             log.error(f"get chat error: {result.error_info}")
             return {}
-        return result.update if not result.error else {}
+        return result_update(result)
 
     def add_chat(self, chat: Dict[str, Any]) -> None:
         chat_id = chat["id"]
@@ -616,10 +617,9 @@ class MsgModel:
                 limit=len(self.msg_ids[chat_id]) + limit,
             )
         result.wait()
-        if result.error or not result.update.get("messages"):
+        messages = result_update(result).get("messages")
+        if not messages:
             return []
-
-        messages = result.update["messages"]
 
         # tdlib could doesn't guarantee number of messages, so we need to
         # send another request on demand
@@ -633,8 +633,7 @@ class MsgModel:
                 limit=len(self.msg_ids[chat_id]) + limit,
             )
             result.wait()
-            if not result.error and "messages" in result.update:
-                messages += result.update["messages"]
+            messages += result_update(result).get("messages", [])
 
         return messages
 
@@ -701,7 +700,7 @@ class UserModel:
         if result.error:
             log.error(f"get myself error: {result.error_info}")
             return {}
-        self.me = result.update if not result.error else {}
+        self.me = result_update(result)
         return self.me
 
     def get_user_action(self, chat_id: int) -> Tuple[Optional[int], Optional[str]]:
@@ -798,8 +797,8 @@ class UserModel:
         if result.error:
             log.warning(f"get user full info error: {result.error_info}")
             return {}
-        user["full_info"] = result.update if not result.error else {}
-        return result.update if not result.error else {}
+        user["full_info"] = result_update(result)
+        return user["full_info"]
 
     def get_user(self, user_id: int) -> Dict[str, Any]:
         if user_id in self.not_found:
@@ -812,8 +811,8 @@ class UserModel:
             log.warning(f"get user error: {result.error_info}")
             self.not_found.add(user_id)
             return {}
-        self.users[user_id] = result.update if not result.error else {}
-        return result.update if not result.error else {}
+        self.users[user_id] = result_update(result)
+        return self.users[user_id]
 
     def get_group_info(self, group_id: int) -> Optional[Dict[str, Any]]:
         if group_id in self.groups:
@@ -837,7 +836,7 @@ class UserModel:
         if result.error:
             log.error("get contacts error: %s", result.error_info)
             return None
-        self.contacts = result.update if not result.error else {}
+        self.contacts = result_update(result)
         return self.contacts
 
     def get_user_label(self, user_id: int) -> str:

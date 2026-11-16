@@ -12,7 +12,7 @@ from telegram.utils import AsyncResult
 from tg import config
 from tg.models import Model
 from tg.msg import MsgProxy
-from tg.tdlib import ChatAction, ChatType, Tdlib, get_chat_type
+from tg.tdlib import ChatAction, ChatType, Tdlib, get_chat_type, result_update
 from tg.utils import (
     get_duration,
     get_mime,
@@ -675,9 +675,10 @@ class Controller:
             return self.present_info("Search discarded")
 
         rv = self.tg.search_contacts(msg)
+        rv.wait()
         if rv.error:
             return self.present_info("Search error")
-        chat_ids = rv.update.get("chat_ids", [])
+        chat_ids = result_update(rv).get("chat_ids", [])
         if not chat_ids:
             return self.present_info("Chat not found")
 
