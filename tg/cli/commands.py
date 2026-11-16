@@ -22,7 +22,7 @@ from tg.cli.session import (
     Session,
 )
 from tg.msg import MsgProxy
-from tg.tdlib import ChatType, get_chat_type
+from tg.tdlib import ChatType, get_chat_type, is_muted
 
 Output = tuple[dict[str, Any], list[str]]
 
@@ -34,15 +34,6 @@ MAX_HISTORY_REQUESTS = 30
 DOWNLOAD_TIMEOUT = 600.0
 UPDATE_TIMEOUT = 10.0
 SEND_TIMEOUT = 30.0
-
-SCOPES = {
-    "private": "notificationSettingsScopePrivateChats",
-    "secret": "notificationSettingsScopePrivateChats",
-    "bot": "notificationSettingsScopePrivateChats",
-    "group": "notificationSettingsScopeGroupChats",
-    "supergroup": "notificationSettingsScopeGroupChats",
-    "channel": "notificationSettingsScopeChannelChats",
-}
 
 MEDIA_TYPES = {
     "messagePhoto": "photo",
@@ -118,12 +109,9 @@ class Ctx:
         return active[0] if active else None
 
     def is_muted(self, chat: dict[str, Any]) -> bool:
-        settings = chat.get("notification_settings", {})
-        if not settings.get("use_default_mute_for"):
-            return settings.get("mute_for", 0) > 0
-        scope = SCOPES.get(self.chat_type(chat))
-        if scope is None:
-            return False
+        return is_muted(chat, self.scope_muted)
+
+    def scope_muted(self, scope: str) -> bool:
         if scope not in self._scope_muted:
             scope_settings = self.call(
                 "getScopeNotificationSettings", scope={"@type": scope}

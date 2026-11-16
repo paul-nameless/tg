@@ -325,7 +325,7 @@ class ChatView:
         if chat.get("is_pinned"):
             flags.append("pinned")
 
-        if chat["notification_settings"]["mute_for"]:
+        if self.model.chats.is_muted(chat):
             flags.append("muted")
 
         if chat["is_marked_as_unread"]:

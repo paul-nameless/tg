@@ -1,6 +1,7 @@
 import ctypes
 import getpass
 import queue
+from collections.abc import Callable
 from enum import Enum
 from typing import Any
 
@@ -478,6 +479,13 @@ class Tdlib(Telegram):
         }
         return self._send_data(data)
 
+    def get_scope_notification_settings(self, scope: str) -> AsyncResult:
+        data = {
+            "@type": "getScopeNotificationSettings",
+            "scope": {"@type": scope},
+        }
+        return self._send_data(data)
+
     def leave_chat(self, chat_id: int) -> AsyncResult:
         data = {
             "@type": "leaveChat",
@@ -558,6 +566,25 @@ def username(user: dict[str, Any]) -> str:
 
 def invite_link(full_info: dict[str, Any]) -> str:
     return (full_info.get("invite_link") or {}).get("invite_link", "")
+
+
+def notification_scope(chat: dict[str, Any]) -> str | None:
+    chat_type = get_chat_type(chat)
+    if chat_type in (ChatType.chatTypePrivate, ChatType.chatTypeSecret):
+        return "notificationSettingsScopePrivateChats"
+    if chat_type in (ChatType.chatTypeBasicGroup, ChatType.chatTypeSupergroup):
+        return "notificationSettingsScopeGroupChats"
+    if chat_type == ChatType.channel:
+        return "notificationSettingsScopeChannelChats"
+    return None
+
+
+def is_muted(chat: dict[str, Any], scope_muted: Callable[[str], bool]) -> bool:
+    settings = chat.get("notification_settings", {})
+    if not settings.get("use_default_mute_for"):
+        return settings.get("mute_for", 0) > 0
+    scope = notification_scope(chat)
+    return scope is not None and scope_muted(scope)
 
 
 def get_chat_type(chat: dict[str, Any]) -> ChatType | None:

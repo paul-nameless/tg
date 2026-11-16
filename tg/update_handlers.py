@@ -174,6 +174,16 @@ def update_chat_last_message(controller: Controller, update: dict[str, Any]) -> 
         controller.refresh_current_chat(current_chat_id)
 
 
+@update_handler("updateScopeNotificationSettings")
+def update_scope_notification_settings(
+    controller: Controller, update: dict[str, Any]
+) -> None:
+    scope = update["scope"]["@type"]
+    muted = update["notification_settings"].get("mute_for", 0) > 0
+    controller.model.chats.scopes_muted[scope] = muted
+    controller.render()
+
+
 @update_handler("updateChatNotificationSettings")
 def update_chat_notification_settings(
     controller: Controller, update: dict[str, Any]

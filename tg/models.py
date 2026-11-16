@@ -16,6 +16,7 @@ from tg.tdlib import (
     UserType,
     get_chat_type,
     invite_link,
+    is_muted,
     result_update,
     username,
 )
@@ -393,6 +394,17 @@ class ChatModel:
         self.title: str = "Chats"
         self.found_chats: list[int] = []
         self.found_chat_idx: int = 0
+        self.scopes_muted: dict[str, bool] = {}
+
+    def is_muted(self, chat: dict[str, Any]) -> bool:
+        return is_muted(chat, self.scope_muted)
+
+    def scope_muted(self, scope: str) -> bool:
+        if scope not in self.scopes_muted:
+            result = self.tg.get_scope_notification_settings(scope)
+            result.wait()
+            self.scopes_muted[scope] = result_update(result).get("mute_for", 0) > 0
+        return self.scopes_muted[scope]
 
     def next_found_chat(self, backwards: bool = False) -> int:
         new_idx = self.found_chat_idx + (-1 if backwards else 1)

@@ -875,24 +875,21 @@ class Controller:
         self.view.msgs.draw(current_msg_idx, msgs, MSGS_LEFT_SCROLL_THRESHOLD, chat)
 
     def notify_for_message(self, chat_id: int, msg: MsgProxy) -> None:
-        # do not notify, if muted
-        # TODO: optimize
         for chat in self.model.chats.chats:
             if chat_id == chat["id"]:
                 break
         else:
-            # chat not found, do not notify
             return
 
-        # TODO: handle cases when all chats muted on global level
-        if chat["notification_settings"]["mute_for"]:
+        if self.model.chats.is_muted(chat):
             return
 
-        # notify
-        if self.model.is_me(msg["sender_id"].get("user_id")):
-            return
-        user = self.model.users.get_user(msg.sender_id)
-        name = f"{user['first_name']} {user['last_name']}"
+        if user_id := msg["sender_id"].get("user_id"):
+            if self.model.is_me(user_id):
+                return
+            name = self.model.users.get_user_label(user_id)
+        else:
+            name = chat["title"]
 
         if text := msg.text_content if msg.is_text else msg.content_type:
             notify(text, title=name)
