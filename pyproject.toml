@@ -1,6 +1,6 @@
 [project]
 name = "tg"
-version = "0.27.0"
+version = "0.28.0"
 description = "Terminal Telegram client"
 authors = [{ name = "Paul Nameless", email = "reacsdas@gmail.com" }]
 license = "Unlicense"
