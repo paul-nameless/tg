@@ -8,6 +8,8 @@ import os
 import platform
 import runpy
 
+from tg import keymaps
+
 _os_name = platform.system()
 _darwin = "Darwin"
 _linux = "Linux"
@@ -100,6 +102,7 @@ TODAY_LABEL = "Today"
 
 CLI_SEND = False
 CLI_SEND_ALLOWLIST: list[int | str] = []
+KEY_ALIASES: dict[str, str] = keymaps.RU
 
 if os.path.isfile(CONFIG_FILE):
     config_params = runpy.run_path(CONFIG_FILE)

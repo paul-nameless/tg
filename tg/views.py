@@ -36,13 +36,22 @@ MULTICHAR_KEYBINDINGS = (
 
 
 SPECIAL_KEYS = {
-    curses.KEY_DOWN: "^B",
-    curses.KEY_UP: "^C",
-    curses.KEY_LEFT: "^D",
-    curses.KEY_RIGHT: "^E",
+    curses.KEY_DOWN: "<Down>",
+    curses.KEY_UP: "<Up>",
+    curses.KEY_LEFT: "<Left>",
+    curses.KEY_RIGHT: "<Right>",
     curses.KEY_NPAGE: "J",
     curses.KEY_PPAGE: "K",
 }
+
+
+def key_name(ch: str) -> str:
+    code = ord(ch)
+    if code < 32:
+        return f"^{chr(code + 64)}"
+    if code == 127:
+        return "^?"
+    return ch
 
 
 class Win:
@@ -99,16 +108,15 @@ class View:
         keys = repeat_factor = ""
 
         for _ in range(MAX_KEYBINDING_LENGTH):
-            ch = self.stdscr.getch()
-            log.info("raw ch without unctrl: %s", ch)
-            if ch > 255:
+            try:
+                ch = self.stdscr.get_wch()
+            except curses.error:
+                break
+            log.info("raw ch: %r", ch)
+            if isinstance(ch, int):
                 keys += SPECIAL_KEYS.get(ch, "")
                 break
-            try:
-                key = curses.unctrl(ch).decode()
-            except Exception:  # noqa: BLE001
-                log.warning("cant uncrtl: %s", ch)
-                break
+            key = config.KEY_ALIASES.get(key_name(ch), key_name(ch))
             if key.isdigit():
                 repeat_factor += key
                 continue

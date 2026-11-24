@@ -175,12 +175,19 @@ def num(value: str, default: int | None = None) -> int | None:
         return default
 
 
+def _answer(resp: str) -> str:
+    resp = resp.strip()
+    if resp.lower() in ("y", "n"):
+        return resp.lower()
+    return config.KEY_ALIASES.get(resp, resp).lower()
+
+
 def is_yes(resp: str) -> bool:
-    return not resp or resp.strip().lower() == "y"
+    return not resp or _answer(resp) == "y"
 
 
 def is_no(resp: str) -> bool:
-    return not resp or resp.strip().lower() == "n"
+    return not resp or _answer(resp) == "n"
 
 
 def get_duration(file_path: str) -> int:

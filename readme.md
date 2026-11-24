@@ -230,6 +230,9 @@ SELECTED_STYLE = "reverse"
 
 # reshape Arabic/Persian text for terminals without BiDi support (needs tg[rtl])
 RTL_RESHAPE = False
+
+# key aliases: pressing the key on the left acts as the key on the right
+KEY_ALIASES = {"о": "j", "л": "k"}
 ```
 
 ### Mailcap file
@@ -260,6 +263,8 @@ text/*; vim "%s"
 vi like keybindings are used in the project. Can be used commands like `4j` - 4 lines down.
 
 For navigation arrow keys also can be used.
+
+Press `?` in the chats or msgs pane to see all keys. To add key aliases, set `KEY_ALIASES` in the configuration.
 
 ### Chats:
 

@@ -36,6 +36,8 @@ MSGS_LEFT_SCROLL_THRESHOLD = 2
 REPLY_MSG_PREFIX = "# >"
 HandlerType = Callable[[Any], str | None]
 
+HELP_KEY_NAMES = {" ": "<Space>", "^@": "<C-Space>", "^J": "<Enter>", "^[": "<Esc>"}
+
 chat_handler: dict[str, HandlerType] = {}
 msg_handler: dict[str, HandlerType] = {}
 
@@ -155,9 +157,20 @@ class Controller:
 
     @staticmethod
     def format_help(bindings: dict[str, HandlerType]) -> str:
+        groups: dict[str, list[str]] = {}
+        docs: dict[str, str] = {}
+        for key, fun in bindings.items():
+            groups.setdefault(fun.__name__, []).append(HELP_KEY_NAMES.get(key, key))
+            docs[fun.__name__] = fun.__doc__ or ""
+        rows = sorted(
+            ((", ".join(keys), name) for name, keys in groups.items()),
+            key=lambda row: row[0],
+        )
+        keys_width = max(len(keys) for keys, _ in rows)
+        name_width = max(len(name) for _, name in rows)
         return "\n".join(
-            f"{key}\t{fun.__name__}\t{fun.__doc__ or ''}"
-            for key, fun in sorted(bindings.items())
+            f"{keys:<{keys_width}}  {name:<{name_width}}  {docs[name]}".rstrip()
+            for keys, name in rows
         )
 
     @bind(chat_handler, ["?"])
@@ -183,7 +196,7 @@ class Controller:
     def quit(self) -> str:
         return "QUIT"
 
-    @bind(msg_handler, ["h", "^D"])
+    @bind(msg_handler, ["h", "<Left>"])
     def back(self) -> str:
         return "BACK"
 
@@ -263,7 +276,7 @@ class Controller:
         if self.model.jump_bottom():
             self.render_msgs()
 
-    @bind(msg_handler, ["j", "^B", "^N"], repeat_factor=True)
+    @bind(msg_handler, ["j", "<Down>", "^N"], repeat_factor=True)
     def next_msg(self, repeat_factor: int = 1) -> None:
         if self.model.next_msg(repeat_factor):
             self.render_msgs()
@@ -272,7 +285,7 @@ class Controller:
     def jump_10_msgs_down(self) -> None:
         self.next_msg(10)
 
-    @bind(msg_handler, ["k", "^C", "^P"], repeat_factor=True)
+    @bind(msg_handler, ["k", "<Up>", "^P"], repeat_factor=True)
     def prev_msg(self, repeat_factor: int = 1) -> None:
         if self.model.prev_msg(repeat_factor):
             self.render_msgs()
@@ -646,7 +659,7 @@ class Controller:
             if resp is None:
                 return self.present_info("Not deleting chat")
             self.render_status()
-            is_revoke = is_no(resp)
+            is_revoke = bool(resp.strip()) and is_yes(resp)
 
         self.tg.delete_chat_history(
             chat["id"], remove_from_chat_list=True, revoke=is_revoke
@@ -697,7 +710,7 @@ class Controller:
     def view_contacts(self) -> None:
         self._get_user_ids()
 
-    @bind(chat_handler, ["l", "^J", "^E"])
+    @bind(chat_handler, ["l", "^J", "<Right>"])
     def handle_msgs(self) -> str | None:
         rc = self.handle(msg_handler, self.msgs_chat_size())
         if rc == "QUIT":
@@ -710,13 +723,13 @@ class Controller:
         if self.model.first_chat():
             self.render()
 
-    @bind(chat_handler, ["j", "^B", "^N"], repeat_factor=True)
+    @bind(chat_handler, ["j", "<Down>", "^N"], repeat_factor=True)
     @bind(msg_handler, ["]"])
     def next_chat(self, repeat_factor: int = 1) -> None:
         if self.model.next_chat(repeat_factor):
             self.render()
 
-    @bind(chat_handler, ["k", "^C", "^P"], repeat_factor=True)
+    @bind(chat_handler, ["k", "<Up>", "^P"], repeat_factor=True)
     @bind(msg_handler, ["["])
     def prev_chat(self, repeat_factor: int = 1) -> None:
         if self.model.prev_chat(repeat_factor):
